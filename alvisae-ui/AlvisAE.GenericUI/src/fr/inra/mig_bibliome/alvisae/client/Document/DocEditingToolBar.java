@@ -98,25 +98,25 @@ public class DocEditingToolBar extends Composite implements ApplicationStatusCha
                         docEditView.getUserId(),
                         docEditView.getTaskId(),
                         new AsyncCallback<TaskInstanceListImpl>() {
-                            @Override
-                            public void onFailure(Throwable caught) {
-                                nextDocId = null;
-                                nextDocButton.setEnabled(nextDocId != null);
-                            }
+                    @Override
+                    public void onFailure(Throwable caught) {
+                        nextDocId = null;
+                        nextDocButton.setEnabled(nextDocId != null);
+                    }
 
-                            @Override
-                            public void onSuccess(TaskInstanceListImpl result) {
-                                //get the first document that is not already in document history
-                                for (int row = 0; row < result.length(); row++) {
-                                    int dId = result.get(row).getDocumentId();
-                                    if (!documentHistory.contains(dId)) {
-                                        nextDocId = dId;
-                                        break;
-                                    }
-                                }
-                                nextDocButton.setEnabled(nextDocId != null);
+                    @Override
+                    public void onSuccess(TaskInstanceListImpl result) {
+                        //get the first document that is not already in document history
+                        for (int row = 0; row < result.length(); row++) {
+                            int dId = result.get(row).getDocumentId();
+                            if (!documentHistory.contains(dId)) {
+                                nextDocId = dId;
+                                break;
                             }
-                        });
+                        }
+                        nextDocButton.setEnabled(nextDocId != null);
+                    }
+                });
 
             }
         }
@@ -160,6 +160,8 @@ public class DocEditingToolBar extends Composite implements ApplicationStatusCha
     @UiHandler("nextDocButton")
     void handleNextDocButtonClick(ClickEvent e) {
         if (nextDocId != null) {
+            glassPanel.addStyleName(style.ForeGroundPos());
+            glassPanel.removeStyleName(style.BackGroundPos());
             docEditView.getPresenter().goTo(new DocEditingPlace(new BasicUserCampaignDocOffsetTaskParams(docEditView.getUserId(), docEditView.getCampaignId(), nextDocId, 0, docEditView.getTaskId())));
         }
     }
@@ -167,6 +169,8 @@ public class DocEditingToolBar extends Composite implements ApplicationStatusCha
     @UiHandler("prevDocButton")
     void handlePrevDocButtonClick(ClickEvent e) {
         if (prevDocId != null) {
+            glassPanel.addStyleName(style.ForeGroundPos());
+            glassPanel.removeStyleName(style.BackGroundPos());
             docEditView.getPresenter().goTo(new DocEditingPlace(new BasicUserCampaignDocOffsetTaskParams(docEditView.getUserId(), docEditView.getCampaignId(), prevDocId, 0, docEditView.getTaskId())));
         }
     }

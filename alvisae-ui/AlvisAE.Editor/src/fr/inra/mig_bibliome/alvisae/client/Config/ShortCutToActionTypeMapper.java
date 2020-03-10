@@ -39,6 +39,8 @@ public class ShortCutToActionTypeMapper {
     private static final KeyboardShortCut[] increaseLineSize = {new KeyboardShortCut('+', null, false, false, false, true)};
     private static final KeyboardShortCut[] decreaseLineSize = {new KeyboardShortCut('-', null, false, false, false, true)};
     private static final KeyboardShortCut[] toggleSelectionMode = {new KeyboardShortCut('v', null, false, false, false, null),new KeyboardShortCut('V', null, false, false, false, null)};
+    private static final KeyboardShortCut[] consolidateAnnotation = {new KeyboardShortCut('c', null, false, false, false, null), new KeyboardShortCut('C', null, false, false, false, null), new KeyboardShortCut((char)0, 45, false, false, false, false)};
+    
     /**
      * Application defined Action types with their associated keyboard shortcuts
      */
@@ -50,6 +52,7 @@ public class ShortCutToActionTypeMapper {
         INCREASELINESIZE(increaseLineSize),
         DEREASELINESIZE(decreaseLineSize),
         TOGGLESELECTONMODE(toggleSelectionMode),
+        CONSOLIDATEANNOTATION(consolidateAnnotation),
         ;
 
         private ArrayList<KeyboardShortCut> shortcuts = new ArrayList<KeyboardShortCut>();

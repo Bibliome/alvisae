@@ -2,11 +2,12 @@
  *
  *      This software is a result of Quaero project and its use must respect the rules of the Quaero Project Consortium Agreement.
  *
- *      Copyright Institut National de la Recherche Agronomique, 2010-2012.
+ *      Copyright Institut National de la Recherche Agronomique, 2010-2014.
  *
  */
 package fr.inra.mig_bibliome.alvisae.client.Document;
 
+import fr.inra.mig_bibliome.alvisae.client.Document.Validation.ValidationResultDialog;
 import com.allen_sauer.gwt.dnd.client.PickupDragController;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.Scheduler;
@@ -15,7 +16,6 @@ import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.EventTarget;
 import com.google.gwt.dom.client.NativeEvent;
-import com.google.gwt.dom.client.Style;
 import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.event.dom.client.*;
 import com.google.gwt.event.logical.shared.ResizeEvent;
@@ -31,6 +31,7 @@ import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.client.Command;
+import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.*;
 import com.google.gwt.user.client.ui.PopupPanel.PositionCallback;
@@ -38,9 +39,10 @@ import com.google.web.bindery.event.shared.EventBus;
 import com.google.web.bindery.event.shared.HandlerRegistration;
 import fr.inra.mig_bibliome.alvisae.client.AlvisaeCore;
 import fr.inra.mig_bibliome.alvisae.client.Annotation.AnnotationSetDescriptionCell;
-import fr.inra.mig_bibliome.alvisae.client.Annotation.EditGroupDialog;
-import fr.inra.mig_bibliome.alvisae.client.Annotation.EditRelationDialog;
+import fr.inra.mig_bibliome.alvisae.client.Annotation.CombinedAnnotationCreationHelper;
 import fr.inra.mig_bibliome.alvisae.client.Annotation.ExplainSchemaPanel;
+import fr.inra.mig_bibliome.alvisae.client.Config.ApplicationOptions;
+import fr.inra.mig_bibliome.alvisae.client.Config.ApplicationOptions.PersistedOptionHandler;
 import fr.inra.mig_bibliome.alvisae.client.Config.GlobalStyles;
 import fr.inra.mig_bibliome.alvisae.client.Config.ShortCutToActionTypeMapper;
 import fr.inra.mig_bibliome.alvisae.client.Config.ShortCutToActionTypeMapper.ShortCutTriggeredActionType;
@@ -51,7 +53,7 @@ import fr.inra.mig_bibliome.alvisae.client.Document.AnnotationDisplayerEngine.Te
 import fr.inra.mig_bibliome.alvisae.client.Document.AnnotationReificator.DroppingAnnotationCallback;
 import fr.inra.mig_bibliome.alvisae.client.Document.CombinedAnnotationDisplayer.CombinedAnnotationWidget;
 import fr.inra.mig_bibliome.alvisae.client.Document.DocumentUi.Styles;
-import fr.inra.mig_bibliome.alvisae.client.Document.MessagesToUserConstants;
+import fr.inra.mig_bibliome.alvisae.client.Document.Validation.ClientFaultHTMLMessages;
 import fr.inra.mig_bibliome.alvisae.client.Edit.*;
 import fr.inra.mig_bibliome.alvisae.client.Edit.undo.CannotRedoException;
 import fr.inra.mig_bibliome.alvisae.client.Edit.undo.CannotUndoException;
@@ -61,9 +63,15 @@ import fr.inra.mig_bibliome.alvisae.client.Events.AnnotationFocusChangedEventHan
 import fr.inra.mig_bibliome.alvisae.client.Events.AnnotationSelectionChangedEventHandler;
 import fr.inra.mig_bibliome.alvisae.client.Events.AnnotationStatusChangedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.AnnotationStatusChangedEventHandler;
+import fr.inra.mig_bibliome.alvisae.client.Events.ApplicationOptionChangedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.ApplicationStatusChangedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.EditHappenedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.EditHappenedEventHandler;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TermAnnotationsExpositionEvent;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourcesCheckChangesInfoEvent;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIVersionedResourcesInfoEvent;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIVersionedResourcesInfoEventHandler;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIVersionedResourcesUnchangedInfoEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.GenericAnnotationSelectionChangedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.GroupSelectionChangedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.GroupSelectionEmptiedEvent;
@@ -82,14 +90,17 @@ import fr.inra.mig_bibliome.alvisae.client.Events.TextAnnotationSelectionChanged
 import fr.inra.mig_bibliome.alvisae.client.Events.TextAnnotationSelectionEmptiedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.WorkingDocumentChangedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.WorkingDocumentChangedEventHandler;
-import fr.inra.mig_bibliome.alvisae.client.ExportDialog;
 import fr.inra.mig_bibliome.alvisae.client.StanEditorResources;
 import fr.inra.mig_bibliome.alvisae.client.data.ResultMessageDialog;
 import fr.inra.mig_bibliome.alvisae.client.data3.*;
-import fr.inra.mig_bibliome.alvisae.client.data3.validation.ClientFaultMessages;
+import fr.inra.mig_bibliome.alvisae.client.data3.Extension.CheckedSemClassImpl;
+import fr.inra.mig_bibliome.alvisae.client.data3.Extension.ResourceLocator;
+import fr.inra.mig_bibliome.alvisae.client.data3.Extension.TyDIResRefPropValImpl;
+import fr.inra.mig_bibliome.alvisae.client.data3.Extension.TyDISemClassRefImpl;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotatedText;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Annotation;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationKind;
+import static fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationKind.TEXT;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationSchemaDefinition;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationSetInfo;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Fragment;
@@ -99,7 +110,15 @@ import fr.inra.mig_bibliome.alvisae.shared.data3.TaskDefinition;
 import fr.inra.mig_bibliome.alvisae.shared.data3.validation.AnnotationTypeDefinition;
 import fr.inra.mig_bibliome.alvisae.shared.data3.validation.BasicAnnotationSchemaValidator;
 import fr.inra.mig_bibliome.alvisae.shared.data3.validation.BasicFaultListener;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import java.util.logging.Logger;
 import org.vaadin.gwtgraphics.client.DrawingArea;
 
@@ -111,7 +130,7 @@ import org.vaadin.gwtgraphics.client.DrawingArea;
  *
  * @author fpapazian
  */
-public class DocumentUi extends ResizeComposite implements DocumentView, AnnotationSelectionChangedEventHandler, EditHappenedEventHandler, AnnotationStatusChangedEventHandler, AnnotationFocusChangedEventHandler, WorkingDocumentChangedEventHandler, MaximizingWidgetEventHandler {
+public class DocumentUi extends ResizeComposite implements DocumentView, AnnotationSelectionChangedEventHandler, EditHappenedEventHandler, AnnotationStatusChangedEventHandler, AnnotationFocusChangedEventHandler, WorkingDocumentChangedEventHandler, MaximizingWidgetEventHandler, TyDIVersionedResourcesInfoEventHandler {
 
     interface DocumentUiBinder extends UiBinder<Widget, DocumentUi> {
     }
@@ -120,7 +139,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
     private static MessagesToUserConstants messages = (MessagesToUserConstants) GWT.create(MessagesToUserConstants.class);
     private static final StaneClientBaseGinInjector injector = GWT.create(StaneClientBaseGinInjector.class);
     private static final Logger log = Logger.getLogger(DocumentUi.class.getName());
-    private static final ClientFaultMessages faultMessages = GWT.create(ClientFaultMessages.class);
+    private static final ClientFaultHTMLMessages faultMessages = GWT.create(ClientFaultHTMLMessages.class);
 
     //
     // -------------------------------------------------------------------------
@@ -209,17 +228,15 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
     @UiField
     PushButton deleteGroupButton;
     @UiField
-    PushButton editGroupButton;
-    @UiField
     PushButton addRelButton;
     @UiField
     PushButton deleteRelButton;
     @UiField
-    PushButton editRelButton;
-    @UiField
     PushButton explainSchemaBtn;
     @UiField
     PushButton validateButton;
+    @UiField
+    PushButton termRefreshBtn;
     @UiField
     MenuBar annSetsSelectionMenu;
     @UiField
@@ -250,6 +267,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
     private final ButtonEnablementManager buttonManager;
     private final TaskSchemaManager schemaManager = new TaskSchemaManager();
     private int interlineSizeIndex;
+    private final PersistedOptionHandler interlineSizeHnd;
     private Options options = new Options();
     private AnnotationReificator annotationReificator = null;
     private final AnnMarkerMouseHandler mouseHandler;
@@ -261,6 +279,11 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
     private final boolean withScrollpanel;
     //
     private boolean updatingAfterEditEvents = true;
+    //
+    //for document exposing TermAnnotations referencing TyDI resource
+    private ResourceLocator locator;
+    private AnnotationSchemaDefHandler schemaHandler;
+    private TyDIResourceRefsRefresher tyDIResourceRefsRefresher;
 
     /**
      *
@@ -503,6 +526,8 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
     //displayer used only to compute Text Annotation clips (optionnaly with correction when spanning over several lines)
     private class AnnTextClipEvaluatorDisplayer implements TextAnnotationDisplayer, AnnotationDisplayerEngine.TextAnnotationMainDisplayer {
 
+        private Map<String, List<DocumentView.FlankingClips>> flankingClipsByAnnotationId = new HashMap<String, List<DocumentView.FlankingClips>>();
+
         @Override
         public boolean processAnnotation(SpecifiedAnnotation annotation, String color, List<String> markerIds, boolean veiled) {
             return true;
@@ -522,6 +547,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
 
         @Override
         public void reset(AnnotationDisplayerEngine engine) {
+            flankingClipsByAnnotationId.clear();
         }
 
         @Override
@@ -538,7 +564,16 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         }
 
         @Override
-        public List<FlankingClips> getAnnotationFragmentClips(Annotation annotation) {
+        public List<DocumentView.FlankingClips> getAnnotationFragmentClips(Annotation annotation) {
+            List<DocumentView.FlankingClips> clips = flankingClipsByAnnotationId.get(annotation.getId());
+            if (clips == null) {
+                clips = _getAnnotationFragmentClips(annotation);
+                flankingClipsByAnnotationId.put(annotation.getId(), clips);
+            }
+            return clips;
+        }
+
+        private List<FlankingClips> _getAnnotationFragmentClips(Annotation annotation) {
             List<FlankingClips> fragmentClips = null;
             if (annotation.getAnnotationKind().equals(AnnotationKind.TEXT)) {
                 fragmentClips = getAnnotatedTextFragmentClips(annotation.getId());
@@ -609,11 +644,18 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
 
         annSetMenuItem.setHTML(SafeHtmlUtils.fromSafeConstant(AbstractImagePrototype.create(StanEditorResources.INSTANCE.AnnotationSetsIcon()).getHTML()));
 
+        interlineSizeHnd = new ApplicationOptions.PersistedOptionHandler("docui.interlinesize") {
+            @Override
+            public void valueChanged(Integer oldValue, Integer newValue) {
+               performUpdateLineSize(oldValue==null ? 0 :oldValue, newValue);
+            }
+        };
+        
         // ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
         incLineSize.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
-                updateLineSize(+1);
+                requestUpdateLineSize(+1);
             }
         });
 
@@ -621,7 +663,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         decLineSize.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
-                updateLineSize(-1);
+                requestUpdateLineSize(-1);
             }
         });
 
@@ -676,23 +718,41 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         OverlayMouseHandler overlayMouseHandler = new OverlayMouseHandler(interactionHandler);
         overlayContainer.addClickHandler(overlayMouseHandler);
         overlayContainer.addMouseMoveHandler(overlayMouseHandler);
-
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        // Redraw extra features (SVG and overlays) when the Document panel is resized
-        resizeSpy.addResizeHandler(new ResizeHandler() {
+        ResizeHandler resizeHandler = new ResizeHandler() {
+            private boolean widthChanged = false;
+            private boolean heightChanged = false;
+            int prevWidth = -1;
+            int prevHeight = -1;
+            Timer drawExtraTimer = new Timer() {
+                @Override
+                public void run() {
+                    _drawExtra(false, widthChanged, heightChanged);
+                    widthChanged = false;
+                    heightChanged = false;
+                }
+            };
+
             @Override
             public void onResize(ResizeEvent event) {
-                drawExtra();
+                int newWidth = event.getWidth();
+                widthChanged = widthChanged || prevWidth != newWidth;
+                prevWidth = newWidth;
+                int newHeight = event.getHeight();
+                heightChanged = heightChanged || prevHeight != newHeight;
+                prevHeight = newHeight;
+                if (widthChanged) {
+                    clearCombinedAnnotationCanvas();
+                }
+                drawExtraTimer.schedule(200);
             }
-        });
+        };
+
+        // Redraw extra features (SVG and overlays) when the Document panel is resized
+        resizeSpy.addResizeHandler(resizeHandler);
 
         // Redraw extra features (SVG and overlays) when the Browser Window is resized
-        Window.addResizeHandler(new ResizeHandler() {
-            @Override
-            public void onResize(ResizeEvent event) {
-                drawExtra();
-            }
-        });
+        Window.addResizeHandler(resizeHandler);
 
         if (withScrollpanel) {
             //relocate Drag and Drap widgets after scrolling of the document
@@ -879,25 +939,31 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
      * @param step - the number of logical steps to move from current position
      * (-1 or 1). 0 to reset to minimum size.
      */
-    private void updateLineSize(int step) {
+    private void requestUpdateLineSize(int step) {
+        int newInterlineSizeIndex = interlineSizeIndex;
+        if (step == 0) {
+            newInterlineSizeIndex = 0;
+        } else {
+            newInterlineSizeIndex += step;
+        }
+        if (newInterlineSizeIndex <= 0) {
+            newInterlineSizeIndex = 0;
+        } else if (newInterlineSizeIndex >= GlobalStyles.getInterlineSizePx().length) {
+            newInterlineSizeIndex = GlobalStyles.getInterlineSizePx().length - 1;
+        }
+        interlineSizeHnd.persistValue(newInterlineSizeIndex);
+    }
+    
+    private void performUpdateLineSize(int currentInterlineSizeIndex, int newInterlineSizeIndex) {
+        
         int prevScrollPos = scrollPanel.getVerticalScrollPosition();
         int prevMaxScrollPos = scrollPanel.getMaximumVerticalScrollPosition();
+        
+        contentHTML.removeStyleName(GlobalStyles.getInterlineStyleName(currentInterlineSizeIndex));
 
-        contentHTML.removeStyleName(GlobalStyles.getInterlineStyleName(interlineSizeIndex));
-
-        if (step == 0) {
-            interlineSizeIndex = 0;
-        } else {
-            interlineSizeIndex += step;
-        }
-        if (interlineSizeIndex <= 0) {
-            interlineSizeIndex = 0;
-        } else if (interlineSizeIndex >= GlobalStyles.getInterlineSizePx().length) {
-            interlineSizeIndex = GlobalStyles.getInterlineSizePx().length - 1;
-        }
-
+        interlineSizeIndex = newInterlineSizeIndex;
         contentHTML.addStyleName(GlobalStyles.getInterlineStyleName(interlineSizeIndex));
-
+        
         //reset scrolling in order to show the part of text that was visible before resizing the line
         setScrollPositionAtRatio(prevScrollPos, prevMaxScrollPos);
 
@@ -1009,9 +1075,9 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
                                 @Override
                                 public void annotationSelected(String markerId, String annotationId) {
                                     ArrayList<String> annotationIds = new ArrayList<String>();
-                                    annotationIds.add(annotationId);
                                     annotationIds.add(sourceAnnotationId);
-                                    EditRelationDialog.startRelationCreation(getAnnotatedTextHandler(), annotationIds);
+                                    annotationIds.add(annotationId);
+                                    CombinedAnnotationCreationHelper.CreateRelation(getAnnotatedTextHandler(), annotationIds);
                                 }
 
                                 @Override
@@ -1043,9 +1109,9 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
                             ArrayList<String> annotationIds = new ArrayList<String>();
                             //GWT.log("Direct Relation : " + sourceAnnotationId + " <-> " + targetAnnotationId);
 
-                            annotationIds.add(targetAnnotationId);
                             annotationIds.add(sourceAnnotationId);
-                            EditRelationDialog.startRelationCreation(getAnnotatedTextHandler(), annotationIds);
+                            annotationIds.add(targetAnnotationId);
+                            CombinedAnnotationCreationHelper.CreateRelation(getAnnotatedTextHandler(), annotationIds);
                         }
                     }
                 };
@@ -1120,27 +1186,48 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
             docPanel.setWidgetLeftRight(docTextPanel, 0, Unit.PX, 1.2, Unit.EM);
         }
 
-        final int interlineIndex = options.getInterlineSizeIndex() != null ? options.getInterlineSizeIndex() : 3;
+
+        final int interlineIndex = options.getInterlineSizeIndex() != null ? options.getInterlineSizeIndex() : interlineSizeHnd.getValue(3);
+
 
         //int title bar with optionnal hyperlink (e.g. link to a pdf file)
         if (annotatedDoc != null) {
             Properties props = annotatedDoc.getAnnotatedText().getDocument().getProperties();
-            String taskName = annotatedDoc.getAnnotatedText().getEditedTask() != null ? annotatedDoc.getAnnotatedText().getEditedTask().getName() + " : " : "";
+            String description = annotatedDoc.getAnnotatedText().getDocument().getDescription();
+            String taskName;
+            String idsHint = "";
+            if (annotatedDoc.getEditableUsersAnnotationSet() != null) {
+                idsHint = annotatedDoc.getEditableUsersAnnotationSet().getId() + ":  [" + annotatedDoc.getEditableUsersAnnotationSet().getOwner();
+            }
+            TaskDefinition task = annotatedDoc.getAnnotatedText().getEditedTask();
+            if (task != null) {
+                taskName = task.getName() + " : ";
+                idsHint += "@" + task.getId();
+            } else {
+                taskName = "";
+            }
+            if (!idsHint.isEmpty()) {
+                idsHint += "]";
+                titleLabel.getElement().setAttribute("title", idsHint);
+            } else {
+                titleLabel.getElement().removeAttribute("title");
+            }
             if (props != null && props.getKeys().contains("hlink")) {
                 titleLabel.setVisible(!taskName.isEmpty());
                 titleLabel.setText(taskName);
                 titleHLink.setVisible(true);
                 titleHLink.setHref(props.getValues("hlink").get(0));
-                titleHLink.setText(annotatedDoc.getAnnotatedText().getDocument().getDescription());
+                titleHLink.setText(description);
             } else {
                 titleLabel.setVisible(true);
-                titleLabel.setText(taskName + annotatedDoc.getAnnotatedText().getDocument().getDescription());
+                titleLabel.setText(taskName + description);
                 titleHLink.setVisible(false);
                 titleHLink.setText("");
             }
         } else {
             titleLabel.setVisible(false);
             titleLabel.setText("");
+            titleLabel.getElement().removeAttribute("title");
             titleHLink.setVisible(false);
             titleHLink.setText("");
         }
@@ -1150,10 +1237,14 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         contentHTML.addStyleName(style.Processing());
 
         //inform other components that a long processing is about to start (=>wait banner will be displayed)
-        eventBus.fireEvent(new ApplicationStatusChangedEvent(ApplicationStatusChangedEvent.ApplicationStatusSwitching.Processing, null));
+        eventBus.fireEvent(
+                new ApplicationStatusChangedEvent(ApplicationStatusChangedEvent.ApplicationStatusSwitching.Processing, null));
+
+        signalTermExposition(annotatedDoc);
 
         //long processing is splitted into several command to avoid screen freezing
-        Scheduler.get().scheduleIncremental(new RepeatingCommand() {
+        Scheduler.get()
+                .scheduleIncremental(new RepeatingCommand() {
             ArrayList<Command> cmds = new ArrayList<Command>();
 
             {
@@ -1186,8 +1277,8 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
                         resetAnnSetSelectionMenu();
 
                         //reset interline size
-                        updateLineSize(0);
-                        updateLineSize(interlineIndex);
+                        requestUpdateLineSize(0);
+                        requestUpdateLineSize(interlineIndex);
 
                         //temporarily switch to readonly during init phase
                         setReadOnly(true);
@@ -1197,6 +1288,8 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
                     }
                 });
 
+                final AnnotatedTextHandler freshenedDoc = annotatedDoc;
+
                 if (annotatedDoc != null) {
                     //processings to perform only if a new Document is being displayed
                     cmds.add(new Command() {
@@ -1205,12 +1298,12 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
 
                             //create StyleSheet corresponding to the Document Annotation Schema 
                             Element inLinedStyle = Document.get().createStyleElement();
-                            inLinedStyle.setInnerText(AnnotatedTextProcessor.getSampleCStyleSheet(annotatedDoc.getAnnotatedText().getAnnotationSchema()));
+                            inLinedStyle.setInnerText(AnnotatedTextProcessor.getSampleCStyleSheet(freshenedDoc.getAnnotatedText().getAnnotationSchema()));
                             inLinedStyle.setAttribute("type", "text/css");
                             contentHTML.getElement().insertFirst(inLinedStyle);
                             //FIXME casting 
-                            mapper = AnnotationDocumentViewMapper.newMapper(annotatedDoc, DocumentUi.this);
-                            annMarkerMgr.reset(annotatedDoc);
+                            mapper = AnnotationDocumentViewMapper.newMapper(freshenedDoc, DocumentUi.this);
+                            annMarkerMgr.reset(freshenedDoc);
 
                             //TODO implement https://migale.jouy.inra.fr/redmine/issues/1594 here!!
                             //Veiled all Relations
@@ -1256,9 +1349,9 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
                         DocumentUi.this.setReadOnly(options.isReadOnly());
 
                         //init agent in charge of displaying Relation, Group & occurences SVG representation 
-                        groupDisplayer.setDocument(annotatedDoc, mapper, relationDisplayer);
-                        relationDisplayer.setDocument(annotatedDoc, mapper, groupDisplayer);
-                        dispEngine.setDocument(annotatedDoc, mapper);
+                        groupDisplayer.setDocument(freshenedDoc, mapper, relationDisplayer);
+                        relationDisplayer.setDocument(freshenedDoc, mapper, groupDisplayer);
+                        dispEngine.setDocument(freshenedDoc, mapper);
                         //actually draw SVG representation 
                         drawExtra();
                         //
@@ -1266,7 +1359,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
                         contentHTML.removeStyleName(style.Processing());
 
                         //inform other components that this DocumentUI widget is now displaying the specified document
-                        eventBus.fireEvent(new WorkingDocumentChangedEvent(annotatedDoc, DocumentUi.this, WorkingDocumentChangedEvent.ChangeType.Loaded));
+                        eventBus.fireEvent(new WorkingDocumentChangedEvent(freshenedDoc, DocumentUi.this, WorkingDocumentChangedEvent.ChangeType.Loaded));
                         //inform other components that application long processing is finished (=>wait banner will be removed)
                         eventBus.fireEvent(new ApplicationStatusChangedEvent(ApplicationStatusChangedEvent.ApplicationStatusSwitching.Idle, null));
                         buttonManager.setButtonsEnabled(true);
@@ -1435,10 +1528,10 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         if (shortcut != null) {
             switch (shortcut) {
                 case INCREASELINESIZE:
-                    updateLineSize(+1);
+                    requestUpdateLineSize(+1);
                     break;
                 case DEREASELINESIZE:
-                    updateLineSize(-1);
+                    requestUpdateLineSize(-1);
                     break;
                 case TOGGLESELECTONMODE:
                     selectionModeBtn.setValue(!selectionModeBtn.getValue(), true);
@@ -1505,8 +1598,8 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
             }
         }
     }
-
     // -------------------------------------------------------------------------
+
     private void drawExtra() {
         Scheduler.get().scheduleDeferred(new Command() {
             @Override
@@ -1517,13 +1610,31 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
     }
 
     public void _drawExtra() {
-        AlvisaeCore.speedTracerlog("DrawExtra - Start...");
+        _drawExtra(true, false, false);
+    }
+
+    private void clearCombinedAnnotationCanvas() {
         canvas.clear();
         canvas.setWidth(absolutePanel.getOffsetWidth());
         canvas.setHeight(absolutePanel.getOffsetHeight());
-
         overlayContainer.setHTML("");
+    }
 
+    private void _drawExtra(boolean forced, boolean widthChanged, boolean heightChanged) {
+
+        AlvisaeCore.speedTracerlog("DrawExtra - Start...");
+        //if width did not change, Relation/Group do not need to be draw again 
+        if (forced || widthChanged) {
+            clearCombinedAnnotationCanvas();
+        } else {
+            groupDisplayer.setRefreshOptional();
+            relationDisplayer.setRefreshOptional();
+            extraDisplayer.setRefreshOptional();
+        }
+        //if height did not change, the occurance bar does not need to be draw again
+        if (!forced && !heightChanged) {
+            occurenceDisplayer.setRefreshOptional();
+        }
         int interlineSizePx = GlobalStyles.getInterlineSizePx()[interlineSizeIndex];
         relationDisplayer.setInterlineSize(interlineSizePx);
         dispEngine.proceed(canvas, overlayContainer.getElement());
@@ -1790,7 +1901,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         //Check boundary constraints
         Annotation annotation = ((AnnotatedTextImpl) getDocument()).createLooseTextAnnotation("new textAnnotation", newAnnotationType, targets, null, null);
         BasicAnnotationSchemaValidator validator = new BasicAnnotationSchemaValidator();
-        BasicFaultListener faultLstnr = new BasicFaultListener(faultMessages);
+        BasicFaultListener<SafeHtml> faultLstnr = new BasicFaultListener<SafeHtml>(faultMessages);
         faultLstnr.reset();
         validator.setAnnotatedText(getDocument());
         if (validator.checkBoundaries(faultLstnr, annotation, true)) {
@@ -1856,10 +1967,12 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         if (!selectedTextAnnotations.isEmpty()) {
             if (selectedTextAnnotations.getSelections().size() > 1) {
                 annotationIds = selectedTextAnnotations.getSelectedTextAnnotationIds();
-                removeAnnotations(annotationIds);
+                removeTextAnnotations(annotationIds);
             } else {
                 Annotation annotation = selectedTextAnnotations.getMainSelectedTextAnnotation();
                 removeAnnotation(annotation.getId());
+
+
             }
         }
     }
@@ -1892,7 +2005,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
 
             //limit replication to selected text, if any.
             Fragment selectionBoundariesFragment = annMarkerMgr.getSelectionBoundariesFragment(getAnnotatedTextHandler());
-            final String coverageType = selectionBoundariesFragment==null ? "document" : "selected text"; 
+            final String coverageType = selectionBoundariesFragment == null ? "document" : "selected text";
             //Important note: assumed that we are handling only single fragment occurrences
             final List<Fragment> occurrences = AnnotatedTextProcessor.getOccurences(getAnnotatedTextHandler(), selectionBoundariesFragment, occurrencePattern);
 
@@ -1960,7 +2073,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
                         } else {
                             setUpdatingAfterEditEvents(true);
                             dialog.hide();
-                            String message = nbTotal + " occurrence(s) found in the "+coverageType+":\n"
+                            String message = nbTotal + " occurrence(s) found in the " + coverageType + ":\n"
                                     + "*\t" + nbAdded + " new annotation(s) created\n"
                                     + "*\t" + nbSkipped + " occurrence(s) skipped (already existing annotation)\n";
                             if (nbConflict > 0) {
@@ -2018,7 +2131,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
                 //FIXME not I18N
                 Window.alert("The selection does not contain any referenceable annotation");
             } else {
-                EditGroupDialog.startGroupCreation(getAnnotatedTextHandler(), annotationIds);
+                CombinedAnnotationCreationHelper.createGroup(getAnnotatedTextHandler(), annotationIds);
             }
         }
     }
@@ -2043,24 +2156,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         }
     }
 
-    @UiHandler("editGroupButton")
-    void handleEditGroupButtonClick(ClickEvent e) {
-        try {
-            editGroupButton.setEnabled(false);
-            editGroup();
-        } finally {
-            buttonManager.setButtonsEnabled(true);
-        }
-    }
-
-    private void editGroup() {
-        if (isReadOnly()) {
-            throw new UnsupportedOperationException("Modification not allowed on read-only Document!");
-        }
-        EditGroupDialog.startGroupEdition(getAnnotatedTextHandler(), selectedGroups.getMainSelectedAnnotation().getId());
-    }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     @UiHandler("addRelButton")
     void handleAddRelButtonClick(ClickEvent e) {
         try {
@@ -2091,7 +2187,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
                 //FIXME not I18N
                 Window.alert("The selection does not contain any referenceable annotation");
             } else {
-                EditRelationDialog.startRelationCreation(getAnnotatedTextHandler(), annotationIds);
+                CombinedAnnotationCreationHelper.CreateRelation(getAnnotatedTextHandler(), annotationIds);
             }
         }
     }
@@ -2099,41 +2195,17 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
     @UiHandler("deleteRelButton")
     void handleDeleteRelButtonClick(ClickEvent e) {
         try {
+            if (isReadOnly()) {
+                throw new UnsupportedOperationException("Modification not allowed on read-only Document!");
+            }
             deleteRelButton.setEnabled(false);
-            removeMainSelectedRelation();
+            removeRelations(selectedRelations.getSelectedAnnotations());
         } finally {
             buttonManager.setButtonsEnabled(true);
         }
     }
 
-    private void removeMainSelectedRelation() {
-        if (isReadOnly()) {
-            throw new UnsupportedOperationException("Modification not allowed on read-only Document!");
-        }
-        Annotation selected = selectedRelations.getMainSelectedRelationAnnotation();
-        if (selected != null) {
-            removeRelation(selected);
-        }
-    }
-
-    @UiHandler("editRelButton")
-    void handleEditRelButtonClick(ClickEvent e) {
-        try {
-            editRelButton.setEnabled(false);
-            editRelation();
-        } finally {
-            buttonManager.setButtonsEnabled(true);
-        }
-    }
-
-    private void editRelation() {
-        if (isReadOnly()) {
-            throw new UnsupportedOperationException("Modification not allowed on read-only Document!");
-        }
-        EditRelationDialog.startRelationEdition(getAnnotatedTextHandler(), selectedRelations.getMainSelectedAnnotation().getId());
-    }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
     private void removeFragmentFromAnnotation(String annotationId, List<Fragment> fragments) {
         TextAnnotationFragmentsRemovalEdit edit = new TextAnnotationFragmentsRemovalEdit(getAnnotatedTextHandler(), annotationId, fragments);
         edit.redo();
@@ -2156,7 +2228,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         }
     }
 
-    private void removeAnnotations(List<String> annotationIds) {
+    private void removeTextAnnotations(List<String> annotationIds) {
         AnnotationCompoundEdit main = new AnnotationCompoundEdit();
         for (String annotationId : annotationIds) {
             TextAnnotationRemovalEdit edit = new TextAnnotationRemovalEdit(getAnnotatedTextHandler(), annotationId);
@@ -2187,14 +2259,22 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
     }
 
     // -------------------------------------------------------------------------
-    private void removeRelation(Annotation relation) {
-        AnnotationRelationRemovalEdit edit = new AnnotationRelationRemovalEdit(getAnnotatedTextHandler(), relation);
-        String msg = edit.getPreventingCause();
-        if (msg != null) {
-            ResultMessageDialog d = new ResultMessageDialog(ResultMessageDialog.Error, "Can not remove Relation " + relation.getId(), msg);
-            d.show();
-        } else {
-            edit.redo();
+    private void removeRelations(List<Annotation> relations) {
+        AnnotationCompoundEdit main = new AnnotationCompoundEdit();
+        for (Annotation rel : relations) {
+            AnnotationRelationRemovalEdit edit = new AnnotationRelationRemovalEdit(getAnnotatedTextHandler(), rel);
+            String msg = edit.getPreventingCause();
+            if (msg != null) {
+                ResultMessageDialog d = new ResultMessageDialog(ResultMessageDialog.Error, "Can not remove relation " + rel.getId(), msg);
+                d.show();
+                main = null;
+                break;
+            }
+            main.addEdit(edit);
+        }
+        if (main != null) {
+            clearAnchorMarkerSelection();
+            main.redo();
         }
     }
 
@@ -2210,12 +2290,31 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
     }
 
     // =========================================================================
-    public void displayValidationResult(BasicFaultListener faultLstnr) {
-        StringBuilder msgs = new StringBuilder();
-        for (String m : faultLstnr.getMessages()) {
-            msgs.append(m).append("\n");
-        }
-        ExportDialog dlg = new ExportDialog(msgs.toString());
+    public void displayValidationResult(BasicFaultListener<SafeHtml> faultLstnr) {
+        ValidationResultDialog dlg = new ValidationResultDialog(new ValidationResultDialog.AnnotationSelectionHandler() {
+            @Override
+            public void annotationSelected(String annotationId) {
+                if (annotationId != null) {
+                    Annotation annotation = getMapper().getAnnotation(annotationId);
+                    if (annotation != null) {
+                        eventBus.fireEvent(new GroupSelectionEmptiedEvent(getAnnotatedTextHandler()));
+                        eventBus.fireEvent(new RelationSelectionEmptiedEvent(getAnnotatedTextHandler()));
+                        eventBus.fireEvent(new TextAnnotationSelectionEmptiedEvent(getAnnotatedTextHandler()));
+                        switch (annotation.getAnnotationKind()) {
+                            case TEXT:
+                                eventBus.fireEvent(new TextAnnotationSelectionChangedEvent(getAnnotatedTextHandler(), annotation));
+                                break;
+                            case GROUP:
+                                eventBus.fireEvent(new GroupSelectionChangedEvent(getAnnotatedTextHandler(), annotation));
+                                break;
+                            case RELATION:
+                                eventBus.fireEvent(new RelationSelectionChangedEvent(getAnnotatedTextHandler(), annotation));
+                                break;
+                        }
+                    }
+                }
+            }
+        }, faultLstnr.getMessages());
         dlg.show();
         dlg.center();
     }
@@ -2224,7 +2323,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
     void handleValidateButtonClick(ClickEvent e) {
         try {
             validateButton.setEnabled(false);
-            BasicFaultListener faultLstnr = new BasicFaultListener(faultMessages);
+            BasicFaultListener<SafeHtml> faultLstnr = new BasicFaultListener<SafeHtml>(faultMessages);
             BasicAnnotationSchemaValidator.validateAnnotatedText(getDocument(), faultLstnr);
             if (faultLstnr.getMessages().isEmpty()) {
                 Window.alert("Validation completed without error!");
@@ -2233,6 +2332,163 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
             }
         } finally {
             buttonManager.setButtonsEnabled(true);
+        }
+    }
+
+    // =========================================================================
+    private void signalTermExposition(AnnotatedTextHandler annotatedDoc) {
+
+        TermAnnotationsExpositionEvent event = null;
+        if (annotatedDoc != null) {
+            schemaHandler = new AnnotationSchemaDefHandler(annotatedDoc.getAnnotatedText().getAnnotationSchema());
+
+            //does the new schema include TermAnnotation referencing TyDI resource?
+            if (schemaHandler.enableTyDIResourceRef()) {
+
+                Set<String> urls = schemaHandler.getTyDIResourceBaseURLs();
+                if (urls.size() > 1) {
+                    IllegalArgumentException ex = new IllegalArgumentException("A schema should reference only one TyDI ressource location!");
+                    Window.alert(ex.getMessage());
+                    throw ex;
+                }
+                //inform Structured Terminology widget that it should start displaying the specified Terminology resource
+                try {
+                    locator = new ResourceLocator(urls.iterator().next());
+                    event = new TermAnnotationsExpositionEvent(TermAnnotationsExpositionEvent.ChangeType.Available, locator);
+                } catch (IllegalArgumentException ex) {
+                    Window.alert(ex.getMessage());
+                }
+            }
+        } else {
+            //if the editor was previously exposing TermAnnotation referencing TyDI resource
+            if (schemaHandler != null && schemaHandler.enableTyDIResourceRef()) {
+                //inform Structured Terminology widget that it should stop displaying the Terminology resource
+                event = new TermAnnotationsExpositionEvent(TermAnnotationsExpositionEvent.ChangeType.Unavailable, locator);
+            }
+            schemaHandler = null;
+        }
+        if (event != null) {
+            eventBus.fireEvent(event);
+        }
+    }
+
+    private static class TyDIResourceRefsRefresher {
+
+        private final AnnotationSchemaDefHandler schemaHandler;
+        private final AnnotatedTextHandler annotatedDoc;
+        private final List<CheckedSemClassImpl> referencedSemClass = new ArrayList<CheckedSemClassImpl>();
+        private final Map<String, List<String>> propNamesByAnnType = new HashMap<String, List<String>>();
+
+        public TyDIResourceRefsRefresher(AnnotatedTextHandler annotatedDoc, AnnotationSchemaDefHandler schemaHandler) {
+            this.annotatedDoc = annotatedDoc;
+            this.schemaHandler = schemaHandler;
+        }
+
+        private boolean initTyDIResourceRefresh() {
+            if (schemaHandler != null) {
+
+                if (schemaHandler.enableTyDIResourceRef()) {
+
+                    //Retrieve all Annotations referencing TyDI resources
+                    for (AnnotationImpl annotation : annotatedDoc.getEditableUsersAnnotationSet().getAnnotations()) {
+                        String annotationType = annotation.getAnnotationType();
+                        if (schemaHandler.isTyDIResReferencingType(annotationType)) {
+
+
+                            if (!propNamesByAnnType.containsKey(annotationType)) {
+                                List<String> semClassOrConceptRefPropNames = new ArrayList<String>();
+                                propNamesByAnnType.put(annotationType, semClassOrConceptRefPropNames);
+
+                                String semClassRefPropName = schemaHandler.getTyDISemClassRefPropName(annotationType);
+                                if (semClassRefPropName != null) {
+                                    semClassOrConceptRefPropNames.add(semClassRefPropName);
+                                }
+                                semClassOrConceptRefPropNames.addAll(schemaHandler.getTyDIConceptRefPropNames(annotationType));
+                            }
+
+                            for (String propName : propNamesByAnnType.get(annotationType)) {
+                                List<String> values = annotation.getProperties().getValues(propName);
+                                if (values != null) {
+                                    for (String semClassReference : values) {
+                                        TyDIResRefPropValImpl resRefPropVal = TyDIResRefPropValImpl.createFromUrlWithFragment(semClassReference);
+                                        if (resRefPropVal != null) {
+                                            referencedSemClass.add(
+                                                    CheckedSemClassImpl.create(
+                                                    TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(resRefPropVal.getResourceRef()),
+                                                    resRefPropVal.getVersionNumber()));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (referencedSemClass.isEmpty()) {
+                        return false;
+                    } else {
+                        injector.getMainEventBus().fireEvent(new TyDIResourcesCheckChangesInfoEvent(referencedSemClass));
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private void performRefresh(List<CheckedSemClassImpl> unaffectedSemClass) {
+
+            //update version number of the Semantic classes that were unchanged since the version stored in the URL
+            //Note : these changes are not undoable.
+            Map<Integer, Integer> newVersionBySemClassId = new HashMap<Integer, Integer>();
+            for (CheckedSemClassImpl r : unaffectedSemClass) {
+                newVersionBySemClassId.put(r.getSemClassId(), r.getVersionNum());
+            }
+
+            for (AnnotationImpl annotation : annotatedDoc.getEditableUsersAnnotationSet().getAnnotations()) {
+                String annotationType = annotation.getAnnotationType();
+
+                if (!propNamesByAnnType.containsKey(annotationType)) {
+                    continue;
+                }
+
+                for (String propName : propNamesByAnnType.get(annotationType)) {
+                    List<String> values = annotation.getProperties().getValues(propName);
+                    if (values != null) {
+                        int index = 0;
+                        for (String semClassReference : values) {
+                            TyDIResRefPropValImpl resRefPropVal = TyDIResRefPropValImpl.createFromUrlWithFragment(semClassReference);
+                            if (resRefPropVal != null) {
+                                int semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(resRefPropVal.getResourceRef());
+                                if (newVersionBySemClassId.containsKey(semClassId)) {
+                                    int newVersion = newVersionBySemClassId.get(semClassId);
+                                    TyDIResRefPropValImpl updatedReference = TyDIResRefPropValImpl.create(resRefPropVal.getResourceRef(), resRefPropVal.getLabel(), newVersion);
+                                    annotation.getProperties().replaceValue(propName, index, updatedReference.toUrlWithFragment());
+                                }
+                            }
+                            index++;
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
+    @Override
+    public void onTyDIVersionedResourceInfoEvent(TyDIVersionedResourcesInfoEvent event) {
+        if (event instanceof TyDIVersionedResourcesUnchangedInfoEvent) {
+            if (tyDIResourceRefsRefresher != null) {
+                tyDIResourceRefsRefresher.performRefresh(event.getTyDIResourcesRef());
+                tyDIResourceRefsRefresher = null;
+            }
+        }
+    }
+
+    @UiHandler("termRefreshBtn")
+    void handleRefreshTyDIResourcesButtonClick(ClickEvent e) {
+        if (tyDIResourceRefsRefresher == null) {
+            tyDIResourceRefsRefresher = new TyDIResourceRefsRefresher(getAnnotatedTextHandler(), schemaHandler);
+            if (!tyDIResourceRefsRefresher.initTyDIResourceRefresh()) {
+                tyDIResourceRefsRefresher = null;
+            }
         }
     }
     // =========================================================================
@@ -2250,7 +2506,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
                 Command command;
                 SafeHtmlBuilder shbuilder = new SafeHtmlBuilder();
 
-                if (getAnnotatedTextHandler().getLoadedAnnotationSets().contains(asi.getId())) {
+                if (getAnnotatedTextHandler().getLoadedAnnotationSetIds().contains(asi.getId())) {
                     command = null;
                     shbuilder.append(checkedIcon).appendEscaped("  ");
                 } else {
@@ -2441,13 +2697,13 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
 
                     addGroupButton.setEnabled(globalEnabledDirective && !readOnly && canEditsomeGroupType && someAnnSelected);
                     deleteGroupButton.setEnabled(globalEnabledDirective && !readOnly && canEditsomeGroupType && nbModifiableGroupSelected > 0);
-                    editGroupButton.setEnabled(globalEnabledDirective && !readOnly && canEditsomeGroupType && nbModifiableGroupSelected == 1);
 
                     addRelButton.setEnabled(globalEnabledDirective && !readOnly && CanEditsomeRelationType && someAnnSelected);
                     deleteRelButton.setEnabled(globalEnabledDirective && !readOnly && CanEditsomeRelationType && nbModifiableRelationSelected > 0);
-                    editRelButton.setEnabled(globalEnabledDirective && !readOnly && CanEditsomeRelationType && nbModifiableRelationSelected == 1);
 
                     validateButton.setEnabled(globalEnabledDirective && !readOnly);
+
+                    termRefreshBtn.setEnabled(globalEnabledDirective && !readOnly && schemaHandler != null && schemaHandler.enableTyDIResourceRef());
                 }
             });
         }
@@ -2600,12 +2856,12 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
             } else if (AnnotationKind.GROUP.equals(kind)) {
                 w = groupDisplayer.getWidget(annotationId);
                 if (w != null) {
-                    pointToDisplay = w.getCenterPoint().y;
+                    pointToDisplay = w.getCenterClip().top;
                 }
             } else if (AnnotationKind.RELATION.equals(kind)) {
                 w = relationDisplayer.getWidget(annotationId);
                 if (w != null) {
-                    pointToDisplay = w.getCenterPoint().y;
+                    pointToDisplay = w.getCenterClip().top;
                 }
             }
 
@@ -2711,6 +2967,11 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         }
     }
 
+    @Override
+    public String getTitleText() {
+        return titleLabel.getText();
+    }
+
     public int getDocContainerHeight() {
         return contentHTML.getOffsetHeight();
     }
@@ -2751,10 +3012,13 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         AnnotationFocusChangedEvent.register(eventBus, DocumentUi.this);
         WorkingDocumentChangedEvent.register(eventBus, DocumentUi.this);
         MaximizingWidgetEvent.register(eventBus, DocumentUi.this);
+        TyDIVersionedResourcesUnchangedInfoEvent.register(eventBus, this);
 
         GenericAnnotationSelectionChangedEvent.register(eventBus, buttonManager);
         EditHappenedEvent.register(eventBus, buttonManager);
         RangeSelectionChangedEvent.register(eventBus, buttonManager);
+        
+        ApplicationOptionChangedEvent.register(eventBus, interlineSizeHnd);
     }
 
     @Override
@@ -2767,9 +3031,12 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
         AnnotationFocusChangedEvent.unregister(this);
         WorkingDocumentChangedEvent.unregister(this);
         MaximizingWidgetEvent.unregister(this);
+        TyDIVersionedResourcesUnchangedInfoEvent.unregister(this);
 
         GenericAnnotationSelectionChangedEvent.unregister(buttonManager);
         EditHappenedEvent.unregister(buttonManager);
         RangeSelectionChangedEvent.unregister(buttonManager);
+        
+         ApplicationOptionChangedEvent.unregister(interlineSizeHnd);
     }
 }

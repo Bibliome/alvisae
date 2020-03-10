@@ -8,8 +8,7 @@
 package fr.inra.mig_bibliome.alvisae.shared.data3;
 
 /**
- *
- * @author fpapazian
+ * Strong reference to an Annotation (@see AnnotationReference)
  */
 public interface SpecifiedAnnotation {
 

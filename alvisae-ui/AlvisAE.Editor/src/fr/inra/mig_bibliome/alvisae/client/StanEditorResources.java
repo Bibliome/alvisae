@@ -2,7 +2,7 @@
  *
  *      This software is a result of Quaero project and its use must respect the rules of the Quaero Project Consortium Agreement.
  *
- *      Copyright Institut National de la Recherche Agronomique, 2010-2012.
+ *      Copyright Institut National de la Recherche Agronomique, 2010-2014.
  *
  */
 package fr.inra.mig_bibliome.alvisae.client;
@@ -11,7 +11,8 @@ import com.google.gwt.core.client.GWT;
 import com.google.gwt.resources.client.ClientBundle;
 import com.google.gwt.resources.client.CssResource;
 import com.google.gwt.resources.client.ImageResource;
-import com.google.gwt.user.cellview.client.CellTree;
+import com.google.gwt.resources.client.ImageResource.ImageOptions;
+import com.google.gwt.resources.client.ImageResource.RepeatStyle;
 
 /**
  *
@@ -41,13 +42,13 @@ public interface StanEditorResources extends ClientBundle {
 
     @Source("images/tags--replicate.png")
     ImageResource ReplicateAnnotIcon();
-    
+
     @Source("images/foaf.png")
     ImageResource AnnotationSetsIcon();
-    
+
     @Source("images/node-magnifier-selected.png")
     ImageResource AnnotationFilterByConceptIcon();
-        
+
     @Source("images/map.png")
     ImageResource AnnotationSchemaIcon();
 
@@ -65,6 +66,9 @@ public interface StanEditorResources extends ClientBundle {
 
     @Source("images/minus-small-11.png")
     ImageResource DelSmallIcon();
+
+    @Source("images/pencil-small-11.png")
+    ImageResource EditSmallIcon();
 
     @Source("images/magnet-blue.png")
     ImageResource DragHandleIcon();
@@ -141,14 +145,19 @@ public interface StanEditorResources extends ClientBundle {
     @Source("images/exclamation-small.png")
     ImageResource ExclamationIcon();
 
+    @Source("images/question-small-white.png")
+    ImageResource UnknownIcon();
+    
     @Source("images/150.png")
     ImageResource ForbiddenDragIcon();
 
-    @Source("images/term-white--plus.png")
-    ImageResource TermDragIcon();
+    @Source("images/term-generator.png")
+    @ImageOptions(repeatStyle = RepeatStyle.Vertical)
+    ImageResource TermGeneratorSprite();
 
-    @Source("images/term-white--lightening.png")
-    ImageResource TermLinkIcon();
+    @Source("images/term-linker.png")
+    @ImageOptions(repeatStyle = RepeatStyle.Vertical)
+    ImageResource TermLinkerSprite();
 
     @Source("images/navigation-180-button-white.png")
     ImageResource PrevBlockIcon();
@@ -174,6 +183,25 @@ public interface StanEditorResources extends ClientBundle {
     @Source("images/table-share.png")
     ImageResource EndDocAnnotationIcon();
 
+    @Source("images/consostatus.png")
+    @ImageOptions(repeatStyle = RepeatStyle.Vertical)
+    ImageResource ConsoStatusSprite();
+
+    @Source("images/scroll-synchro-2.png")
+    ImageResource ScrollSync2Panels();
+
+    @Source("images/scroll-synchro-3.png")
+    ImageResource ScrollSync3Panels();
+
+    @Source("images/document-tag.png")
+    ImageResource DocPanelSelect();
+    
+    @Source("images/term-refresh.png")
+    ImageResource TermResRefRefresh();
+    
+    @Source("images/target--arrow.png")
+    ImageResource LocateBlockIcon();
+            
     static interface StanEditorGlobalCSS extends CssResource {
 
         String DroppableHover();
@@ -183,9 +211,48 @@ public interface StanEditorResources extends ClientBundle {
         String DragHelper();
 
         String Overlay();
+
+        String cwId();
+
+        String cwOutdatedId();
+
+        String cwOutdatedRefId();
+
+        String cwRow();
+
+        String csResolved();
+
+        String csRejected();
+
+        String csSplit();
+
+        String csPostponed();
+
+        String btnDocPanelSelect();
+
+        String termGenerNotLinked();
+
+        String termGenerLinked();
+
+        String termGenerObsolete();
+        
+        String termLinkerNotLinked();
+
+        String termLinkerLinked();
+
+        String termLinkerObsolete();
+
+        String kdText();
+
+        String kdGroup();
+
+        String kdRelation();
+
+        String warnIcon();
+        
+        String unknownIcon();
     }
 
     @Source("images/StanEditorGlobal.css")
     StanEditorGlobalCSS css();
-
 }

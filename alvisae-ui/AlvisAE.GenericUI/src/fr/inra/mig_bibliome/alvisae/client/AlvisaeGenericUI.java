@@ -34,7 +34,7 @@ import fr.inra.mig_bibliome.alvisae.client.data.Retrieve.RequestManager;
  */
 public class AlvisaeGenericUI implements EntryPoint {
 
-    private static final String VERSION_LABEL = "v0.5 (build~20140106)";
+    private static final String VERSION_LABEL = "v0.6 (build~20140529)";
     private Place defaultPlace = new DefaultPlace("start");
     private SimplePanel appWidget;
     private ApplicationStatusChangedEventHandler applicationStatusDisplayer;
@@ -71,8 +71,13 @@ public class AlvisaeGenericUI implements EntryPoint {
 
             // Prod URL
            //
-          injector.getCoreDataProvider().getRequestManager().setServerBaseUrl(GWT.getModuleBaseURL() + "../../api/");
+            injector.getCoreDataProvider().getRequestManager().setServerBaseUrl(GWT.getModuleBaseURL() + "../../api/");
 
+          
+                  
+           // injector.getCoreDataProvider().getRequestManager().setServerBaseUrl("http://localhost:8080/alvisae/quaerobiotopes/api/");
+           
+            //injector.getCoreDataProvider().getRequestManager().setServerBaseUrl("http://bibliome.jouy.inra.fr/demo/alvisae/quaerobiotopes/api/");
            
             //injector.getCoreDataProvider().getRequestManager().setServerBaseUrl("http://cl30.dbcls.jp:9080/alvisae/fpa/api/");
             //injector.getCoreDataProvider().getRequestManager().setServerBaseUrl("http://cl30.dbcls.jp:9080/alvisae/ontobiodemo/api/");

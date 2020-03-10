@@ -18,6 +18,8 @@ import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.ScrollEvent;
+import com.google.gwt.event.dom.client.ScrollHandler;
 import com.google.gwt.event.shared.GwtEvent;
 import com.google.gwt.event.shared.HasHandlers;
 import com.google.gwt.http.client.Response;
@@ -98,8 +100,12 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
     DataGrid<TaskDefinitionImpl> workflowGrid;
     @UiField
     Label taskDocLabel;
+    @UiField
+    PushButton nextTaskInstButton;
+    @UiField
+    PushButton lastTaskInstButton;
     @UiField(provided = true)
-    DataGrid<TaskInstanceImpl> taskInstancesGrid;
+    ScrollExposedDataGrid<TaskInstanceImpl> taskInstancesGrid;
     @UiField
     PushButton refreshButton;
     @UiField
@@ -128,6 +134,10 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
     private boolean reloadRequired = false;
     private AsyncHandler asynchSortHandler;
     private Column<TaskInstanceImpl, TaskInstanceImpl> statusCol;
+    //Number of Task Instance displayed per page
+    private int taskInstFirstPageSize = 50;    
+    private int taskInstOtherPageSize = 150;
+    private int lastScrollPos = 0;
 
     static class SingleSelectionClickHandler implements ClickHandler {
 
@@ -185,10 +195,14 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
     }
 
     private void refreshCampaignList(final Command executedOnSuccess) {
+        nextTaskInstButton.setEnabled(false);
+        lastTaskInstButton.setEnabled(false);
+
         taskDefsByCampaign.clear();
         schemaByCampaign.clear();
         docsByCampaign.clear();
         instances.clear();
+        taskInstancesGrid.setVisibleRange(0, 0);
 
         campaignGrid.resize(0, 2);
 
@@ -279,14 +293,39 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
 
     public TaskInstancesList() {
         workflowGrid = new DataGrid<TaskDefinitionImpl>();
-        taskInstancesGrid = new DataGrid<TaskInstanceImpl>();
+        taskInstancesGrid = new ScrollExposedDataGrid<TaskInstanceImpl>();
         initWidget(uiBinder.createAndBindUi(this));
         taskInstancesGrid.setPageSize(Integer.MAX_VALUE);
         workflowGrid.setPageSize(Integer.MAX_VALUE);
 
-        toolBarHolder.add(new MainToolBar("help/aaeTaskList.html"));
+        toolBarHolder.add(new MainToolBar("help/AaeUserGuide.html#Task-and-Workflow"));
 
         networkActivityDisplayer.setRequestManager(injector.getCoreDataProvider().getRequestManager());
+
+        nextTaskInstButton.setEnabled(false);
+        lastTaskInstButton.setEnabled(false);
+        //infinite scrolling : new page displayed when scrolling down
+        taskInstancesGrid.getScrollPanel().addScrollHandler(new ScrollHandler() {
+            @Override
+            public void onScroll(ScrollEvent event) {
+
+                int oldScrollPos = lastScrollPos;
+                lastScrollPos = taskInstancesGrid.getScrollPanel().getVerticalScrollPosition();
+
+                // If scrolling up, ignore the event.
+                if (oldScrollPos >= lastScrollPos) {
+                    return;
+                }
+
+                //Height of grid contents (including outside the viewable area) - height of the scroll panel
+                int maxScrollTop = taskInstancesGrid.getScrollPanel().getWidget().getOffsetHeight()
+                        - taskInstancesGrid.getScrollPanel().getOffsetHeight();
+
+                if (lastScrollPos >= maxScrollTop) {
+                    displayMoreInstances(taskInstOtherPageSize);
+                }
+            }
+        });
 
         initInstanceTable();
         initWorkflowTable();
@@ -414,57 +453,57 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
 
         Column<TaskDefinitionImpl, TaskDefinitionImpl> nameCol =
                 new Column<TaskDefinitionImpl, TaskDefinitionImpl>(new TaskNameCell()) {
-                    @Override
-                    public TaskDefinitionImpl getValue(TaskDefinitionImpl taskDef) {
-                        return taskDef;
-                    }
-                };
+            @Override
+            public TaskDefinitionImpl getValue(TaskDefinitionImpl taskDef) {
+                return taskDef;
+            }
+        };
         workflowGrid.addColumn(nameCol, new SafeHtmlHeader(SafeHtmlUtils.fromSafeConstant("Task")));
 
 
         Column<TaskDefinitionImpl, String> reviewCol =
                 new Column<TaskDefinitionImpl, String>(new TextCell()) {
-                    @Override
-                    public String getValue(TaskDefinitionImpl taskDef) {
-                        CampaignTaskDefs campaignTaskDefs = taskDefsByCampaign.get(selectedCampaignId);
-                        Integer reviewedId = taskDef.getReviewedTask();
-                        String reviewed = campaignTaskDefs != null && reviewedId != null ? campaignTaskDefs.get(reviewedId).getName() : "";
-                        return reviewed;
-                    }
-                };
+            @Override
+            public String getValue(TaskDefinitionImpl taskDef) {
+                CampaignTaskDefs campaignTaskDefs = taskDefsByCampaign.get(selectedCampaignId);
+                Integer reviewedId = taskDef.getReviewedTask();
+                String reviewed = campaignTaskDefs != null && reviewedId != null ? campaignTaskDefs.get(reviewedId).getName() : "";
+                return reviewed;
+            }
+        };
         workflowGrid.addColumn(reviewCol, new SafeHtmlHeader(SafeHtmlUtils.fromSafeConstant("ReviewOf")));
 
 
         Column<TaskDefinitionImpl, String> cardinalityCol =
                 new Column<TaskDefinitionImpl, String>(new TextCell()) {
-                    @Override
-                    public String getValue(TaskDefinitionImpl taskDef) {
-                        if (taskDef.getCardinality() == -1) {
-                            return "*";
-                        } else {
-                            return String.valueOf(taskDef.getCardinality());
-                        }
-                    }
-                };
+            @Override
+            public String getValue(TaskDefinitionImpl taskDef) {
+                if (taskDef.getCardinality() == -1) {
+                    return "*";
+                } else {
+                    return String.valueOf(taskDef.getCardinality());
+                }
+            }
+        };
         workflowGrid.addColumn(cardinalityCol, new SafeHtmlHeader(SafeHtmlUtils.fromSafeConstant("Card.")));
 
         Column<TaskDefinitionImpl, SafeHtml> editedTypeCol =
                 new Column<TaskDefinitionImpl, SafeHtml>(new SafeHtmlCell()) {
-                    @Override
-                    public SafeHtml getValue(TaskDefinitionImpl taskDef) {
-                        SafeHtmlBuilder sb = new SafeHtmlBuilder();
-                        AnnotationSchemaDefinition annotationSchema = schemaByCampaign.get(selectedCampaignId);
-                        for (String typeName : taskDef.getEditedAnnotationTypes()) {
-                            SafeHtmlBuilder s = new SafeHtmlBuilder();
-                            AnnotationTypeDefinition annTypeDef = annotationSchema.getAnnotationTypeDefinition(typeName);
-                            CombinedAnnotationCell.renderKind(annTypeDef.getAnnotationKind(), s);
-                            s.append(TaskStatusCell.backgroundColorBlock(annTypeDef.getColor(), typeName, typeName));
-                            sb.append(TaskStatusCell.TEMPLATES.typeBlock(s.toSafeHtml()));
-                            sb.appendHtmlConstant("&nbsp;");
-                        }
-                        return sb.toSafeHtml();
-                    }
-                };
+            @Override
+            public SafeHtml getValue(TaskDefinitionImpl taskDef) {
+                SafeHtmlBuilder sb = new SafeHtmlBuilder();
+                AnnotationSchemaDefinition annotationSchema = schemaByCampaign.get(selectedCampaignId);
+                for (String typeName : taskDef.getEditedAnnotationTypes()) {
+                    SafeHtmlBuilder s = new SafeHtmlBuilder();
+                    AnnotationTypeDefinition annTypeDef = annotationSchema.getAnnotationTypeDefinition(typeName);
+                    CombinedAnnotationCell.renderKindAsInlinedImg(annTypeDef.getAnnotationKind(), s);
+                    s.append(TaskStatusCell.backgroundColorBlock(annTypeDef.getColor(), typeName, typeName));
+                    sb.append(TaskStatusCell.TEMPLATES.typeBlock(s.toSafeHtml()));
+                    sb.appendHtmlConstant("&nbsp;");
+                }
+                return sb.toSafeHtml();
+            }
+        };
         workflowGrid.addColumn(editedTypeCol, new SafeHtmlHeader(SafeHtmlUtils.fromSafeConstant("Editable annotation types")));
 
         workflowGrid.setColumnWidth(nameCol, 18, Unit.EM);
@@ -543,15 +582,38 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
         }
     }
 
+    private void displayMoreInstances(final int increment) {
+        Scheduler.get().scheduleDeferred(new Command() {
+            @Override
+            public void execute() {
+                int prevLastIndex = taskInstancesGrid.getVisibleRange().getLength();
+                int lastIndex = Math.min(prevLastIndex + increment, instances.size());
+                taskInstancesGrid.setVisibleRange(0, lastIndex);
+                boolean hasMore = lastIndex < instances.size();
+                if (hasMore) {
+                    nextTaskInstButton.setTitle("Retrieve one more page  (" + lastIndex + " > " + Math.min(lastIndex + taskInstOtherPageSize, instances.size()) + ")");
+                    lastTaskInstButton.setTitle("Retrieve all  (>> " + instances.size() + ")");
+                } else {
+                    nextTaskInstButton.setTitle("");
+                    lastTaskInstButton.setTitle("");
+                }
+                nextTaskInstButton.setEnabled(hasMore);
+                lastTaskInstButton.setEnabled(hasMore);
+            }
+        });
+    }
+
     private void initInstanceTable() {
         sortHandler = new ListHandler<TaskInstanceImpl>(instances);
         asynchSortHandler = new AsyncHandler(taskInstancesGrid);
+        taskInstancesGrid.setVisibleRange(0, 0);
 
         taskInstancesAsyncProvider = new AsyncDataProvider<TaskInstanceImpl>() {
             private void refreshTaskList() {
                 final Integer campaignId = getSelectedCampaignIn();
                 instances.clear();
 
+                taskInstancesGrid.getColumnSortList().clear();
                 if (campaignId != null && selectedUserId != null) {
                     Scheduler.get().scheduleDeferred(new Command() {
                         @Override
@@ -570,8 +632,11 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
                                         TaskInstanceImpl taskInfo = result.get(row);
                                         instances.add(taskInfo);
                                     }
-                                    updateRowCount(instances.size(), true);
-                                    updateRowData(0, instances);
+                                    //display only the first page
+                                    int nbDisplayedTaskInst = Math.min(taskInstFirstPageSize, instances.size());
+                                    taskInstancesAsyncProvider.updateRowCount(nbDisplayedTaskInst, true);
+                                    taskInstancesAsyncProvider.updateRowData(0, instances);
+                                    displayMoreInstances(nbDisplayedTaskInst);
                                 }
                             });
                         }
@@ -579,9 +644,9 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
                 } else {
                     updateRowCount(0, true);
                 }
-                taskInstancesGrid.getColumnSortList().clear();
                 //by default task are sorted on their status
                 taskInstancesGrid.getColumnSortList().push(statusCol);
+
 
             }
 
@@ -683,12 +748,12 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
 
         Column<TaskInstanceImpl, String> nameCol =
                 new Column<TaskInstanceImpl, String>(new TextCell()) {
-                    @Override
-                    public String getValue(TaskInstanceImpl taskInst) {
-                        CampaignTaskDefs campaignTaskDefs = taskDefsByCampaign.get(selectedCampaignId);
-                        return campaignTaskDefs.get(taskInst.getId()).getName();
-                    }
-                };
+            @Override
+            public String getValue(TaskInstanceImpl taskInst) {
+                CampaignTaskDefs campaignTaskDefs = taskDefsByCampaign.get(selectedCampaignId);
+                return campaignTaskDefs.get(taskInst.getId()).getName();
+            }
+        };
 
         taskInstancesGrid.addColumn(nameCol, new SafeHtmlHeader(SafeHtmlUtils.fromSafeConstant("Task")));
         nameCol.setSortable(true);
@@ -717,22 +782,22 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
 
         Column<TaskInstanceImpl, TaskInstanceImpl> annotateCol = new Column<TaskInstanceImpl, TaskInstanceImpl>(
                 new ImageButtonCell(StaneResources.INSTANCE.StartDocAnnotationIcon(), "Annotate this document") {
-                    @Override
-                    public boolean displayImageButton(TaskInstanceImpl taskInst) {
-                        CampaignTaskDefs campaignTaskDefs = taskDefsByCampaign.get(selectedCampaignId);
-                        boolean isReviewingTask = campaignTaskDefs.get(taskInst.getId()).getReviewedTask() != null;
-                        return ((!taskInst.isReadOnly())
-                                && (!isReviewingTask)
-                                && (taskInst.getStatus().equals(TaskStatus.ToDo)
-                                || taskInst.getStatus().equals(TaskStatus.Pending)
-                                || taskInst.getStatus().equals(TaskStatus.Done)));
-                    }
+            @Override
+            public boolean displayImageButton(TaskInstanceImpl taskInst) {
+                CampaignTaskDefs campaignTaskDefs = taskDefsByCampaign.get(selectedCampaignId);
+                boolean isReviewingTask = campaignTaskDefs.get(taskInst.getId()).getReviewedTask() != null;
+                return ((!taskInst.isReadOnly())
+                        && (!isReviewingTask)
+                        && (taskInst.getStatus().equals(TaskStatus.ToDo)
+                        || taskInst.getStatus().equals(TaskStatus.Pending)
+                        || taskInst.getStatus().equals(TaskStatus.Done)));
+            }
 
-                    @Override
-                    public void onClicked(TaskInstanceImpl value) {
-                        startAnnotate(value.getDocumentId(), value.getId());
-                    }
-                }) {
+            @Override
+            public void onClicked(TaskInstanceImpl value) {
+                startAnnotate(value.getDocumentId(), value.getId());
+            }
+        }) {
             @Override
             public TaskInstanceImpl getValue(TaskInstanceImpl taskInst) {
                 return taskInst;
@@ -743,22 +808,22 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
 
         Column<TaskInstanceImpl, TaskInstanceImpl> compareASCol = new Column<TaskInstanceImpl, TaskInstanceImpl>(
                 new ImageButtonCell(StaneResources.INSTANCE.CompareAnnotationSetsIcon(), "Review preceeding Task") {
-                    @Override
-                    public boolean displayImageButton(TaskInstanceImpl taskInst) {
-                        CampaignTaskDefs campaignTaskDefs = taskDefsByCampaign.get(selectedCampaignId);
-                        boolean isReviewingTask = campaignTaskDefs.get(taskInst.getId()).getReviewedTask() != null;
-                        return ((!taskInst.isReadOnly())
-                                && (isReviewingTask)
-                                && (taskInst.getStatus().equals(TaskStatus.ToDo)
-                                || taskInst.getStatus().equals(TaskStatus.Pending)
-                                || taskInst.getStatus().equals(TaskStatus.Done)));
-                    }
+            @Override
+            public boolean displayImageButton(TaskInstanceImpl taskInst) {
+                CampaignTaskDefs campaignTaskDefs = taskDefsByCampaign.get(selectedCampaignId);
+                boolean isReviewingTask = campaignTaskDefs.get(taskInst.getId()).getReviewedTask() != null;
+                return ((!taskInst.isReadOnly())
+                        && (isReviewingTask)
+                        && (taskInst.getStatus().equals(TaskStatus.ToDo)
+                        || taskInst.getStatus().equals(TaskStatus.Pending)
+                        || taskInst.getStatus().equals(TaskStatus.Done)));
+            }
 
-                    @Override
-                    public void onClicked(TaskInstanceImpl value) {
-                        startReview(value.getDocumentId(), value.getId());
-                    }
-                }) {
+            @Override
+            public void onClicked(TaskInstanceImpl value) {
+                startReview(value.getDocumentId(), value.getId());
+            }
+        }) {
             @Override
             public TaskInstanceImpl getValue(TaskInstanceImpl taskInst) {
                 return taskInst;
@@ -768,19 +833,19 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
 
         Column<TaskInstanceImpl, TaskInstanceImpl> deleteCol = new Column<TaskInstanceImpl, TaskInstanceImpl>(
                 new ImageButtonCell(StaneResources.INSTANCE.RemoveDocAnnotationIcon(), "Remove all annotations created in this Task") {
-                    @Override
-                    public boolean displayImageButton(TaskInstanceImpl taskInst) {
-                        return (!taskInst.isReadOnly())
-                                && taskInst.getStatus().equals(TaskStatus.Pending);
-                    }
+            @Override
+            public boolean displayImageButton(TaskInstanceImpl taskInst) {
+                return (!taskInst.isReadOnly())
+                        && taskInst.getStatus().equals(TaskStatus.Pending);
+            }
 
-                    @Override
-                    public void onClicked(TaskInstanceImpl value) {
-                        if (Window.confirm("Do you want to completely remove all annotations you performed on this document?\nNOTE: This action can not be undone")) {
-                            removeAnnotationTask(value.getDocumentId(), value.getId());
-                        }
-                    }
-                }) {
+            @Override
+            public void onClicked(TaskInstanceImpl value) {
+                if (Window.confirm("Do you want to completely remove all annotations you performed on this document?\nNOTE: This action can not be undone")) {
+                    removeAnnotationTask(value.getDocumentId(), value.getId());
+                }
+            }
+        }) {
             @Override
             public TaskInstanceImpl getValue(TaskInstanceImpl taskInst) {
                 return taskInst;
@@ -790,17 +855,17 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
 
         Column<TaskInstanceImpl, TaskInstanceImpl> publishCol = new Column<TaskInstanceImpl, TaskInstanceImpl>(
                 new ImageButtonCell(StanEditorResources.INSTANCE.EndDocAnnotationIcon(), "publish the current annotated status of this document") {
-                    @Override
-                    public boolean displayImageButton(TaskInstanceImpl taskInst) {
-                        return (!taskInst.isReadOnly())
-                                && taskInst.getStatus().equals(TaskStatus.Pending);
-                    }
+            @Override
+            public boolean displayImageButton(TaskInstanceImpl taskInst) {
+                return (!taskInst.isReadOnly())
+                        && taskInst.getStatus().equals(TaskStatus.Pending);
+            }
 
-                    @Override
-                    public void onClicked(TaskInstanceImpl value) {
-                        publishAnnotationTask(value.getDocumentId(), value.getId());
-                    }
-                }) {
+            @Override
+            public void onClicked(TaskInstanceImpl value) {
+                publishAnnotationTask(value.getDocumentId(), value.getId());
+            }
+        }) {
             @Override
             public TaskInstanceImpl getValue(TaskInstanceImpl taskInst) {
                 return taskInst;
@@ -811,15 +876,15 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
 
         Column<TaskInstanceImpl, String> publishDateCol =
                 new Column<TaskInstanceImpl, String>(new TextCell()) {
-                    @Override
-                    public String getValue(TaskInstanceImpl taskInst) {
-                        if (taskInst.getStatus().equals(TaskStatus.Done)) {
-                            return taskInst.getPublicationDate();
-                        } else {
-                            return null;
-                        }
-                    }
-                };
+            @Override
+            public String getValue(TaskInstanceImpl taskInst) {
+                if (taskInst.getStatus().equals(TaskStatus.Done)) {
+                    return taskInst.getPublicationDate();
+                } else {
+                    return null;
+                }
+            }
+        };
 
         taskInstancesGrid.addColumn(publishDateCol, new SafeHtmlHeader(SafeHtmlUtils.fromSafeConstant("Publication date")));
         publishDateCol.setSortable(true);
@@ -901,6 +966,16 @@ public class TaskInstancesList extends Composite implements TaskSelectingView {
                 }
             }
         });
+    }
+
+    @UiHandler("nextTaskInstButton")
+    void handleNextTaskInstClick(ClickEvent e) {
+        displayMoreInstances(taskInstOtherPageSize);
+    }
+
+    @UiHandler("lastTaskInstButton")
+    void handleLastTaskInstClick(ClickEvent e) {
+        displayMoreInstances(instances.size());
     }
 
     private void publishAnnotationTask(final int docId, final int taskId) {

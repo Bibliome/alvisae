@@ -16,7 +16,7 @@ import com.google.gwt.view.client.ProvidesKey;
 import com.google.gwt.view.client.Range;
 import fr.inra.mig_bibliome.alvisae.client.Config.StaneClientExtGinInjector;
 import fr.inra.mig_bibliome.alvisae.client.data.Retrieve.AsyncResponseHandler;
-import fr.inra.mig_bibliome.alvisae.client.data3.SemClassTreeLevelImpl;
+import fr.inra.mig_bibliome.alvisae.client.data3.VersionedSemClassTreeLevelImpl;
 import fr.inra.mig_bibliome.alvisae.shared.data3.SemClass;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -137,10 +137,10 @@ public class SemClassDataProvider extends AsyncDataProvider<SemClassInfo> {
     }
 
     public static void ensureSemanticClassLoaded(final Integer projectId, Integer semClassId, final Command executeWhenLoaded) {
-        if (ProviderStore.forProject(projectId).getCacheSemClass(semClassId) == null) {
-            termInjector.getTermDataProvider().getSemanticClass(projectId, semClassId, new AsyncResponseHandler<SemClassTreeLevelImpl>() {
+        if ((ProviderStore.forProject(projectId) == null || ProviderStore.forProject(projectId).getCacheSemClass(semClassId) == null) && termInjector.getTermDataProvider().getRequestManager().isSignedIn()) {
+            termInjector.getTermDataProvider().getSemanticClass(projectId, semClassId, new AsyncResponseHandler<VersionedSemClassTreeLevelImpl>() {
                 @Override
-                public void onSuccess(SemClassTreeLevelImpl result) {
+                public void onSuccess(VersionedSemClassTreeLevelImpl result) {
                     ProviderStore.forProject(projectId).cacheSemClassTreeLevel(result);
                     if (executeWhenLoaded != null) {
                         executeWhenLoaded.execute();
@@ -154,9 +154,9 @@ public class SemClassDataProvider extends AsyncDataProvider<SemClassInfo> {
         unloadData();
         loading = true;
 
-        termInjector.getTermDataProvider().getSemanticClass(projectId, parentId, new AsyncResponseHandler<SemClassTreeLevelImpl>() {
+        termInjector.getTermDataProvider().getSemanticClass(projectId, parentId, new AsyncResponseHandler<VersionedSemClassTreeLevelImpl>() {
             @Override
-            public void onSuccess(SemClassTreeLevelImpl result) {
+            public void onSuccess(VersionedSemClassTreeLevelImpl result) {
                 ProviderStore.forProject(projectId).cacheSemClassTreeLevel(result);
                 data.clear();
                 ArrayList<SemClassExtendedInfo> loadedData = new ArrayList<SemClassExtendedInfo>();

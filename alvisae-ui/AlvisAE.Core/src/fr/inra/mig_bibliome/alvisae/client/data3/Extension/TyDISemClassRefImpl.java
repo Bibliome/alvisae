@@ -31,10 +31,11 @@ public class TyDISemClassRefImpl implements TyDISemClassRef {
         }
         return result;
     }
-
+   
     public static Integer getSemClassIdFromSemClassExternalId(String semClassExternalId) {
         Integer semClassId = null;
-        MatchResult result = SemClassExternalIdregex.exec(semClassExternalId);
+        
+        MatchResult result = SemClassExternalIdregex.exec(ResourceLocator.stripUrlFragment(semClassExternalId));
         if (result != null && (result.getGroupCount() == 3 || result.getGroupCount() == 4)) {
             Integer projectId = Integer.valueOf(result.getGroup(1));
             semClassId = Integer.valueOf(result.getGroup(2));

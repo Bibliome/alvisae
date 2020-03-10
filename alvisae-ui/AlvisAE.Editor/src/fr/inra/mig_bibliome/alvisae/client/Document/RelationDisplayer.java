@@ -87,7 +87,8 @@ public class RelationDisplayer extends CombinedAnnotationDisplayer implements Re
             //create shadow boxes under the TEXT annotations
             int index = 0;
             for (Rect clip : getAnnotationClips()) {
-                if (getMapper().getAnnotation(annotationIds.get(index)).getAnnotationKind().equals(AnnotationKind.TEXT)) {
+                AnnotationKind argKind =  getMapper().getAnnotation(annotationIds.get(index)).getAnnotationKind();
+                if (AnnotationKind.TEXT.equals(argKind)) {
                     Rectangle sShadow = new Rectangle(clip.left, clip.top, clip.width + 2, clip.height + 2);
                     sShadow.setStrokeWidth(1);
                     sShadow.setFillOpacity(0);
@@ -105,28 +106,28 @@ public class RelationDisplayer extends CombinedAnnotationDisplayer implements Re
                     relationHint.setFillColor("silver");
                     hints.add(relationHint);
                     this.add(relationHint);
-
-                    //determine the argument annotations bordering the area covered by the relation and its arguments
-                    int annotationFloor = clip.top + clip.height;
-                    if (annotationFloor > lowestAnnotationFloor) {
-                        lowestAnnotationFloor = annotationFloor;
-                        lowestAnnotationIdx = index;
-                    }
-                    if (annotationFloor < highestAnnotationFloor) {
-                        highestAnnotationFloor = annotationFloor;
-                        highestAnnotationIdx = index;
-                    }
-                    int annotationCenter = clip.left + clip.width / 2;
-                    if (leftAnnotationCenter > annotationCenter) {
-                        leftAnnotationCenter = annotationCenter;
-                        leftAnnotationIdx = index;
-                    }
-                    if (rightAnnotationCenter < annotationCenter) {
-                        rightAnnotationCenter = annotationCenter;
-                        rightAnnotationIdx = index;
-                    }
-
                 }
+
+                //determine the argument annotations bordering the area covered by the relation and its arguments
+                int annotationFloor = clip.top + clip.height;
+                if (annotationFloor > lowestAnnotationFloor) {
+                    lowestAnnotationFloor = annotationFloor;
+                    lowestAnnotationIdx = index;
+                }
+                if (annotationFloor < highestAnnotationFloor) {
+                    highestAnnotationFloor = annotationFloor;
+                    highestAnnotationIdx = index;
+                }
+                int annotationCenter = clip.left + clip.width / 2;
+                if (leftAnnotationCenter > annotationCenter) {
+                    leftAnnotationCenter = annotationCenter;
+                    leftAnnotationIdx = index;
+                }
+                if (rightAnnotationCenter < annotationCenter) {
+                    rightAnnotationCenter = annotationCenter;
+                    rightAnnotationIdx = index;
+                }
+
                 index++;
             }
 
@@ -447,8 +448,13 @@ public class RelationDisplayer extends CombinedAnnotationDisplayer implements Re
             //the annotation can be displayed if the other annotations it refers to are already (Of course, no cyclic ref allowed)
             for (String role : orderedRoles) {
                 AnnotationReference aRef = relation.getRelation().getArgumentRef(role);
-                Annotation argument = getAnnotatedDoc().getAnnotation(aRef.getAnnotationId());
+                //incomplete Relation have empty argument
+                if (aRef == null || aRef.getAnnotationId() == null) {
+                    canBeDisplayed = false;
+                    break;
+                }
 
+                Annotation argument = getAnnotatedDoc().getAnnotation(aRef.getAnnotationId());
                 if (argument == null) {
                     canBeDisplayed = false;
                     break;
@@ -492,17 +498,23 @@ public class RelationDisplayer extends CombinedAnnotationDisplayer implements Re
 
     @Override
     public boolean processAnnotation(SpecifiedAnnotation annotation, String color, boolean veiled) {
-        CombinedAnnotationWidget widget = addAnnotation(annotation.getAnnotation());
-        if (widget != null) {
-            widget.createOverlay(engine.getOverlayContainer());
+        if (!isRefreshOptional()) {
+            CombinedAnnotationWidget widget = addAnnotation(annotation.getAnnotation());
+            if (widget != null) {
+                widget.createOverlay(engine.getOverlayContainer());
+            }
+            return (widget != null);
+        } else {
+            return true;
         }
-        return (widget != null);
     }
 
     @Override
     public void init(AnnotationDisplayerEngine engine) {
-        this.engine = engine;
-        clearCombinedWidget();
+        if (!isRefreshOptional()) {
+            this.engine = engine;
+            clearCombinedWidget();
+        }
     }
 
     @Override
@@ -512,5 +524,7 @@ public class RelationDisplayer extends CombinedAnnotationDisplayer implements Re
     @Override
     public void complete() {
         this.engine = engine;
+        setRefreshOptional(false);
+
     }
 }

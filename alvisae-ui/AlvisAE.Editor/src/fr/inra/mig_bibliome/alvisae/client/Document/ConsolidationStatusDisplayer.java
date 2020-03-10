@@ -7,6 +7,8 @@
  */
 package fr.inra.mig_bibliome.alvisae.client.Document;
 
+import com.google.gwt.cell.client.AbstractCell;
+import com.google.gwt.cell.client.Cell;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
@@ -20,6 +22,7 @@ import com.google.gwt.event.dom.client.MouseMoveEvent;
 import com.google.gwt.safehtml.client.SafeHtmlTemplates;
 import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.safehtml.shared.SafeHtmlBuilder;
+import com.google.gwt.user.cellview.client.Column;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HTMLPanel;
@@ -33,6 +36,10 @@ import fr.inra.mig_bibliome.alvisae.client.Document.CombinedAnnotationDisplayer.
 import fr.inra.mig_bibliome.alvisae.client.StanEditorResources;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Annotation;
 import fr.inra.mig_bibliome.alvisae.shared.data3.ConsolidationStatus;
+import static fr.inra.mig_bibliome.alvisae.shared.data3.ConsolidationStatus.POSTPONED;
+import static fr.inra.mig_bibliome.alvisae.shared.data3.ConsolidationStatus.REJECTED;
+import static fr.inra.mig_bibliome.alvisae.shared.data3.ConsolidationStatus.RESOLVED;
+import static fr.inra.mig_bibliome.alvisae.shared.data3.ConsolidationStatus.SPLIT;
 import fr.inra.mig_bibliome.alvisae.shared.data3.SpecifiedAnnotation;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -81,6 +88,46 @@ public abstract class ConsolidationStatusDisplayer implements TextAnnotationDisp
     static {
         StanEditorResources.INSTANCE.css().ensureInjected();
     }
+
+    public static class ConsoStatusCell extends AbstractCell<ConsolidationStatus> {
+
+        static interface Templates extends SafeHtmlTemplates {
+
+            @SafeHtmlTemplates.Template("<div class='{0}' title='{1}'/>")
+            public SafeHtml divConsoStatus(String style, String status);
+        }
+        static final Templates TEMPLATES = GWT.create(Templates.class);
+
+        @Override
+        public void render(Cell.Context context, ConsolidationStatus status, SafeHtmlBuilder sb) {
+            if (status != null) {
+                switch (status) {
+                    case RESOLVED:
+                        sb.append(TEMPLATES.divConsoStatus(StanEditorResources.INSTANCE.css().csResolved(), status.name()));
+                        break;
+
+                    case REJECTED:
+                        sb.append(TEMPLATES.divConsoStatus(StanEditorResources.INSTANCE.css().csRejected(), status.name()));
+                        break;
+
+                    case SPLIT:
+                        sb.append(TEMPLATES.divConsoStatus(StanEditorResources.INSTANCE.css().csSplit(), status.name()));
+                        break;
+
+                    case POSTPONED:
+                        sb.append(TEMPLATES.divConsoStatus(StanEditorResources.INSTANCE.css().csPostponed(), status.name()));
+                        break;
+                }
+
+            }
+        }
+    }
+
+    public static abstract class ConsoStatusColumn<T> extends Column<T, ConsolidationStatus> {
+        public ConsoStatusColumn() {
+            super(new ConsoStatusCell());
+        }
+    };
 
     /**
      * Popup menu used to change Consolidation Status when click on the
@@ -268,6 +315,14 @@ public abstract class ConsolidationStatusDisplayer implements TextAnnotationDisp
             pin.setFillColor(typeColor);
             markGroup.add(pin);
 
+            Path backbead = new Path(leftOrig + coreRadius - offX, topOrig - offY);
+            backbead.arc(coreRadius, coreRadius, 0, true, false, leftOrig - offX, topOrig - offY + coreRadius);
+            backbead.close();
+            backbead.setStrokeWidth(2);
+            backbead.setStrokeColor("magenta");
+            backbead.setFillOpacity(.0);
+            markGroup.add(backbead);
+            
             Path bead = new Path(leftOrig + coreRadius - offX, topOrig - offY);
             bead.arc(coreRadius, coreRadius, 0, true, false, leftOrig - offX, topOrig - offY + coreRadius);
             bead.close();
@@ -295,7 +350,7 @@ public abstract class ConsolidationStatusDisplayer implements TextAnnotationDisp
             overlayElt.setId(uniqueId);
             overlayElt.setAttribute(AnnotationDisplayerEngine.AnnotationOverlayProducer.PROXYANNID_ATTRNAME, annotation.getId());
             overlayElt.setAttribute(PROXYANNCONSOSTATUS_ATTRNAME, "true");
-            overlayElt.getStyle().setTop(clip.top - coreRadius - offY, Style.Unit.PX);
+            overlayElt.getStyle().setTop(topOrig - coreRadius - offY, Style.Unit.PX);
             overlayElt.getStyle().setLeft(leftOrig - coreRadius - offX, Style.Unit.PX);
             overlayElt.getStyle().setWidth(coreRadius * 2, Style.Unit.PX);
             overlayElt.getStyle().setHeight(coreRadius * 2, Style.Unit.PX);

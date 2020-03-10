@@ -46,7 +46,7 @@
             <g:SplitLayoutPanel ui:field='detailsDocSplitPanel'>
                 <g:west size='250'>
                     <g:LayoutPanel  ui:field='detailsPanel'>
-                        <g:layer top='0.1EM' bottom='0px' left='0px' right='0px'>
+                        <g:layer top='0.1EM' bottom='0px' left='1px' right='1px'>
                             <g:SplitLayoutPanel ui:field='propsSemClassTreeSplitPanel'>
                                 <g:north size='0'>
                                     <SemClass:StructTermUi ui:field='structTermUI' title=''/>
@@ -65,32 +65,39 @@
                             <Document:DocumentUi ui:field='documentUI' />
                         </g:center>
                         <g:south size='200'>
-                            <g:DockLayoutPanel ui:field='bottomDockPanel'  unit='PX' addStyleNames='DefaultCursor'>
-                                <g:north size='2'>
-                                    <g:FlowPanel></g:FlowPanel>
-                                </g:north>
-                                <g:center>
-                                    <g:TabLayoutPanel barHeight="20">
-                                        <g:tab>
-                                            <g:header>Annotations</g:header>
-                                            <g:FlowPanel>
-                                                <Annotation:AnnotationTable height='100%'/>                                                
-                                            </g:FlowPanel>
-                                        </g:tab>
-                                        <g:tab>
-                                            <g:header>Text selection</g:header>
-                                            <g:SplitLayoutPanel>
-                                                <g:center size='100'>
-                                                    <Annotation:RangeListUi title='list of text-ranges covered by the selected text'/>
-                                                </g:center>
-                                                <g:south size='100'>
-                                                    <Annotation:TargetListUi title='list of annotation targets covered by the selected text' />
-                                                </g:south>
-                                            </g:SplitLayoutPanel>
-                                        </g:tab>
-                                    </g:TabLayoutPanel>
-                                </g:center>
-                            </g:DockLayoutPanel>
+                            <g:LayoutPanel ui:field='annotTableLayoutPanel'  height='100%' width='100%'>
+                                <g:layer top='0' width='100%' height='100%'>
+                                    <Document:RequiresResizeSpy ui:field='annotTableResizeSpy' />
+                                </g:layer>
+                                <g:layer top='0' width='100%' height='100%'>
+                                    <g:DockLayoutPanel ui:field='bottomDockPanel'  unit='PX' addStyleNames='DefaultCursor'>
+                                        <g:north size='2'>
+                                            <g:FlowPanel></g:FlowPanel>
+                                        </g:north>
+                                        <g:center>
+                                            <g:TabLayoutPanel barHeight="20">
+                                                <g:tab>
+                                                    <g:header>Annotations</g:header>
+                                                    <g:FlowPanel>
+                                                        <Annotation:AnnotationTable ui:field='annotationTable' height='100%'/>                                                
+                                                    </g:FlowPanel>
+                                                </g:tab>
+                                                <g:tab>
+                                                    <g:header>Text selection</g:header>
+                                                    <g:SplitLayoutPanel>
+                                                        <g:center size='100'>
+                                                            <Annotation:RangeListUi title='list of text-ranges covered by the selected text'/>
+                                                        </g:center>
+                                                        <g:south size='100'>
+                                                            <Annotation:TargetListUi title='list of annotation targets covered by the selected text' />
+                                                        </g:south>
+                                                    </g:SplitLayoutPanel>
+                                                </g:tab>
+                                            </g:TabLayoutPanel>
+                                        </g:center>
+                                    </g:DockLayoutPanel>
+                                </g:layer>
+                            </g:LayoutPanel>
                         </g:south>
                     </g:SplitLayoutPanel>
                 </g:center>

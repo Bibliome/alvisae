@@ -284,4 +284,6 @@ public interface DocumentView extends IsWidget {
 	public String getTextContainerId();
 
 	public void setTitleText(String title);
+        
+        public String getTitleText();
 }

@@ -148,9 +148,9 @@ public class ProviderStore {
             if (semClassId == SemClass.ROOT_ID) {
                 return root;
             } else {
-                SemClass semClass = treeLevel.get(semClassId);
+                SemClass semClass = treeLevel!=null ? treeLevel.get(semClassId) : null;
                 if (semClass == null) {
-                    semClass = semClasses.get(semClassId);
+                    semClass = semClasses!=null ? semClasses.get(semClassId) :null;
                 }
                 return semClass;
             }

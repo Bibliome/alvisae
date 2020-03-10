@@ -42,7 +42,6 @@ import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.*;
 import com.google.gwt.view.client.*;
 import com.google.web.bindery.event.shared.EventBus;
-import fr.inra.mig_bibliome.alvisae.client.AlvisaeCore;
 import fr.inra.mig_bibliome.alvisae.client.Config.StaneClientBaseGinInjector;
 import fr.inra.mig_bibliome.alvisae.client.Document.AnnotationDocumentViewMapper;
 import fr.inra.mig_bibliome.alvisae.client.Document.DocumentView;
@@ -50,6 +49,8 @@ import fr.inra.mig_bibliome.alvisae.client.Document.ToolBarExpandCollapseHandler
 import fr.inra.mig_bibliome.alvisae.client.Edit.AnnotationEdit;
 import fr.inra.mig_bibliome.alvisae.client.Events.AnnotationFocusChangedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.AnnotationSelectionChangedEventHandler;
+import fr.inra.mig_bibliome.alvisae.client.Events.AnnotationStatusChangedEvent;
+import fr.inra.mig_bibliome.alvisae.client.Events.AnnotationStatusChangedEventHandler;
 import fr.inra.mig_bibliome.alvisae.client.Events.EditHappenedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.EditHappenedEventHandler;
 import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TermAnnotationsExpositionEvent;
@@ -80,6 +81,7 @@ import fr.inra.mig_bibliome.alvisae.client.data3.Extension.ResourceLocator;
 import fr.inra.mig_bibliome.alvisae.client.data3.TextBindingImpl;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Annotation;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationKind;
+import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationReference;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationSetInfo;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TermAnnotation;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TyDIResourceRef;
@@ -110,7 +112,7 @@ import java.util.Set;
  *
  * @author fpapazian
  */
-public class AnnotationTable extends Composite implements WorkingDocumentChangedEventHandler, EditHappenedEventHandler, AnnotationSelectionChangedEventHandler, TermAnnotationsExpositionEventHandler, TyDIResourceSelectionChangedEventHandler {
+public class AnnotationTable extends Composite implements WorkingDocumentChangedEventHandler, EditHappenedEventHandler, AnnotationSelectionChangedEventHandler, TermAnnotationsExpositionEventHandler, TyDIResourceSelectionChangedEventHandler, AnnotationStatusChangedEventHandler {
 
     interface AnnotationFilter {
 
@@ -174,9 +176,8 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
     private AnnotationVeiledColumn<Annotation> veiledColumn;
 //
     private AnnotatedTextHandler lastWorkingDocument = null;
+    private AnnotatedTextHandler registeredAnnotatedText = null;
     private AnnotationSchemaDefHandler schemaHandler = null;
-    //for document exposing TermAnnotations referencing TyDI resource
-    private ResourceLocator locator;
     //list of the displayed annotations
     private final ArrayList<Annotation> annotations = new ArrayList<Annotation>();
     private final ListDataProvider<Annotation> annotationProvider;
@@ -198,7 +199,7 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
     //List of Annotation Set that are currently displayed in the Table
     private Set<Integer> selectedAnnSet = new HashSet<Integer>();
     //
-    private CombinedAnnotationCell combinedAnnotationCell = new SelectorCombinedAnnotationCell();
+    private CombinedAnnotationCell combinedAnnotationCell = new SelectorCombinedAnnotationCellImpl();
     SafeHtml checkedIcon = SafeHtmlUtils.fromSafeConstant(AbstractImagePrototype.create(StanEditorResources.INSTANCE.CheckedIcon()).getHTML());
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     public static final ProvidesKey<Annotation> KEY_PROVIDER = new ProvidesKey<Annotation>() {
@@ -211,30 +212,78 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
 
     public interface AnnotationCellIdTemplates extends SafeHtmlTemplates {
 
-        @Template("<span style='outline:thin solid silver;'>{0}</span>")
-        public SafeHtml grayedSpan2(String text);
+        @Template("<span class='{0}' title='{1}'>{2}</span>")
+        public SafeHtml spanId(String style, String annotationId, String briefId);
+
+        @Template("<span style='color:red;'>???</span>")
+        public SafeHtml missingId();
     }
     private static final AnnotationCellIdTemplates TEMPLATES = GWT.create(AnnotationCellIdTemplates.class);
+
+    public static void renderId(AnnotatedTextHandler annotatedText, Annotation annotation, SafeHtmlBuilder sb) {
+        if (annotation != null && annotatedText != null) {
+            renderId(annotatedText, annotatedText.getAnnotationReference(annotation.getId()), sb);
+        }
+    }
+
+    public static void renderId(AnnotatedTextHandler annotatedText, AnnotationReference annotationRef, SafeHtmlBuilder sb) {
+        if (annotatedText != null) {
+            if (annotationRef == null) {
+                sb.append(TEMPLATES.missingId());
+            } else {
+                String annotationId = annotationRef.getAnnotationId();
+                AnnotationSetImpl userAnnotationSet = annotatedText.getEditableUsersAnnotationSet();
+                Integer userAnnSetId = userAnnotationSet != null ? userAnnotationSet.getId() : null;
+                String fullAnnId = (annotationRef.getAnnotationSetId() == null ? userAnnSetId : annotationRef.getAnnotationSetId()) + ":" + annotationId;
+                String idClass;
+                switch (annotatedText.getAnnotationObsolescenceStatus(annotationRef, userAnnSetId)) {
+                    case OUTDATED:
+                        idClass = StanEditorResources.INSTANCE.css().cwOutdatedId();
+                        break;
+                    case OUTDATEDREF:
+                    case OUTDATEDBACKREF:
+                        idClass = StanEditorResources.INSTANCE.css().cwOutdatedRefId();
+                        break;
+                    default:
+                        idClass = StanEditorResources.INSTANCE.css().cwId();
+                }
+                sb.append(TEMPLATES.spanId(idClass, fullAnnId, AnnotatedTextProcessor.getBriefId(annotationId)));
+            }
+        }
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    public static abstract class AnnotationIdColumn<T> extends Column<T, AnnotationReference> {
 
-    public static abstract class AnnotationIdColumn<T> extends Column<T, Annotation> {
+        public static class DblClickableIdCell extends AbstractCell<AnnotationReference> {
 
-        static class DblClickableCell extends AbstractCell<Annotation> {
+            private AnnotatedTextHandler annotatedText;
 
-            public DblClickableCell() {
+            public DblClickableIdCell() {
                 super("dblclick");
             }
 
             @Override
-            public void render(Context context, Annotation annotation, SafeHtmlBuilder sb) {
-                if (annotation != null) {
-                    sb.append(TEMPLATES.grayedSpan2(AnnotatedTextProcessor.getBriefId(annotation.getId())));
-                }
+            public void render(Context context, AnnotationReference annotationRef, SafeHtmlBuilder sb) {
+                renderId(getAnnotatedText(), annotationRef, sb);
+            }
+
+            public AnnotatedTextHandler getAnnotatedText() {
+                return annotatedText;
+            }
+
+            public void setDocument(AnnotatedTextHandler annotatedText) {
+                this.annotatedText = annotatedText;
             }
         }
 
         public AnnotationIdColumn() {
-            super(new DblClickableCell());
+            super(new DblClickableIdCell());
+
+        }
+
+        public DblClickableIdCell getIdCell() {
+            return (DblClickableIdCell) getCell();
         }
     };
 
@@ -246,18 +295,27 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
 
             @Template("<div id='termAnnotationDragHelper' class='{0}'></div>")
             public SafeHtml outerHelper(String cssClassName);
+
+            @Template("<div class='{0}'/>")
+            public SafeHtml divTermIcon(String style);
         }
         public static final TermAnnotationCellTemplates TEMPLATES = GWT.create(TermAnnotationCellTemplates.class);
-        private static final SafeHtml termGeneratorIcon = SafeHtmlUtils.fromSafeConstant(AbstractImagePrototype.create(StanEditorResources.INSTANCE.TermDragIcon()).getHTML());
-        private static final SafeHtml termLinkIcon = SafeHtmlUtils.fromSafeConstant(AbstractImagePrototype.create(StanEditorResources.INSTANCE.TermLinkIcon()).getHTML());
 
         @Override
         public void render(Context context, TermAnnotationBox value, SafeHtmlBuilder sb) {
             if (value != null) {
                 if (value.isTyDIClassOrTermGenerator()) {
-                    sb.append(termGeneratorIcon);
+                    if (value.getSemClassExternalId() == null) {
+                        sb.append(TEMPLATES.divTermIcon(StanEditorResources.INSTANCE.css().termGenerNotLinked()));
+                    } else {
+                        sb.append(TEMPLATES.divTermIcon(StanEditorResources.INSTANCE.css().termGenerLinked()));
+                    }
                 } else {
-                    sb.append(termLinkIcon);
+                    if (value.getSemClassExternalId() == null) {
+                        sb.append(TEMPLATES.divTermIcon(StanEditorResources.INSTANCE.css().termLinkerNotLinked()));
+                    } else {
+                        sb.append(TEMPLATES.divTermIcon(StanEditorResources.INSTANCE.css().termLinkerLinked()));
+                    }
                 }
             }
         }
@@ -271,64 +329,86 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
     };
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    public class SelectorCombinedAnnotationCell extends CombinedAnnotationCell {
+    public static class SelectorCombinedAnnotationCell extends CombinedAnnotationCell {
 
-        public SelectorCombinedAnnotationCell() {
+        private final static StaneClientBaseGinInjector injector = GWT.create(StaneClientBaseGinInjector.class);
+        private final boolean textDetailOnly;
+
+        public SelectorCombinedAnnotationCell(boolean textDetailOnly) {
             super("dblclick");
+            this.textDetailOnly = textDetailOnly;
+        }
+
+        public boolean isTextDetailOnly() {
+            return textDetailOnly;
         }
 
         @Override
         public void render(Context context, Annotation annotation, SafeHtmlBuilder sb) {
-            indexByAnnotation.put(annotation, context.getIndex());
-            renderDetail(getDocument(), annotation, sb);
+            renderDetail(getDocument(), annotation, isTextDetailOnly(), sb);
         }
 
         @Override
         public void onBrowserEvent(Context context, Element parent, Annotation value, NativeEvent event, ValueUpdater<Annotation> valueUpdater) {
             super.onBrowserEvent(context, parent, value, event, valueUpdater);
-            String eventType = event.getType();
-            if ("dblclick".equals(eventType)) {
-                EventTarget evtTarget = event.getEventTarget();
-                Element targetElement = evtTarget.cast();
-                String annotationId = targetElement.getAttribute(CombinedAnnotationCell.REFANNID_ATTRNAME);
-                final GenericAnnotationSelectionChangedEvent selEvent;
-                if (annotationId != null && !annotationId.isEmpty()) {
-                    Annotation annotation = lastWorkingDocument.getAnnotation(annotationId);
-                    if (annotation != null) {
-                        if (annotation.getAnnotationKind().equals(AnnotationKind.TEXT)) {
-                            AnnotationDocumentViewMapper mapper = AnnotationDocumentViewMapper.getMapper(lastWorkingDocument.getAnnotatedText());
-                            ArrayList<String> markers = mapper.getMarkerIdsFromAnnotationId(annotation.getId());
-                            if (markers != null && !markers.isEmpty()) {
-                                selEvent = new TextAnnotationSelectionChangedEvent(lastWorkingDocument, annotation, markers, markers.get(0));
+            if (getDocument() != null) {
+                String eventType = event.getType();
+                if ("dblclick".equals(eventType)) {
+                    EventTarget evtTarget = event.getEventTarget();
+                    Element targetElement = evtTarget.cast();
+                    String annotationId = targetElement.getAttribute(CombinedAnnotationCell.REFANNID_ATTRNAME);
+                    final GenericAnnotationSelectionChangedEvent selEvent;
+                    if (annotationId != null && !annotationId.isEmpty()) {
+                        Annotation annotation = getDocument().getAnnotation(annotationId);
+                        if (annotation != null) {
+                            if (annotation.getAnnotationKind().equals(AnnotationKind.TEXT)) {
+                                AnnotationDocumentViewMapper mapper = AnnotationDocumentViewMapper.getMapper(getDocument().getAnnotatedText());
+                                ArrayList<String> markers = mapper.getMarkerIdsFromAnnotationId(annotation.getId());
+                                if (markers != null && !markers.isEmpty()) {
+                                    selEvent = new TextAnnotationSelectionChangedEvent(getDocument(), annotation, markers, markers.get(0));
+                                } else {
+                                    selEvent = null;
+                                }
+                            } else if (annotation.getAnnotationKind().equals(AnnotationKind.GROUP)) {
+                                selEvent = new GroupSelectionChangedEvent(getDocument(), annotation);
+                            } else if (annotation.getAnnotationKind().equals(AnnotationKind.RELATION)) {
+                                selEvent = new RelationSelectionChangedEvent(getDocument(), annotation);
                             } else {
                                 selEvent = null;
                             }
-                        } else if (annotation.getAnnotationKind().equals(AnnotationKind.GROUP)) {
-                            selEvent = new GroupSelectionChangedEvent(lastWorkingDocument, annotation);
-                        } else if (annotation.getAnnotationKind().equals(AnnotationKind.RELATION)) {
-                            selEvent = new RelationSelectionChangedEvent(lastWorkingDocument, annotation);
+                            if (selEvent != null) {
+                                EventBus eventBus = injector.getMainEventBus();
+                                eventBus.fireEvent(new TextAnnotationSelectionEmptiedEvent(getDocument()));
+                                eventBus.fireEvent(new GroupSelectionEmptiedEvent(getDocument()));
+                                eventBus.fireEvent(new RelationSelectionEmptiedEvent(getDocument()));
+                                eventBus.fireEvent(selEvent);
+                            }
                         } else {
-                            selEvent = null;
+                            GWT.log("NOT loaded referenced Annotation!!! id=*" + annotationId);
                         }
-                        if (selEvent != null) {
-                            EventBus eventBus = AnnotationTable.injector.getMainEventBus();
-                            eventBus.fireEvent(new TextAnnotationSelectionEmptiedEvent(lastWorkingDocument));
-                            eventBus.fireEvent(new GroupSelectionEmptiedEvent(lastWorkingDocument));
-                            eventBus.fireEvent(new RelationSelectionEmptiedEvent(lastWorkingDocument));
-                            eventBus.fireEvent(selEvent);
-                        }
-                    } else {
-                        GWT.log("NOT loaded referenced Annotation!!! id=*" + annotationId);
                     }
                 }
             }
         }
     }
+
+    public class SelectorCombinedAnnotationCellImpl extends SelectorCombinedAnnotationCell {
+
+        public SelectorCombinedAnnotationCellImpl() {
+            super(false);
+        }
+
+        @Override
+        public void render(Context context, Annotation annotation, SafeHtmlBuilder sb) {
+            indexByAnnotation.put(annotation, context.getIndex());
+            super.render(context, annotation, sb);
+        }
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    public abstract static class CombinedAnnotationColumn<T> extends Column<T, Annotation> {
 
-    public abstract class CombinedAnnotationColumn<T> extends Column<T, Annotation> {
-
-        public CombinedAnnotationColumn() {
+        public CombinedAnnotationColumn(CombinedAnnotationCell combinedAnnotationCell) {
             super(combinedAnnotationCell);
         }
     };
@@ -344,9 +424,15 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     public static class AnnotationKindCell extends CombinedAnnotationCell {
 
+        public AnnotationKindCell() {
+            super("click");
+        }
+
         @Override
         public void render(Context context, Annotation annotation, SafeHtmlBuilder sb) {
-            renderKind(annotation.getAnnotationKind(), sb);
+            if (annotation != null) {
+                renderKind(annotation.getAnnotationKind(), sb);
+            }
         }
     }
 
@@ -362,11 +448,13 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
 
         @Override
         public void render(Context context, Annotation annotation, SafeHtmlBuilder sb) {
-            AnnotationSchemaCell.renderType(annotation.getAnnotationType(), sb);
+            if (annotation != null) {
+                AnnotationSchemaCell.renderType(annotation.getAnnotationType(), sb);
+            }
         }
     }
 
-    public abstract class AnnotationTypeColumn<T> extends Column<T, Annotation> {
+    public static abstract class AnnotationTypeColumn<T> extends Column<T, Annotation> {
 
         public AnnotationTypeColumn() {
             super(new AnnotationTypeCell());
@@ -415,7 +503,6 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
                 } else {
                     boolean veiledStatus = mapper.toggleVeiledStatus(annotation.getId());
                 }
-                annotationsGrid.redraw();
             }
         }
     }
@@ -483,8 +570,8 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
         //
         idColumn = new AnnotationIdColumn<Annotation>() {
             @Override
-            public Annotation getValue(Annotation annotation) {
-                return annotation;
+            public AnnotationReference getValue(Annotation annotation) {
+                return lastWorkingDocument.getAnnotationReference(annotation.getId());
             }
 
             @Override
@@ -619,7 +706,7 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
                     if (context.getDraggableData() instanceof TermAnnotation && ((TermAnnotation) context.getDraggableData()).isTyDIClassOrTermGenerator()) {
                         Annotation draggedAnnotation = context.getDraggableData();
                         SafeHtmlBuilder sb = new SafeHtmlBuilder();
-                        CombinedAnnotationCell.renderDetail(lastWorkingDocument, draggedAnnotation, sb);
+                        CombinedAnnotationCell.renderDetail(lastWorkingDocument, draggedAnnotation, true, sb);
                         context.getHelper().setInnerHTML(sb.toSafeHtml().asString());
                     } else {
                         //Cancel Dragging : Should be available in later release of gwtquery-plugins, see: http://code.google.com/p/gwtquery-plugins/issues/detail?id=27
@@ -642,7 +729,7 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
             termColumn.setCellDraggableOnly();
         }
         //
-        detailColumn = new CombinedAnnotationColumn<Annotation>() {
+        detailColumn = new CombinedAnnotationColumn<Annotation>(combinedAnnotationCell) {
             @Override
             public Annotation getValue(Annotation annotation) {
                 return annotation;
@@ -653,17 +740,17 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
         detailColumn.setSortable(true);
         sortHandler.setComparator(detailColumn,
                 new Comparator<Annotation>() {
-                    @Override
-                    public int compare(Annotation o1, Annotation o2) {
-                        int result = o1.getAnnotationKind().compareTo(o2.getAnnotationKind());
-                        if (result == 0 && AnnotationKind.TEXT.equals(o1.getAnnotationKind())) {
-                            String t1 = lastWorkingDocument.isFormattingAnnotation(o1.getId()) ? "" : AnnotatedTextProcessor.getAnnotationText(o1);
-                            String t2 = lastWorkingDocument.isFormattingAnnotation(o2.getId()) ? "" : AnnotatedTextProcessor.getAnnotationText(o2);
-                            result = t1.compareTo(t2);
-                        }
-                        return result;
-                    }
-                });
+            @Override
+            public int compare(Annotation o1, Annotation o2) {
+                int result = o1.getAnnotationKind().compareTo(o2.getAnnotationKind());
+                if (result == 0 && AnnotationKind.TEXT.equals(o1.getAnnotationKind())) {
+                    String t1 = lastWorkingDocument.isFormattingAnnotation(o1.getId()) ? "" : AnnotatedTextProcessor.getAnnotationText(o1);
+                    String t2 = lastWorkingDocument.isFormattingAnnotation(o2.getId()) ? "" : AnnotatedTextProcessor.getAnnotationText(o2);
+                    result = t1.compareTo(t2);
+                }
+                return result;
+            }
+        });
 
         //
         veiledColumn = new AnnotationVeiledColumn<Annotation>() {
@@ -677,26 +764,26 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
         veiledColumn.setSortable(true);
         sortHandler.setComparator(veiledColumn,
                 new Comparator<Annotation>() {
-                    @Override
-                    public int compare(Annotation o1, Annotation o2) {
-                        AnnotationDocumentViewMapper mapper = AnnotationDocumentViewMapper.getMapper(lastWorkingDocument.getAnnotatedText());
+            @Override
+            public int compare(Annotation o1, Annotation o2) {
+                AnnotationDocumentViewMapper mapper = AnnotationDocumentViewMapper.getMapper(lastWorkingDocument.getAnnotatedText());
 
-                        Boolean t1 = lastWorkingDocument.isFormattingAnnotation(o1.getId()) ? null : mapper.isVeiled(o1.getId());
-                        Boolean t2 = lastWorkingDocument.isFormattingAnnotation(o2.getId()) ? null : mapper.isVeiled(o2.getId());
+                Boolean t1 = lastWorkingDocument.isFormattingAnnotation(o1.getId()) ? null : mapper.isVeiled(o1.getId());
+                Boolean t2 = lastWorkingDocument.isFormattingAnnotation(o2.getId()) ? null : mapper.isVeiled(o2.getId());
 
-                        int result;
-                        if (t1 == null && t2 == null) {
-                            result = 0;
-                        } else if (t1 == null) {
-                            result = -1;
-                        } else if (t2 == null) {
-                            result = +1;
-                        } else {
-                            result = t1.compareTo(t2);
-                        }
-                        return result;
-                    }
-                });
+                int result;
+                if (t1 == null && t2 == null) {
+                    result = 0;
+                } else if (t1 == null) {
+                    result = -1;
+                } else if (t2 == null) {
+                    result = +1;
+                } else {
+                    result = t1.compareTo(t2);
+                }
+                return result;
+            }
+        });
 
         resetColumnSize(false);
     }
@@ -719,7 +806,7 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
                 selectedAnnSet.add(usersAnnSet.getId());
             }
         } else {
-            HashSet<Integer> allButFormatting = new HashSet<Integer>(lastWorkingDocument.getLoadedAnnotationSets());
+            HashSet<Integer> allButFormatting = new HashSet<Integer>(lastWorkingDocument.getLoadedAnnotationSetIds());
             if (lastWorkingDocument.getFormattingAnnotationSet() != null) {
                 allButFormatting.remove(lastWorkingDocument.getFormattingAnnotationSet().getId());
             }
@@ -868,39 +955,14 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
     private void displayAnnotationList(AnnotatedTextHandler workingDocument, DocumentView docView, boolean initialLoad) {
         lastWorkingDocument = workingDocument;
         combinedAnnotationCell.setDocument(lastWorkingDocument);
+        idColumn.getIdCell().setDocument(lastWorkingDocument);
 
-        TermAnnotationsExpositionEvent event = null;
         if (workingDocument != null) {
             schemaHandler = new AnnotationSchemaDefHandler(workingDocument.getAnnotatedText().getAnnotationSchema());
-
-            //does the new schema include TermAnnotation referencing TyDI resource?
-            if (schemaHandler.enableTyDIResourceRef()) {
-                Set<String> urls = schemaHandler.getTyDIResourceBaseURLs();
-                if (urls.size() > 1) {
-                    throw new IllegalArgumentException("A schema should reference only one TyDI ressource location!");
-                }
-                //inform Structured Terminology widget that it should start displaying the specified Terminology resource
-                try {
-                    locator = new ResourceLocator(urls.iterator().next());
-                    event = new TermAnnotationsExpositionEvent(TermAnnotationsExpositionEvent.ChangeType.Available, locator);
-                } catch (IllegalArgumentException ex) {
-                    Window.alert(ex.getMessage());
-                }
-            }
         } else {
-            //if the editor was previously exposing TermAnnotation referencing TyDI resource
-            if (schemaHandler != null && schemaHandler.enableTyDIResourceRef()) {
-                //inform Structured Terminology widget that it should stop displaying the Terminology resource
-                event = new TermAnnotationsExpositionEvent(TermAnnotationsExpositionEvent.ChangeType.Unavailable, locator);
-            }
             schemaHandler = null;
         }
-
-        if (event != null) {
-            EventBus eventBus = AnnotationTable.injector.getMainEventBus();
-            eventBus.fireEvent(event);
-        }
-
+        
         //show term colum if the Annotation schema allows references to TyDI resource
         resetColumnSize(schemaHandler != null && schemaHandler.enableTyDIResourceRef());
 
@@ -912,7 +974,7 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
                 annSetInfos.put(asi.getId(), asi);
             }
             authorizedAnnSetIds.clear();
-            authorizedAnnSetIds.addAll(lastWorkingDocument.getLoadedAnnotationSets());
+            authorizedAnnSetIds.addAll(lastWorkingDocument.getLoadedAnnotationSetIds());
             reinitAnnSetFilter(initialLoad);
             reinitAnnSetFilterMenu();
         }
@@ -957,100 +1019,115 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
         annotationsGrid.setVisibleRange(0, annotationProvider.getList().size());
         // #2450 force sorting if the table was previously sorted
         ColumnSortList sortList = annotationsGrid.getColumnSortList();
-        if (sortList!=null && sortList.size()>0) {
-            ColumnSortEvent.fire( annotationsGrid, sortList);
-        }        
+        if (sortList != null && sortList.size() > 0) {
+            ColumnSortEvent.fire(annotationsGrid, sortList);
+        }
         //annotationProvider.refresh();
     }
 
     private void refreshAnnotationListDisplay() {
         if (lastWorkingDocument != null) {
-            annotationProvider.getList().clear();
-            indexByAnnotation.clear();
+            //display only annotation from the registered AnnotatedTextHandler if any
+            if (registeredAnnotatedText == null || this.registeredAnnotatedText == lastWorkingDocument) {
 
-            filterAnnotationListAndRefresh(selectedAnnSet);
+                annotationProvider.getList().clear();
+                indexByAnnotation.clear();
+
+                filterAnnotationListAndRefresh(selectedAnnSet);
+            }
         }
+    }
+
+    public void setRegisteredAnnotatedText(AnnotatedTextHandler annotatedText) {
+        this.registeredAnnotatedText = annotatedText;
+        displayAnnotationList(annotatedText, null, true);
     }
 
     @Override
     public void onWorkingDocumentChanged(WorkingDocumentChangedEvent event) {
-        displayAnnotationList(event.getWorkingDocument(), event.getDocView(), !WorkingDocumentChangedEvent.ChangeType.AdditionalAnnotationSetLoaded.equals(event.getChangeType()));
+        if (registeredAnnotatedText == null || this.registeredAnnotatedText == event.getWorkingDocument()) {
+            displayAnnotationList(event.getWorkingDocument(), event.getDocView(), !WorkingDocumentChangedEvent.ChangeType.AdditionalAnnotationSetLoaded.equals(event.getChangeType()));
+        }
     }
 
     @Override
     public void onAnnotationSelectionChanged(GenericAnnotationSelectionChangedEvent event) {
-        if (event instanceof TextAnnotationSelectionChangedEvent) {
-            if (event instanceof TextAnnotationSelectionEmptiedEvent) {
-                selectedTextAnnotations.clear();
-            } else {
-                selectedTextAnnotations.replaceSelection(event.getAnnotationSelection());
-            }
-        } else if (event instanceof GroupSelectionChangedEvent) {
-            if (event instanceof GroupSelectionEmptiedEvent) {
-                selectedGroupAnnotations.clear();
-            } else {
-                selectedGroupAnnotations.replaceSelection(event.getAnnotationSelection());
-            }
-        } else if (event instanceof RelationSelectionChangedEvent) {
-            if (event instanceof RelationSelectionEmptiedEvent) {
-                selectedRelationAnnotations.clear();
-            } else {
-                selectedRelationAnnotations.replaceSelection(event.getAnnotationSelection());
-            }
-        }
 
+        if (lastWorkingDocument != null && lastWorkingDocument.equals(event.getAnnotatedTextHandler())) {
 
-        HashSet<String> selectedIds = new HashSet<String>();
-        HashSet<String> mainSelectedId = new HashSet<String>();
-        if (!selectedTextAnnotations.isEmpty()) {
-            selectedIds.addAll(selectedTextAnnotations.getSeletedAnnotationIds());
-            mainSelectedId.add(selectedTextAnnotations.getMainSelectedAnnotation().getId());
-        }
-        if (!selectedGroupAnnotations.isEmpty()) {
-            selectedIds.addAll(selectedGroupAnnotations.getSeletedAnnotationIds());
-            mainSelectedId.add(selectedGroupAnnotations.getMainSelectedAnnotation().getId());
-        }
-        if (!selectedRelationAnnotations.isEmpty()) {
-            selectedIds.addAll(selectedRelationAnnotations.getSeletedAnnotationIds());
-            mainSelectedId.add(selectedRelationAnnotations.getMainSelectedAnnotation().getId());
-        }
-
-
-        for (Annotation annotation : annotations) {
-            String annotationId = annotation.getId();
-
-            if (selectionModel.isSelected(annotation)) {
-                if (!selectedIds.contains(annotationId)) {
-                    selectionModel.setSelected(annotation, false);
+            if (event instanceof TextAnnotationSelectionChangedEvent) {
+                if (event instanceof TextAnnotationSelectionEmptiedEvent) {
+                    selectedTextAnnotations.clear();
+                } else {
+                    selectedTextAnnotations.replaceSelection(event.getAnnotationSelection());
                 }
-            } else {
-                if (selectedIds.contains(annotationId)) {
-                    selectionModel.setSelected(annotation, true);
+            } else if (event instanceof GroupSelectionChangedEvent) {
+                if (event instanceof GroupSelectionEmptiedEvent) {
+                    selectedGroupAnnotations.clear();
+                } else {
+                    selectedGroupAnnotations.replaceSelection(event.getAnnotationSelection());
+                }
+            } else if (event instanceof RelationSelectionChangedEvent) {
+                if (event instanceof RelationSelectionEmptiedEvent) {
+                    selectedRelationAnnotations.clear();
+                } else {
+                    selectedRelationAnnotations.replaceSelection(event.getAnnotationSelection());
+                }
+            }
 
-                    //bring into view the row corresponding to the main annotation
-                    if (mainSelectedId.contains(annotationId)) {
-                        //
-                        try {
-                            Integer index = indexByAnnotation.get(annotation);
-                            if (index != null) {
-                                annotationsGrid.getRowElement(index).scrollIntoView();
-                            } else {
-                                //Case of a new line appended to the table when a annotation is just created
-                                if (annotations.contains(annotation)) {
-                                    index = annotationsGrid.getRowCount() - 1;
-                                    annotationsGrid.getRowElement(index).scrollIntoView();
-                                }
 
-                            }
-                        } catch (IndexOutOfBoundsException e) {
-                            // scrolling not possible because the row is outside the the visible page
-                            //FIXME : force to populate the table with the desired row...
-                        }
+            HashSet<String> selectedIds = new HashSet<String>();
+            HashSet<String> mainSelectedId = new HashSet<String>();
+            if (!selectedTextAnnotations.isEmpty()) {
+                selectedIds.addAll(selectedTextAnnotations.getSeletedAnnotationIds());
+                mainSelectedId.add(selectedTextAnnotations.getMainSelectedAnnotation().getId());
+            }
+            if (!selectedGroupAnnotations.isEmpty()) {
+                selectedIds.addAll(selectedGroupAnnotations.getSeletedAnnotationIds());
+                mainSelectedId.add(selectedGroupAnnotations.getMainSelectedAnnotation().getId());
+            }
+            if (!selectedRelationAnnotations.isEmpty()) {
+                selectedIds.addAll(selectedRelationAnnotations.getSeletedAnnotationIds());
+                mainSelectedId.add(selectedRelationAnnotations.getMainSelectedAnnotation().getId());
+            }
+
+
+            for (Annotation annotation : annotations) {
+                String annotationId = annotation.getId();
+
+                if (selectionModel.isSelected(annotation)) {
+                    if (!selectedIds.contains(annotationId)) {
+                        selectionModel.setSelected(annotation, false);
                     }
+                } else {
+                    if (selectedIds.contains(annotationId)) {
+                        selectionModel.setSelected(annotation, true);
 
+                        //bring into view the row corresponding to the main annotation
+                        if (mainSelectedId.contains(annotationId)) {
+                            //
+                            try {
+                                Integer index = indexByAnnotation.get(annotation);
+                                if (index != null) {
+                                    annotationsGrid.getRowElement(index).scrollIntoView();
+                                } else {
+                                    //Case of a new line appended to the table when a annotation is just created
+                                    if (annotations.contains(annotation)) {
+                                        index = annotationsGrid.getRowCount() - 1;
+                                        annotationsGrid.getRowElement(index).scrollIntoView();
+                                    }
+
+                                }
+                            } catch (IndexOutOfBoundsException e) {
+                                // scrolling not possible because the row is outside the the visible page
+                                //FIXME : force to populate the table with the desired row...
+                            }
+                        }
+
+                    }
                 }
-            }
 
+            }
         }
     }
 
@@ -1075,7 +1152,10 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
 
     @Override
     public void onTyDIResourceSelectionChanged(TyDIResourceSelectionChangedEvent event) {
+
+        //if user has selected a class/concept in TyDI extension
         if (event instanceof TyDIResourceDirectSelectionChangedEvent) {
+
             TyDIResourceRef resRef = event.getTyDIResourceRef();
             annotationFilters.clear();
 
@@ -1143,6 +1223,22 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
     }
 
     @Override
+    public void onAnnotationStatusChanged(AnnotationStatusChangedEvent event) {
+        if (lastWorkingDocument != null) {
+            for (String annId : event.getAnnotationIds()) {
+                AnnotationDocumentViewMapper mapper = AnnotationDocumentViewMapper.getMapper(lastWorkingDocument.getAnnotatedText());
+                Annotation annotation = mapper.getAnnotation(annId);
+                if (annotation != null) {
+                    Integer index = indexByAnnotation.get(annotation);
+                    if (index != null) {
+                        annotationsGrid.redrawRow(index);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
     protected void onAttach() {
         super.onAttach();
         EventBus eventBus = injector.getMainEventBus();
@@ -1151,6 +1247,7 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
         TextAnnotationSelectionChangedEvent.register(eventBus, this);
         TermAnnotationsExpositionEvent.register(eventBus, this);
         TyDIResourceSelectionChangedEvent.register(eventBus, this);
+        AnnotationStatusChangedEvent.register(eventBus, this);
     }
 
     @Override
@@ -1161,5 +1258,6 @@ public class AnnotationTable extends Composite implements WorkingDocumentChanged
         TextAnnotationSelectionChangedEvent.unregister(this);
         TermAnnotationsExpositionEvent.unregister(this);
         TyDIResourceSelectionChangedEvent.unregister(this);
+        AnnotationStatusChangedEvent.unregister(this);
     }
 }

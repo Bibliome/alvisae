@@ -90,7 +90,7 @@ public class ExplainSchemaPanel extends ResizeComposite {
             boolean once = false;
             AnnotationKind kind = value.getAnnTypeDef().getAnnotationKind();
 
-            sb.appendHtmlConstant("<div style='border-bottom:1px solid silver; min-height:2.4em; margin: 0.4em;'>");
+            sb.appendHtmlConstant("<div style='border-bottom:1px solid silver; min-height:2.4em; margin: 0.4em;'>");            
             sb.appendHtmlConstant("<div>");
             CombinedAnnotationCell.renderKind(value.getAnnTypeDef().getAnnotationKind(), sb);
             String typeName = value.getAnnTypeDef().getType();
@@ -161,9 +161,9 @@ public class ExplainSchemaPanel extends ResizeComposite {
                     sb.appendHtmlConstant("</div>");
                     break;
             }
-
+            
             sb.appendHtmlConstant("</div>");
-
+            
         }
     }
     //

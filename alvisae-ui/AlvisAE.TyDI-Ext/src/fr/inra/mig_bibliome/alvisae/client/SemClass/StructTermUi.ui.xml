@@ -158,7 +158,7 @@ Uncomment this for XHTML entities
         color: grey;
         font-size: smaller;
         white-space: nowrap;
-    	overflow: hidden;
+        overflow: hidden;
         text-overflow: ellipsis;   
         -o-text-overflow: ellipsis;             
         }
@@ -204,7 +204,13 @@ Uncomment this for XHTML entities
                                             <g:SimplePanel addStyleNames='{style.MediumSeparator}' />  
                                             <g:PushButton ui:field='searchButton' addStyleNames= '{style.SmallButton}' >
                                                 <g:upFace image='{res.SearchTreeIcon}' />
+                                            </g:PushButton>                                       
+                                            <g:SimplePanel addStyleNames='{style.LargeSeparator}' />  
+                                            <g:SimplePanel addStyleNames='{style.LargeSeparator}' />                
+                                            <g:PushButton ui:field='seeChangesButton' addStyleNames= '{style.SmallButton}'  title='display changes' >
+                                                <g:upFace image='{res.SeeChangesIcon}' />
                                             </g:PushButton>
+                                            
                                         </g:HorizontalPanel>
                                     </g:layer>
                                 </g:LayoutPanel>
@@ -252,7 +258,7 @@ Uncomment this for XHTML entities
                                         </g:HTMLPanel>
                                     </g:layer>
                                     
-                                <!-- left margin is a safe zone to drop without performing any modification -->
+                                    <!-- left margin is a safe zone to drop without performing any modification -->
                                     <g:layer top='41px' bottom='0px' left='0px' right='0px'>
                                         <g:LayoutPanel addStyleNames= '{style.TreeBox}'>
                                             <g:layer top='0px' bottom='0px' left='0px' right='0px'>
@@ -262,7 +268,7 @@ Uncomment this for XHTML entities
                                         </g:LayoutPanel>
                                     </g:layer>
                                     
-                            <!-- scroll area while doing DnD -->
+                                    <!-- scroll area while doing DnD -->
                                     <g:layer top='41px' height='30px' width='36px' right='16px'>
                                         <g:HTML ui:field='upScrollArea' addStyleNames='{style.ScrollArea}'/>  
                                     </g:layer>

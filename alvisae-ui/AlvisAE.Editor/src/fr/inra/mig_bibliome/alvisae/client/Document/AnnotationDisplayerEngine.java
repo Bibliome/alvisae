@@ -82,7 +82,7 @@ public class AnnotationDisplayerEngine {
 
         List<DocumentView.FlankingClips> getAnnotationFragmentClips(Annotation annotation);
     }
-    
+
     public static interface AnnotationOverlayHandler {
 
         public final String PROXYANNID_ATTRNAME = "aae_prxyid";
@@ -185,7 +185,7 @@ public class AnnotationDisplayerEngine {
     public List<DocumentView.FlankingClips> getAnnotationFragmentClips(Annotation annotation) {
         return textAnnotationMainDisplayer != null ? textAnnotationMainDisplayer.getAnnotationFragmentClips(annotation) : null;
     }
-    
+
     private void processSecondaryAnnotation(List<? extends SecondaryAnnotationDisplayer> displayers, SpecifiedAnnotation annotation) {
         String annotationId = annotation.getAnnotation().getId();
         AnnotationTypeDefinition typeDef = annotatedDoc.getAnnotatedText().getAnnotationSchema().getAnnotationTypeDefinition(annotation.getAnnotation().getAnnotationType());

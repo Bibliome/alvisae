@@ -88,7 +88,7 @@
         <web-data xmlns="http://www.netbeans.org/ns/freeform-project-web/1">
             <web-module>
                 <doc-root>war</doc-root>
-                <classpath/>
+                <context-path/>
                 <j2ee-spec-level>1.5</j2ee-spec-level>
             </web-module>
         </web-data>

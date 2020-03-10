@@ -11,21 +11,12 @@ import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
-import com.google.gwt.place.shared.Place;
 import com.google.gwt.user.client.ui.RootLayoutPanel;
-import com.google.gwt.user.client.ui.RootPanel;
-import fr.inra.mig_bibliome.alvisae.client.Config.History.BasicTaskReviewParams;
 import fr.inra.mig_bibliome.alvisae.client.Config.StaneClientBaseGinInjector;
-import fr.inra.mig_bibliome.alvisae.client.Conso.AnnSetCompare;
 import fr.inra.mig_bibliome.alvisae.client.Document.DocumentUIWrapper;
 import fr.inra.mig_bibliome.alvisae.client.Document.DocumentView;
-import fr.inra.mig_bibliome.alvisae.client.data.ResultMessageDialog;
-import fr.inra.mig_bibliome.alvisae.client.data.Retrieve.AsyncResponseHandler;
 import fr.inra.mig_bibliome.alvisae.client.data3.AnnotatedTextHandler;
 import fr.inra.mig_bibliome.alvisae.client.data3.AnnotatedTextImpl;
-import fr.inra.mig_bibliome.alvisae.shared.data3.Queries.AuthenticationInfo;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Entry point classes define
@@ -56,7 +47,7 @@ public class AlvisaeEditor implements EntryPoint {
              AnnotatedTextHandler handler = null;
              handler = AnnotatedTextHandler.createHandler(0, 0, newDoc);
             
-             testerview.getDocumentView().setDocument(handler, new DocumentView.Options(false, false, false, false, false, true, null, "6f211019-45e4-4b48-ac43-90000dc09cac"));
+             testerview.setDocument(handler, new DocumentView.Options(false, false, false, false, false, true, null, "6f211019-45e4-4b48-ac43-90000dc09cac"));
 
             // RootPanel.get("StanEditorTester").add(testerview);
             RootLayoutPanel.get().add(testerview);

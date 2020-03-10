@@ -52,7 +52,7 @@ class AnnotationSetCoreImpl extends JavaScriptObject implements AnnotationSetCor
     public final native int getOwner() /*-{ return this.owner; }-*/;
 
     @Override
-    public final native Boolean isInvalidated() /*-{ if (this.hasOwnProperty('invalidated')) { return this.invalidated; } else { return false } }-*/;
+    public final native boolean isInvalidated() /*-{ if (this.hasOwnProperty('invalidated')) { return this.invalidated; } else { return false } }-*/;
     
     private final static String INVALIDFIELD_PREFIX = "invalid field ";
 

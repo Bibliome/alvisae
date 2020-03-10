@@ -67,6 +67,10 @@ public class AnnotationGroupCreationEdit extends AnnotationCreationEdit {
         return messages.redoAnnotationGroupCreationPresentationName(getAnnotationType(), getDisplayForm());
     }
 
+    public Annotation getCreatedGroup() {
+        return newAnnotationGroup;
+    }
+
     private String getDisplayForm() {
         StringBuilder displayForm = new StringBuilder();
         displayForm.append("{ ");

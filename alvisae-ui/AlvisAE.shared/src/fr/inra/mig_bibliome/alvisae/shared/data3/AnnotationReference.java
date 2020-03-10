@@ -7,15 +7,22 @@
  */
 package fr.inra.mig_bibliome.alvisae.shared.data3;
 
+/**
+ * Weak reference to an Annotation
+ *
+ */
 public interface AnnotationReference {
-	/**
-	 * @return the identifier of the referenced annotation.
-	 * Will not return null.
-	 */
-	String getAnnotationId();
 
     /**
-	 * @return the identifier of the Annotation Set to which referenced annotation belongs (Null if it belongs to the Annotation in which this reference is found).
-	 */
-	Integer getAnnotationSetId();
+     * @return the identifier of the referenced annotation. Will not return
+     * null.
+     */
+    String getAnnotationId();
+
+    /**
+     * @return the identifier of the Annotation Set to which referenced
+     * annotation belongs (Null if it belongs to the Annotation in which this
+     * reference is found).
+     */
+    Integer getAnnotationSetId();
 }

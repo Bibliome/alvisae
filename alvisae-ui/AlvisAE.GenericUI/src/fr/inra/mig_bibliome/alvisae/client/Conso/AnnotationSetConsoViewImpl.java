@@ -46,7 +46,7 @@ public class AnnotationSetConsoViewImpl extends Composite {
 
     public AnnotationSetConsoViewImpl() {
         initWidget(uiBinder.createAndBindUi(this));
-        toolBarHolder.add(new MainToolBar("help/aaeReview.html"));
+        toolBarHolder.add(new MainToolBar("help/AaeUserGuide.html#Annotations-Consolidation-Review"));
         networkActivityDisplayer.setRequestManager(injector.getCoreDataProvider().getRequestManager());
     }
 

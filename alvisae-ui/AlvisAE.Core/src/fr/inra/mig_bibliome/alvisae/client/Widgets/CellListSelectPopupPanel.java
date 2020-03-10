@@ -12,6 +12,8 @@ import com.google.gwt.cell.client.ValueUpdater;
 import com.google.gwt.user.cellview.client.CellList;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.ScrollPanel;
+import com.google.gwt.view.client.Range;
+import com.google.gwt.view.client.RowCountChangeEvent;
 import com.google.gwt.view.client.SelectionChangeEvent;
 import com.google.gwt.view.client.SingleSelectionModel;
 import java.util.List;
@@ -32,7 +34,7 @@ public class CellListSelectPopupPanel<C> extends PopupPanel {
 
         selectionModel = new SingleSelectionModel<C>();
         cellList.setSelectionModel(selectionModel);
-
+        
         selectionModel.addSelectionChangeHandler(new SelectionChangeEvent.Handler() {
             @Override
             public void onSelectionChange(SelectionChangeEvent event) {
@@ -46,6 +48,16 @@ public class CellListSelectPopupPanel<C> extends PopupPanel {
             }
         });
 
+        //disable pagination
+        cellList.addRowCountChangeHandler(new RowCountChangeEvent.Handler() {
+
+            @Override
+            public void onRowCountChange(RowCountChangeEvent event) {
+                 cellList.setVisibleRange(new Range(0, event.getNewRowCount()));
+            }
+        });
+                
+        
         add(new ScrollPanel(cellList));
 
         cellList.setRowCount(values.size(), true);

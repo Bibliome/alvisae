@@ -131,7 +131,7 @@
         <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/3">
             <compilation-unit>
                 <package-root>src</package-root>
-                <classpath mode="compile">../../GWT2/gwt-dev.jar:../../GWT2/gwt-user.jar:../../GWT2/validation-api-1.0.0.GA-sources.jar:../../GWT2/validation-api-1.0.0.GA.jar:../libs/commons-fileupload-1.2.2.jar:../libs/commons-io-1.3.1.jar:../libs/aopalliance.jar:../libs/gin-1.5-post-gwt-2.2.jar:../libs/gwtupload-0.6.3-compat.jar:../libs/guice-snapshot.jar:../libs/gwt-dnd-3.2.0.jar:../libs/gwt-graphics-1.0.0.jar:../libs/guice-assistedinject-snapshot.jar:../libs/javax.inject.jar:../libs/jtidy-r938.jar:../libs/junit.jar:../libs/log4j-1.2.16.jar:../libs/gquery-dnd-bundle-1.0.6.jar:../AlvisAE.shared/dist/AlvisAE.shared-1.0.jar:../AlvisAE.Core/dist/alvisaeCore.jar:../AlvisAE.Editor/dist/alvisaeEditor.jar:../AlvisAE.TyDI-Ext/dist/alvisaeTyDIExt.jar</classpath>
+                <classpath mode="compile">../../GWT2/gwt-dev.jar:../../GWT2/gwt-user.jar:../../GWT2/validation-api-1.0.0.GA-sources.jar:../../GWT2/validation-api-1.0.0.GA.jar:../libs/commons-io-1.3.1.jar:../libs/aopalliance.jar:../libs/gin-1.5-post-gwt-2.2.jar:../libs/gwtupload-0.6.3-compat.jar:../libs/guice-snapshot.jar:../libs/gwt-dnd-3.2.3.jar:../libs/gwt-graphics-1.0.0.jar:../libs/guice-assistedinject-snapshot.jar:../libs/javax.inject.jar:../libs/junit.jar:../libs/log4j-1.2.16.jar:../libs/gquery-dnd-bundle-1.0.6.jar:../AlvisAE.shared/dist/AlvisAE.shared-1.0.jar:../AlvisAE.Core/dist/alvisaeCore.jar:../AlvisAE.Editor/dist/alvisaeEditor.jar:../AlvisAE.TyDI-Ext/dist/alvisaeTyDIExt.jar</classpath>
                 <built-to>war/WEB-INF/classes</built-to>
                 <source-level>1.6</source-level>
             </compilation-unit>

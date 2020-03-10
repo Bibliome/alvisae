@@ -2,12 +2,11 @@
  *
  *      This software is a result of Quaero project and its use must respect the rules of the Quaero Project Consortium Agreement.
  *
- *      Copyright Institut National de la Recherche Agronomique, 2010-2012.
+ *      Copyright Institut National de la Recherche Agronomique, 2010-2014.
  *
  */
 package fr.inra.mig_bibliome.alvisae.client.Annotation;
 
-import com.google.gwt.core.client.GWT;
 import fr.inra.mig_bibliome.alvisae.client.Edit.AnnotationSingleValuePropertyEdit;
 import fr.inra.mig_bibliome.alvisae.client.data3.AnnotatedTextHandler;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotatedText;
@@ -16,6 +15,7 @@ import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationBackReference;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationGroup;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationKind;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TermAnnotation;
+import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TyDIResRefPropVal;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Properties;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Relation;
 import fr.inra.mig_bibliome.alvisae.shared.data3.SourceAnnotations;
@@ -47,7 +47,7 @@ public class TermAnnotationBox implements Annotation, TermAnnotation {
 
     @Override
     public String getSurfaceForm() {
-        return surfaceForm==null ? getAnnotationText("") : surfaceForm;
+        return surfaceForm == null ? getAnnotationText("") : surfaceForm;
     }
 
     @Override
@@ -58,7 +58,7 @@ public class TermAnnotationBox implements Annotation, TermAnnotation {
     @Override
     public String getLemma() {
         //FIXME lemma may be computed from included Lemma preannotations, or from the value of a specific this annotation property
-        return lemma==null ? getAnnotationText("") : lemma;
+        return lemma == null ? getAnnotationText("") : lemma;
     }
 
     @Override
@@ -107,14 +107,14 @@ public class TermAnnotationBox implements Annotation, TermAnnotation {
         //shortcut to the property that contains the external Id of the Semantic class corresponding to this annotation
         if (tyDIClassRefPropName != null) {
             List<String> vals = annotation.getProperties().getValues(tyDIClassRefPropName);
-            semClassExternalId =  vals != null && !vals.isEmpty() ? vals.get(0) : null;
-        } 
-        if (semClassExternalId==null) {
+            semClassExternalId = vals != null && !vals.isEmpty() ? vals.get(0) : null;
+        }
+        if (semClassExternalId == null) {
             //return first value that contains a Concept link
             if (tyDIConceptRefPropNames != null && !tyDIConceptRefPropNames.isEmpty()) {
-                for (String propName :tyDIConceptRefPropNames) {
+                for (String propName : tyDIConceptRefPropNames) {
                     List<String> vals = annotation.getProperties().getValues(propName);
-                    if(vals != null && !vals.isEmpty()) {
+                    if (vals != null && !vals.isEmpty()) {
                         semClassExternalId = vals.get(0);
                         break;
                     }
@@ -125,9 +125,9 @@ public class TermAnnotationBox implements Annotation, TermAnnotation {
     }
 
     @Override
-    public void setSemClassExternalId(String semClassExternalId) {
+    public void setTyDIResourceRef(TyDIResRefPropVal resourceRef) {
         if (tyDIClassRefPropName != null) {
-            editProperty(tyDIClassRefPropName, semClassExternalId);
+            editProperty(tyDIClassRefPropName, resourceRef.toUrlWithFragment());
         }
     }
 
@@ -189,5 +189,10 @@ public class TermAnnotationBox implements Annotation, TermAnnotation {
     @Override
     public SourceAnnotations setSourceAnnotations(List<AnnotationBackReference> backRefs) {
         return annotation.setSourceAnnotations(backRefs);
+    }
+
+    @Override
+    public int getCreationDate() {
+        return annotation.getCreationDate();
     }
 }

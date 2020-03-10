@@ -9,7 +9,6 @@ package fr.inra.mig_bibliome.alvisae.client.Annotation.Metadata;
 
 import com.google.gwt.cell.client.AbstractCell;
 import com.google.gwt.cell.client.Cell;
-import com.google.gwt.cell.client.Cell.Context;
 import com.google.gwt.cell.client.CompositeCell;
 import com.google.gwt.cell.client.EditTextCell;
 import com.google.gwt.cell.client.FieldUpdater;
@@ -27,16 +26,9 @@ import com.google.gwt.safehtml.client.SafeHtmlTemplates;
 import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.safehtml.shared.SafeHtmlBuilder;
 import com.google.gwt.safehtml.shared.SafeHtmlUtils;
-import com.google.gwt.uibinder.client.UiBinder;
-import com.google.gwt.uibinder.client.UiField;
-import com.google.gwt.user.cellview.client.CellList;
 import com.google.gwt.user.cellview.client.CellTree;
-import com.google.gwt.user.cellview.client.DataGrid;
 import com.google.gwt.user.cellview.client.TreeNode;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
-import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.DisclosurePanel;
-import com.google.gwt.user.client.ui.Widget;
 import com.google.gwt.view.client.AbstractDataProvider;
 import com.google.gwt.view.client.ListDataProvider;
 import com.google.gwt.view.client.ProvidesKey;
@@ -45,32 +37,27 @@ import com.google.gwt.view.client.SelectionModel;
 import com.google.gwt.view.client.SingleSelectionModel;
 import com.google.gwt.view.client.TreeViewModel;
 import com.google.web.bindery.event.shared.EventBus;
-import fr.inra.mig_bibliome.alvisae.client.Annotation.AnnotationSchemaCell;
-import fr.inra.mig_bibliome.alvisae.client.Annotation.CombinedAnnotationCell;
+import fr.inra.mig_bibliome.alvisae.client.AlvisaeCore;
 import fr.inra.mig_bibliome.alvisae.client.Config.StaneClientBaseGinInjector;
-import fr.inra.mig_bibliome.alvisae.client.Edit.AnnotationChangeTypeEdit;
 import fr.inra.mig_bibliome.alvisae.client.Edit.AnnotationMultipleValuesPropertyEdit;
-import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceDirectSelectionChangedEvent;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceBroadcastInfoEvent;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceInfoEvent;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceInfoEventHandler;
 import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceRefSelectionChangedEvent;
-import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceSelectionChangedEvent;
-import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceSelectionChangedEventHandler;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceRequestInfoEvent;
 import fr.inra.mig_bibliome.alvisae.client.StanEditorResources;
-import fr.inra.mig_bibliome.alvisae.client.Widgets.CellListSelectPopupPanel;
 import fr.inra.mig_bibliome.alvisae.client.Widgets.TreeUtils;
-import fr.inra.mig_bibliome.alvisae.client.Widgets.TreeUtils.TreeNodeTraveller.NodeExpressionWithResult;
 import fr.inra.mig_bibliome.alvisae.client.data3.AnnotatedTextHandler;
-import fr.inra.mig_bibliome.alvisae.client.data3.AnnotatedTextProcessor;
 import fr.inra.mig_bibliome.alvisae.client.data3.Extension.ResourceLocator;
+import fr.inra.mig_bibliome.alvisae.client.data3.Extension.TyDIResRefPropValImpl;
 import fr.inra.mig_bibliome.alvisae.client.data3.Extension.TyDISemClassRefImpl;
 import fr.inra.mig_bibliome.alvisae.client.data3.Extension.TyDITermRefImpl;
-import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotatedText;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Annotation;
-import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationKind;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationSchemaDefinition;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TyDIResourceRef;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TyDISemClassRef;
+import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.VersionedTyDISemClassRef;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Properties;
-import fr.inra.mig_bibliome.alvisae.shared.data3.TaskDefinition;
 import fr.inra.mig_bibliome.alvisae.shared.data3.validation.AnnotationTypeDefinition;
 import fr.inra.mig_bibliome.alvisae.shared.data3.validation.PropType_TyDIConceptRef;
 import fr.inra.mig_bibliome.alvisae.shared.data3.validation.PropType_TyDISemClassRef;
@@ -79,28 +66,26 @@ import fr.inra.mig_bibliome.alvisae.shared.data3.validation.PropertyDefinition;
 import fr.inra.mig_bibliome.alvisae.shared.data3.validation.PropertyType;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
  *
  * @author fpapazian
  */
-public class PropertiesTree extends Composite implements TyDIResourceSelectionChangedEventHandler {
+public class PropertiesTree extends CellTree {
 
     private static final String ADDVALBTN_CLASSVAL = "aae_AddValBtn";
     private static final String DELVALBTN_CLASSVAL = "aae_DelValBtn";
-    private static final String CHANGETYPEBTN_CLASSVAL = "aae_ChgTypBtn";
+    public static final String CHANGETYPEBTN_CLASSVAL = "aae_ChgTypBtn";
     protected static final SafeHtml AddSmallIcon = SafeHtmlUtils.fromSafeConstant(AbstractImagePrototype.create(StanEditorResources.INSTANCE.AddSmallIcon()).getHTML());
     protected static final SafeHtml DelSmallIcon = SafeHtmlUtils.fromSafeConstant(AbstractImagePrototype.create(StanEditorResources.INSTANCE.DelSmallIcon()).getHTML());
-    private final AnnotationIdNTypeCell annotationIdCell;
 
     //
     static interface PropertiesTreeTemplates extends SafeHtmlTemplates {
-
-        @SafeHtmlTemplates.Template("<span title='{0}'>{1}</span>")
-        public SafeHtml spanId(String annotationId, String briefId);
 
         @SafeHtmlTemplates.Template("<span " + CHANGETYPEBTN_CLASSVAL + "='true'>{0}</span>")
         public SafeHtml spanChangeType(SafeHtml content);
@@ -117,13 +102,13 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
         @SafeHtmlTemplates.Template("<span title='remove value' style='position:absolute;right:1px;background-color:white;'>{0}</span>")
         public SafeHtml spanDelButton(SafeHtml icon);
 
-        @SafeHtmlTemplates.Template("<div title='{0}' style='font:smaller;color:grey;'>{0}<span " + DELVALBTN_CLASSVAL + "='true' title='remove value' style='position:absolute;right:3px;top:1px;background-color:white;border:silver solid 1px;'>{1}</span></div>")
-        public SafeHtml spanTyDIRefValDel(String value, SafeHtml icon);
+        @SafeHtmlTemplates.Template("<div title='{0}' style='font:smaller;color:grey;'>{1}<span " + DELVALBTN_CLASSVAL + "='true' title='remove value' style='position:absolute;right:3px;top:1px;background-color:white;border:silver solid 1px;'>{2}</span></div>")
+        public SafeHtml spanTyDIRefValDel(String value, SafeHtml htmlvalue, SafeHtml icon);
 
-        @SafeHtmlTemplates.Template("<div title='{0}' style='font:smaller;color:grey;'>{0}</div>")
-        public SafeHtml spanTyDIRefVal(String value);
+        @SafeHtmlTemplates.Template("<div title='{0}' style='font:smaller;color:grey;'>{1}</div>")
+        public SafeHtml spanTyDIRefVal(String value, SafeHtml htmlvalue);
     }
-    static final PropertiesTreeTemplates TEMPLATES = GWT.create(PropertiesTreeTemplates.class);
+    static final PropertiesTreeTemplates TREETEMPLATES = GWT.create(PropertiesTreeTemplates.class);
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     public static interface PropValueChangeHandler {
@@ -262,6 +247,20 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
         }
     }
 
+    public static class TyDIRefValuesRealPropKeyInfo extends RealPropKeyInfo {
+
+        private final PropertyType valType;
+
+        public TyDIRefValuesRealPropKeyInfo(PropertyDefinition propDef, List<String> values, PropertyType valType, boolean readOnly) {
+            super(propDef, values, readOnly);
+            this.valType = valType;
+        }
+
+        public PropertyType getValType() {
+            return valType;
+        }
+    }
+
     public static class PropKeyNodeCell extends AbstractCell<PropKeyInfo> {
 
         private final PropValueChangeHandler propValueChangeHandler;
@@ -276,15 +275,15 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
             if (value != null) {
                 String key = value.getLabel();
                 if (value.isReadOnly()) {
-                    sb.append(TEMPLATES.spanKey(key));
+                    sb.append(TREETEMPLATES.spanKey(key));
                 } else {
-                    sb.append(TEMPLATES.spanKeyAdd(key, AddSmallIcon));
+                    sb.append(TREETEMPLATES.spanKeyAdd(key, AddSmallIcon));
                 }
             }
         }
 
         @Override
-        public void onBrowserEvent(Context context, Element parent, PropKeyInfo value, NativeEvent event, ValueUpdater<PropKeyInfo> valueUpdater) {
+        public void onBrowserEvent(Cell.Context context, Element parent, PropKeyInfo value, NativeEvent event, ValueUpdater<PropKeyInfo> valueUpdater) {
             super.onBrowserEvent(context, parent, value, event, valueUpdater);
 
             String eventType = event.getType();
@@ -332,7 +331,7 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
             return keyInfo.getValue(index);
         }
 
-        private void setValue(String value) {
+        void setValue(String value) {
             keyInfo.getValues().set(index, value);
         }
 
@@ -371,13 +370,13 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
                 if (readonly) {
                     sb.appendEscaped(value.getValue());
                 } else {
-                    sb.append(TEMPLATES.spanValDel(value.getValue(), DelSmallIcon));
+                    sb.append(TREETEMPLATES.spanValDel(value.getValue(), DelSmallIcon));
                 }
             }
         }
 
         @Override
-        public void onBrowserEvent(Context context, Element parent, PropValueInfo value, NativeEvent event, ValueUpdater<PropValueInfo> valueUpdater) {
+        public void onBrowserEvent(Cell.Context context, Element parent, PropValueInfo value, NativeEvent event, ValueUpdater<PropValueInfo> valueUpdater) {
             super.onBrowserEvent(context, parent, value, event, valueUpdater);
 
             String eventType = event.getType();
@@ -388,24 +387,6 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
                     if (propValueChangeHandler != null) {
                         propValueChangeHandler.removeValueEntry(value);
                     }
-                }
-            }
-        }
-    }
-
-    public static class PropTyDIRefValueNodeCell extends PropValueNodeCell {
-
-        public PropTyDIRefValueNodeCell(boolean readonly, PropValueChangeHandler propValueChangeHandler) {
-            super(readonly, propValueChangeHandler);
-        }
-
-        @Override
-        public void render(Cell.Context context, PropValueInfo value, SafeHtmlBuilder sb) {
-            if (value != null) {
-                if (readonly) {
-                    sb.append(TEMPLATES.spanTyDIRefVal(value.getValue()));
-                } else {
-                    sb.append(TEMPLATES.spanTyDIRefValDel(value.getValue(), DelSmallIcon));
                 }
             }
         }
@@ -447,12 +428,12 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
         hasCells.add(new HasCell<PropValueInfo, PropValueInfo>() {
             private AbstractCell<PropValueInfo> cell = new AbstractCell<PropValueInfo>("click") {
                 @Override
-                public void render(Context context, PropValueInfo value, SafeHtmlBuilder sb) {
-                    sb.append(TEMPLATES.spanDelButton(DelSmallIcon));
+                public void render(Cell.Context context, PropValueInfo value, SafeHtmlBuilder sb) {
+                    sb.append(TREETEMPLATES.spanDelButton(DelSmallIcon));
                 }
 
                 @Override
-                public void onBrowserEvent(Context context, Element parent, PropValueInfo value, NativeEvent event, ValueUpdater<PropValueInfo> valueUpdater) {
+                public void onBrowserEvent(Cell.Context context, Element parent, PropValueInfo value, NativeEvent event, ValueUpdater<PropValueInfo> valueUpdater) {
                     super.onBrowserEvent(context, parent, value, event, valueUpdater);
 
                     String eventType = event.getType();
@@ -511,12 +492,12 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
         hasCells.add(new HasCell<PropValueInfo, PropValueInfo>() {
             private AbstractCell<PropValueInfo> cell = new AbstractCell<PropValueInfo>("click") {
                 @Override
-                public void render(Context context, PropValueInfo value, SafeHtmlBuilder sb) {
-                    sb.append(TEMPLATES.spanDelButton(DelSmallIcon));
+                public void render(Cell.Context context, PropValueInfo value, SafeHtmlBuilder sb) {
+                    sb.append(TREETEMPLATES.spanDelButton(DelSmallIcon));
                 }
 
                 @Override
-                public void onBrowserEvent(Context context, Element parent, PropValueInfo value, NativeEvent event, ValueUpdater<PropValueInfo> valueUpdater) {
+                public void onBrowserEvent(Cell.Context context, Element parent, PropValueInfo value, NativeEvent event, ValueUpdater<PropValueInfo> valueUpdater) {
                     super.onBrowserEvent(context, parent, value, event, valueUpdater);
 
                     String eventType = event.getType();
@@ -554,128 +535,112 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
     }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    public static class AnnotationIdNTypeCell extends AbstractCell<Annotation> {
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    public static class PropertiesTreeViewModel implements TreeViewModel, TyDIResourceInfoEventHandler {
 
-        public static class AnnotationTypeCell extends AbstractCell<String> {
+        public static TyDIResourceRef getTyDIResourceRefExternalId(PropertyType valType, String resourceExternalId) {
+            TyDIResourceRef tyDIResRef = null;
+            PropType_TyDISemClassRef semClassRefType = valType.getAsTyDISemClassRefType();
+            if (semClassRefType != null) {
+                String baseUrl = semClassRefType.getSemClassRefBaseURL();
+                if (baseUrl != null && !baseUrl.isEmpty()) {
+                    Integer semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(resourceExternalId);
+                    if (semClassId != null) {
+                        tyDIResRef = new TyDISemClassRefImpl(new ResourceLocator(baseUrl), semClassId, null);
+                    }
+                }
+            } else {
+                PropType_TyDIConceptRef conceptRefType = valType.getAsTyDIConceptRefType();
+                if (conceptRefType != null) {
 
-            @Override
-            public void render(Context context, String annotationType, SafeHtmlBuilder sb) {
-                if (annotationType != null) {
-                    AnnotationSchemaCell.renderType(annotationType, sb);
+                    String baseUrl = conceptRefType.getSemClassRefBaseURL();
+                    if (baseUrl != null && !baseUrl.isEmpty()) {
+                        Integer semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(resourceExternalId);
+                        if (semClassId != null) {
+                            tyDIResRef = new TyDISemClassRefImpl(new ResourceLocator(baseUrl), semClassId, null);
+                        }
+                    }
+                } else {
+                    PropType_TyDITermRef termRefType = valType.getAsTyDITermRefType();
+                    if (termRefType != null) {
+
+                        String baseUrl = termRefType.getTermRefBaseURL();
+                        if (baseUrl != null && !baseUrl.isEmpty()) {
+                            Integer termId = TyDITermRefImpl.getTermIdFromTermExternalId(resourceExternalId);
+                            if (termId != null) {
+                                tyDIResRef = new TyDITermRefImpl(new ResourceLocator(baseUrl), termId);
+                            }
+                        }
+                    }
                 }
             }
-        }
-        private final static SafeHtml[] kindIcons;
-
-        static {
-
-            SafeHtmlBuilder sbTextIcon = new SafeHtmlBuilder();
-            CombinedAnnotationCell.renderKind(AnnotationKind.TEXT, sbTextIcon);
-
-            SafeHtmlBuilder sbGroupIcon = new SafeHtmlBuilder();
-            CombinedAnnotationCell.renderKind(AnnotationKind.GROUP, sbGroupIcon);
-
-            SafeHtmlBuilder sbRelationIcon = new SafeHtmlBuilder();
-            CombinedAnnotationCell.renderKind(AnnotationKind.RELATION, sbRelationIcon);
-
-            kindIcons = new SafeHtml[3];
-            kindIcons[AnnotationKind.TEXT.toInt()] = sbTextIcon.toSafeHtml();
-            kindIcons[AnnotationKind.GROUP.toInt()] = sbGroupIcon.toSafeHtml();
-            kindIcons[AnnotationKind.RELATION.toInt()] = sbRelationIcon.toSafeHtml();
-        }
-        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        private final ValueUpdater<String> annotationTypeUpdater;
-        //no static because may change with Annotated Document
-        private CellListSelectPopupPanel<String>[] selectionPopupPanels;
-        private AnnotatedText previousAnnotatedText = null;
-        private boolean readonly = true;
-
-        public AnnotationIdNTypeCell(ValueUpdater<String> annotationTypeUpdater) {
-            super("click");
-            this.annotationTypeUpdater = annotationTypeUpdater;
-            resetAnnotationTypesPopupPanel();
+            return tyDIResRef;
         }
 
-        public void setReadonly(boolean readonly) {
-            this.readonly = annotationTypeUpdater == null || readonly;
-        }
+        public class PropTyDIRefValueNodeCell extends PropValueNodeCell {
 
-        @Override
-        public void onBrowserEvent(Context context, Element parent, Annotation annotation, NativeEvent event, ValueUpdater<Annotation> valueUpdater) {
-            super.onBrowserEvent(context, parent, annotation, event, valueUpdater);
-            if (!readonly) {
-                String eventType = event.getType();
-                if ("click".equals(eventType) && !event.getAltKey() && !event.getCtrlKey() && !event.getMetaKey()) {
-                    EventTarget evtTarget = event.getEventTarget();
-                    Element targetElement = evtTarget.cast();
-                    Element targetParent = targetElement.getParentElement();
+            public PropTyDIRefValueNodeCell(boolean readonly, PropValueChangeHandler propValueChangeHandler) {
+                super(readonly, propValueChangeHandler);
+            }
 
-                    if (targetParent.getAttribute(CHANGETYPEBTN_CLASSVAL).equals("true")) {
-                        String preferredWidth = targetParent.getParentElement().getClientWidth() + "px";
+            @Override
+            public void render(Cell.Context context, PropValueInfo value, SafeHtmlBuilder sb) {
+                if (value != null) {
+                    String strValue = value.getValue();
+                    SafeHtml htmlValue;
 
-                        CellListSelectPopupPanel<String> selectionPopupPanel = getAnnotationTypesPopupPanel(annotation);
-                        selectionPopupPanel.display(parent.getAbsoluteLeft(), parent.getAbsoluteTop(), preferredWidth, this.annotationTypeUpdater);
+                    if (value.getKeyInfo() instanceof TyDIRefValuesRealPropKeyInfo) {
+                        SafeHtmlBuilder shb = new SafeHtmlBuilder();
+                        PropertyType valType = ((TyDIRefValuesRealPropKeyInfo) value.getKeyInfo()).getValType();
+
+                        String semClassReference = strValue;
+                        TyDIResourceRef tyDIResRef = PropertiesTreeViewModel.getTyDIResourceRefExternalId(valType, semClassReference);
+                        if (tyDIResRef != null && (tyDIResRef instanceof TyDISemClassRefImpl)) {
+
+                            boolean warningDisplayed = false;
+                            if (termStructVersionNum == null) {
+                                shb.append(TEMPLATES.someIcon(StanEditorResources.INSTANCE.css().unknownIcon()));
+                                warningDisplayed = true;
+                            } else if (versionObsolete) {
+                                shb.append(TEMPLATES.someIcon(StanEditorResources.INSTANCE.css().warnIcon()));
+                                warningDisplayed = true;
+                            }
+
+                            //Check if the semantic class reference is an url with a fragment embedding the concept label
+                            TyDIResRefPropValImpl resRefPropVal = TyDIResRefPropValImpl.createFromUrlWithFragment(semClassReference);
+                            if (resRefPropVal != null && resRefPropVal.getLabel() != null) {
+                                if (!warningDisplayed && resRefPropVal.getVersionNumber() != termStructVersionNum) {
+                                    shb.append(TEMPLATES.someIcon(StanEditorResources.INSTANCE.css().warnIcon()));
+                                    warningDisplayed = true;
+                                }
+                                shb.appendEscaped(resRefPropVal.getLabel())
+                                        .appendEscaped(" [" + resRefPropVal.getVersionNumber() + "]");
+                            } else {
+                                //semantic class reference is a simple url : label has to be retrieved by calling TyDI web service
+                                TyDISemClassRefImpl semClassRef = (TyDISemClassRefImpl) tyDIResRef;
+                                if (semClassLabels.containsKey(semClassRef.getTyDISemanticClassId())) {
+                                    shb.appendEscaped(semClassLabels.get(semClassRef.getTyDISemanticClassId()));
+                                } else {
+                                    shb.appendEscaped(semClassReference);
+                                }
+                            }
+                        } else {
+                            shb.appendEscaped(semClassReference);
+                        }
+                        htmlValue = shb.toSafeHtml();
+
+                    } else {
+                        htmlValue = SafeHtmlUtils.fromString(strValue);
+                    }
+
+                    if (readonly) {
+                        sb.append(TREETEMPLATES.spanTyDIRefVal(strValue, htmlValue));
+                    } else {
+                        sb.append(TREETEMPLATES.spanTyDIRefValDel(strValue, htmlValue, DelSmallIcon));
                     }
                 }
             }
         }
-
-        @SuppressWarnings({"unchecked"})
-        private void resetAnnotationTypesPopupPanel() {
-            CellListSelectPopupPanel<String>[] apanel = new CellListSelectPopupPanel[]{null, null, null};
-            selectionPopupPanels = apanel;
-        }
-
-        private CellListSelectPopupPanel<String> getAnnotationTypesPopupPanel(Annotation annotation) {
-            if (annotation == null) {
-                return null;
-            }
-
-            AnnotationKind kind = annotation.getAnnotationKind();
-            //Annotated document or task changed 
-            if (!annotation.getAnnotatedText().equals(previousAnnotatedText)) {
-                //force to reset panels
-                resetAnnotationTypesPopupPanel();
-            }
-
-            CellListSelectPopupPanel<String> selectionPopupPanel = selectionPopupPanels[kind.toInt()];
-            //reset panel when needed
-            if (selectionPopupPanel == null) {
-                previousAnnotatedText = annotation.getAnnotatedText();
-                
-                //retrieve only Annotation types editable in this Task
-                TaskDefinition taskDef = previousAnnotatedText.getEditedTask();
-                Set<String> editedTypes = new HashSet<String>();
-                if (taskDef != null) {
-                    editedTypes.addAll(taskDef.getEditedAnnotationTypes());
-                }
-                //keep those of the corresponding kind
-                editedTypes.retainAll(previousAnnotatedText.getAnnotationSchema().getAnnotationTypes(kind));
-                ArrayList<String> annotationTypes = new ArrayList<String>(editedTypes);
-                
-                selectionPopupPanel = new CellListSelectPopupPanel<String>(new AnnotationTypeCell(), annotationTypes);
-                selectionPopupPanels[kind.toInt()] = selectionPopupPanel;
-            }
-
-            return selectionPopupPanel;
-        }
-
-        @Override
-        public void render(Context context, Annotation annotation, SafeHtmlBuilder sb) {
-            if (annotation != null) {
-                sb.append(kindIcons[annotation.getAnnotationKind().toInt()]);
-                sb.appendHtmlConstant("&nbsp;");
-                String annotationId = annotation.getId();
-                sb.append(TEMPLATES.spanId(annotationId, AnnotatedTextProcessor.getBriefId(annotationId)));
-                sb.appendHtmlConstant(" ");
-                sb.append(TEMPLATES.spanChangeType(AnnotationSchemaCell.renderType(annotation.getAnnotationType())));
-            }
-        }
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    public static class PropertiesTreeViewModel implements TreeViewModel {
-
         //Cells used to Property values
         private final PropValueNodeCell PropUnRemovableValCell = new PropValueNodeCell(true, null);
         private final PropValueNodeCell PropRemovableValCell;
@@ -690,7 +655,6 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
         private final PropValueNodeChangedHandler propValueNodeChangedHandler;
         private final PropValueChangeHandler propValueChangeHandler;
         private final PropValueFieldValueUpdater propValUpdater;
-        public final ValueUpdater<String> annotationTypeChangeHandler;
 
         public PropertiesTreeViewModel(PropValueNodeChangedHandler propValueNodeChangedHandler, SingleSelectionModel<GenericPropInfo> selectionModel) {
             this.propValueNodeChangedHandler = propValueNodeChangedHandler;
@@ -703,9 +667,8 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
                         PropValueInfo valueInfo = keyInfo.addValue("...");
 
                         //if this is the first value created need to refresh the parent (Property key node was a leaf before)
-                        propsDataProvider.refresh();
+                        performEditUpdatePropValue(valueInfo);
 
-                        //no actual Edit of the Annotation after the value is explicitely updated by the user
                         if (PropertiesTreeViewModel.this.propValueNodeChangedHandler != null) {
                             //inform the widget that a new value has been added
                             PropertiesTreeViewModel.this.propValueNodeChangedHandler.onValueEntryCreated(valueInfo);
@@ -752,16 +715,10 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
             PropRemovableValCell = new PropValueNodeCell(false, propValueChangeHandler);
             PropRemovableTyDIRefValCell = new PropTyDIRefValueNodeCell(false, propValueChangeHandler);
 
-            annotationTypeChangeHandler = new ValueUpdater<String>() {
-                @Override
-                public void update(String newAnnotationType) {
-                    Annotation ann = getAnnotation();
-                    if (!ann.getAnnotationType().equals(newAnnotationType)) {
-                        AnnotationChangeTypeEdit typeChangeEdit = new AnnotationChangeTypeEdit(annotatedTextHnd, ann, newAnnotationType);
-                        typeChangeEdit.redo();
-                    }
-                }
-            };
+        }
+
+        public AnnotatedTextHandler getAnnotatedTextHandler() {
+            return annotatedTextHnd;
         }
 
         public Annotation getAnnotation() {
@@ -805,18 +762,18 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
         }
 
         @Override
-        public <T> NodeInfo<?> getNodeInfo(T value) {
+        public <T> TreeViewModel.NodeInfo<?> getNodeInfo(T value) {
             if (value == null) {
                 //root
                 return new PropKeyNodeInfo(propsDataProvider, new PropKeyNodeCell(propValueChangeHandler), selectionModel, null);
             } else if (value instanceof PropKeyInfo) {
 
                 PropKeyInfo keyInfo = (PropKeyInfo) value;
-                Cell<PropValueInfo> cell = null;
+                Cell<PropValueInfo> cell;
 
                 if (keyInfo.isReadOnly()) {
                     PropertyType valType = ((RealPropKeyInfo) keyInfo).getPropDef().getValuesType();
-                    if ((valType != null) && (valType.getAsTyDITermRefType() != null) || (valType.getAsTyDISemClassRefType() != null)) {
+                    if ((valType != null) && (valType.getAsTyDITermRefType() != null || valType.getAsTyDISemClassRefType() != null)) {
                         //Non-editable, Non-removable Termlink value
                         cell = PropUnRemovableTyDIRefValCell;
                     } else {
@@ -858,7 +815,7 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
             if (getAnnotation() == null) {
                 return false;
             } else if (value == null) {
-                //the root node is not a leaf!!!            
+                //the root node is not a leaf!!!
                 return false;
             } else if (value instanceof PropKeyInfo) {
                 return ((PropKeyInfo) value).getValues().isEmpty();
@@ -867,14 +824,17 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
             }
         }
 
-        private void setAnnotation(AnnotatedTextHandler annotatedTextHnd, final Annotation annotation, final boolean readonly, final ScheduledCommand executedAfter) {
+        public void setAnnotation(AnnotatedTextHandler annotatedTextHnd, final Annotation annotation, final boolean readonly, final Scheduler.ScheduledCommand executedAfter) {
+
             this.annotatedTextHnd = annotatedTextHnd;
             this.annotation = annotation;
             this.nonModifiableAnnotation = readonly;
             propsDataProvider.getList().clear();
 
+            referencedSemClasses.clear();
+
             if (annotation != null) {
-                Scheduler.get().scheduleDeferred(new ScheduledCommand() {
+                Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
                     @Override
                     public void execute() {
                         List<PropKeyInfo> keyList = new ArrayList<PropKeyInfo>();
@@ -888,9 +848,29 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
                             for (PropertyDefinition propDef : propDefs) {
                                 String key = propDef.getKey();
                                 PropertyType valType = propDef.getValuesType();
+
                                 //SemClass or Term link can not be removed, just modified by DnD on Termino/Onto
                                 boolean nonModifiableKey = readonly || (valType != null && (valType.getAsTyDISemClassRefType() != null || valType.getAsTyDITermRefType() != null));
-                                keyList.add(new RealPropKeyInfo(propDef, props != null ? props.getValues(key) : null, nonModifiableKey));
+                                if (valType != null && valType.isTyDIResourceRef()) {
+                                    List<String> values = (props != null) ? props.getValues(key) : null;
+                                    //property values are external id (=url) that should be transcribed to the corresponding label
+                                    keyList.add(new TyDIRefValuesRealPropKeyInfo(propDef, values, valType, nonModifiableKey));
+                                    //Request info for values corresponding to referenced to TyDI class/concept
+                                    if (values != null) {
+                                        for (String val : values) {
+                                            TyDIResourceRef tyDIResRef = PropertiesTreeViewModel.getTyDIResourceRefExternalId(valType, val);
+                                            if (tyDIResRef != null) {
+                                                if (tyDIResRef instanceof TyDISemClassRef) {
+                                                    referencedSemClasses.add(((TyDISemClassRef) tyDIResRef).getTyDISemanticClassId());
+                                                }
+                                                EventBus eventBus = injector.getMainEventBus();
+                                                eventBus.fireEvent(new TyDIResourceRequestInfoEvent(tyDIResRef));
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    keyList.add(new RealPropKeyInfo(propDef, props != null ? props.getValues(key) : null, nonModifiableKey));
+                                }
                             }
                         }
                         propsDataProvider.setList(keyList);
@@ -899,6 +879,59 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
                         }
                     }
                 });
+            }
+        }
+        //Keep track of Semantic classes labels of the current Terminology project
+        private final Map<Integer, String> semClassLabels = new HashMap<Integer, String>();
+        private final Set<Integer> referencedSemClasses = new HashSet<Integer>();
+        String instBaseUrl;
+        Integer projectId;
+        private Integer termStructVersionNum;
+        private boolean versionObsolete = false;
+
+        static interface Templates extends SafeHtmlTemplates {
+
+            @SafeHtmlTemplates.Template("<div class='{0}' style='display:inline-block;'></div>")
+            public SafeHtml someIcon(String style);
+        }
+        static final Templates TEMPLATES = GWT.create(Templates.class);
+
+        @Override
+        public void onTyDIResourceInfoEvent(TyDIResourceInfoEvent event) {
+            if (event instanceof TyDIResourceBroadcastInfoEvent) {
+                //collect labels of classes/concepts
+                TyDIResourceRef resRef = event.getTyDIResourceRef();
+                if (resRef != null) {
+                    if (resRef instanceof TyDISemClassRef) {
+                        boolean refreshNeeded = false;
+
+                        TyDISemClassRef semClassRef = (TyDISemClassRef) resRef;
+                        String currInstBaseUrl = resRef.getTyDIInstanceBaseUrl();
+                        Integer currProjectId = resRef.getTyDIProjectId();
+                        if (!(currProjectId.equals(projectId)) || !currInstBaseUrl.equals(instBaseUrl)) {
+                            termStructVersionNum = null;
+                            instBaseUrl = currInstBaseUrl;
+                            projectId = currProjectId;
+                            refreshNeeded = true;
+                        }
+
+                        if (resRef instanceof VersionedTyDISemClassRef) {
+                            VersionedTyDISemClassRef versionedTyDIRef = (VersionedTyDISemClassRef) resRef;
+                            refreshNeeded = (versionedTyDIRef.isTermStructVersionObsolete() != versionObsolete)
+                                    || (termStructVersionNum == null) || (versionedTyDIRef.getTermStructVersion() != termStructVersionNum);
+                            termStructVersionNum = versionedTyDIRef.getTermStructVersion();
+                            versionObsolete = versionedTyDIRef.isTermStructVersionObsolete();
+                        }
+
+
+                        Integer classId = semClassRef.getTyDISemanticClassId();
+                        semClassLabels.put(classId, semClassRef.getCanonicLabel());
+                        if (refreshNeeded || referencedSemClasses.contains(classId)) {
+                            //force refresh
+                            propsDataProvider.refresh();
+                        }
+                    }
+                }
             }
         }
     }
@@ -912,87 +945,39 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
     }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    interface Binder extends UiBinder<Widget, PropertiesTree> {
-    }
-    private static Binder uiBinder = GWT.create(Binder.class);
-    private static final StaneClientBaseGinInjector injector = GWT.create(StaneClientBaseGinInjector.class);
-
     public static interface TreeResources extends CellTree.Resources {
 
         @ClientBundle.Source("PropertiesTree.css")
         public CellTree.Style cellTreeStyle();
     }
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    @UiField(provided = true)
-    CellList<Annotation> idWidget;
-    @UiField
-    DisclosurePanel componentsPanel;
-    @UiField
-    DisclosurePanel propertiesPanel;
-    @UiField(provided = true)
-    DataGrid<Annotation> componentsGrid;
-    @UiField(provided = true)
-    DataGrid<Annotation> argumentsGrid;
-    @UiField(provided = true)
-    CellTree propsCellTree;
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  
-    private static TreeUtils.TreeNodeTraveller nodeTraveller = new TreeUtils.TreeNodeTraveller();
-    private final PropertiesTreeViewModel model;
-    private final SingleSelectionModel<GenericPropInfo> selectionModel;
-    private TyDISemClassRef lastSelectedSemClassRef = null;
+    private static final TreeResources res = GWT.create(TreeResources.class);
 
-    public PropertiesTree() {
-
-        TreeResources res = GWT.create(TreeResources.class);
+    static {
         res.cellTreeStyle().ensureInjected();
+    }
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    private static final StaneClientBaseGinInjector injector = GWT.create(StaneClientBaseGinInjector.class);
+    private static TreeUtils.TreeNodeTraveller nodeTraveller = new TreeUtils.TreeNodeTraveller();
+    private final SingleSelectionModel<GenericPropInfo> selectionModel;
 
-        selectionModel = new SingleSelectionModel<GenericPropInfo>();
+    public PropertiesTree(PropertiesTreeViewModel model, SingleSelectionModel<GenericPropInfo> selectionModel) {
+        super(model, null, res);
+
+        setAnimationEnabled(false);
+        setDefaultNodeSize(500);
+
+        this.selectionModel = selectionModel;
         selectionModel.addSelectionChangeHandler(new SelectionChangeEvent.Handler() {
             @Override
             public void onSelectionChange(SelectionChangeEvent event) {
-                GenericPropInfo selected = selectionModel.getSelectedObject();
+                GenericPropInfo selected = getSelectionModel().getSelectedObject();
                 if (selected != null && selected instanceof PropValueInfo) {
                     PropValueInfo valueInfo = (PropValueInfo) selected;
                     if (valueInfo.getKeyInfo() instanceof RealPropKeyInfo) {
                         RealPropKeyInfo keyInfo = (RealPropKeyInfo) valueInfo.getKeyInfo();
                         PropertyType valType = keyInfo.getPropDef().getValuesType();
-                        if (valType.isTyDIResourceRef()) {
-
-                            TyDIResourceRef tyDIResRef = null;
-                            PropType_TyDISemClassRef semClassRefType = valType.getAsTyDISemClassRefType();
-                            if (semClassRefType != null) {
-                                String baseUrl = semClassRefType.getSemClassRefBaseURL();
-                                if (baseUrl != null && !baseUrl.isEmpty()) {
-                                    Integer semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(valueInfo.getValue());
-                                    if (semClassId != null) {
-                                        tyDIResRef = new TyDISemClassRefImpl(new ResourceLocator(baseUrl), semClassId, null);
-                                    }
-                                }
-                            } else {
-                                PropType_TyDIConceptRef conceptRefType = valType.getAsTyDIConceptRefType();
-                                if (conceptRefType != null) {
-
-                                    String baseUrl = conceptRefType.getSemClassRefBaseURL();
-                                    if (baseUrl != null && !baseUrl.isEmpty()) {
-                                        Integer semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(valueInfo.getValue());
-                                        if (semClassId != null) {
-                                            tyDIResRef = new TyDISemClassRefImpl(new ResourceLocator(baseUrl), semClassId, null);
-                                        }
-                                    }
-                                } else {
-                                    PropType_TyDITermRef termRefType = valType.getAsTyDITermRefType();
-                                    if (termRefType != null) {
-
-                                        String baseUrl = termRefType.getTermRefBaseURL();
-                                        if (baseUrl != null && !baseUrl.isEmpty()) {
-                                            Integer termId = TyDITermRefImpl.getTermIdFromTermExternalId(valueInfo.getValue());
-                                            if (termId != null) {
-                                                tyDIResRef = new TyDITermRefImpl(new ResourceLocator(baseUrl), termId);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                        if (valType != null && valType.isTyDIResourceRef()) {
+                            TyDIResourceRef tyDIResRef = PropertiesTreeViewModel.getTyDIResourceRefExternalId(valType, valueInfo.getValue());
                             if (tyDIResRef != null) {
                                 EventBus eventBus = injector.getMainEventBus();
                                 eventBus.fireEvent(new TyDIResourceRefSelectionChangedEvent(tyDIResRef));
@@ -1002,50 +987,6 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
                 }
             }
         });
-        model = new PropertiesTreeViewModel(new PropValueNodeChangedHandler() {
-            @Override
-            public void onValueEntryCreated(PropValueInfo valInfo) {
-                //select the newly created value node
-                //FIXME : should set focus on editable cell is possible
-                if (valInfo != null) {
-                    setNodeOpen(valInfo);
-                    selectionModel.setSelected(valInfo, true);
-
-                    //if the created entry is a TyDIConceptRef, then automatically affect the value with last selected Concept, if any
-                    if (lastSelectedSemClassRef != null && valInfo.getKeyInfo() instanceof RealPropKeyInfo) {
-                        RealPropKeyInfo keyInfo = (RealPropKeyInfo) valInfo.getKeyInfo();
-                        PropertyType valType = keyInfo.getPropDef().getValuesType();
-                        PropType_TyDIConceptRef conceptRefType = valType.getAsTyDIConceptRefType();
-                        if (conceptRefType != null) {
-                            valInfo.setValue(lastSelectedSemClassRef.toString());
-                            model.performEditUpdatePropValue(valInfo);
-                        }
-                    }
-
-                }
-            }
-
-            @Override
-            public void onValueEntryRemoved(PropKeyInfo keyInfo) {
-                //select the key header node
-                if (keyInfo != null) {
-                    selectionModel.setSelected(keyInfo, true);
-                }
-            }
-        }, selectionModel);
-
-        annotationIdCell = new AnnotationIdNTypeCell(model.annotationTypeChangeHandler);
-        idWidget = new CellList<Annotation>(annotationIdCell);
-
-        propsCellTree = new CellTree(model, null, res);
-
-
-        propsCellTree.setAnimationEnabled(false);
-        propsCellTree.setDefaultNodeSize(500);
-
-        componentsGrid = new DataGrid<Annotation>();
-        argumentsGrid = new DataGrid<Annotation>();
-        initWidget(uiBinder.createAndBindUi(this));
 
     }
 
@@ -1069,7 +1010,7 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
 
     private ChildNodeRef getNode(final Object value) {
 
-        NodeExpressionWithResult<ChildNodeRef> expression = new NodeExpressionWithResult<ChildNodeRef>() {
+        TreeUtils.TreeNodeTraveller.NodeExpressionWithResult<ChildNodeRef> expression = new TreeUtils.TreeNodeTraveller.NodeExpressionWithResult<ChildNodeRef>() {
             ChildNodeRef r = null;
 
             @Override
@@ -1086,8 +1027,6 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
                 return result;
             }
 
-            ;
-
             @Override
             public void setResult(ChildNodeRef result) {
                 r = result;
@@ -1099,8 +1038,7 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
             }
         };
 
-        nodeTraveller.travelAndOpenNodes(propsCellTree.getRootTreeNode(), expression);
-
+        nodeTraveller.travelAndOpenNodes(getRootTreeNode(), expression);
 
         return expression.getResult();
     }
@@ -1115,108 +1053,44 @@ public class PropertiesTree extends Composite implements TyDIResourceSelectionCh
         }
     }
 
-    public void display(AnnotatedTextHandler document, final Annotation annotation, boolean readonly) {
-        final boolean refreshDisplayed = annotation != null && model.getAnnotation() != null && annotation.getId().equals(model.getAnnotation().getId());
+    public SingleSelectionModel<GenericPropInfo> getSelectionModel() {
+        return selectionModel;
+    }
 
-        //remember previously display annotation to restore the selected Node
-        final Object previouslySelected;
-        if (refreshDisplayed) {
-            previouslySelected = selectionModel.getSelectedObject();
-        } else {
-            previouslySelected = null;
-        }
+    @Override
+    public PropertiesTreeViewModel getTreeViewModel() {
+        return (PropertiesTreeViewModel) super.getTreeViewModel();
+    }
 
-        annotationIdCell.setReadonly(readonly);
-        idWidget.setRowCount(0, true);
-        idWidget.setRowData(0, new ArrayList<Annotation>(0));
+    void openNodeAndSelect(PropValueInfo valInfo) {
+        setNodeOpen(valInfo);
+        getSelectionModel().setSelected(valInfo, true);
+    }
 
-        ScheduledCommand expandCmd = null;
-        if (annotation != null) {
+    public ScheduledCommand expandAndSelect(final Object previouslySelected) {
+        return new Scheduler.ScheduledCommand() {
+            @Override
+            public void execute() {
 
-            List<Annotation> annSingleton = new ArrayList<Annotation>(1);
-            annSingleton.add(annotation);
-            idWidget.setRowCount(1, true);
-            idWidget.setRowData(0, annSingleton);
+                //expand all
+                TreeNodeExpand(getRootTreeNode());
 
-            propertiesPanel.setVisible(true);
+                //Restore previously selected Node
+                if (previouslySelected != null) {
+                    if (previouslySelected instanceof PropKeyInfo) {
+                        PropKeyInfo keyInfo = getTreeViewModel().getKeyInfo(((PropKeyInfo) previouslySelected).getLabel());
+                        if (keyInfo != null) {
+                            getSelectionModel().setSelected(keyInfo, true);
+                        }
+                    } else if (previouslySelected instanceof PropValueInfo) {
 
-            switch (annotation.getAnnotationKind()) {
-                case TEXT:
-                    componentsPanel.setVisible(false);
-                    componentsGrid.setVisible(false);
-                    argumentsGrid.setVisible(false);
-                    break;
-                case GROUP:
-                    componentsPanel.getHeaderTextAccessor().setText("Components");
-                    componentsPanel.setVisible(true);
-                    componentsGrid.setVisible(true);
-                    argumentsGrid.setVisible(false);
-                    break;
-                case RELATION:
-                    componentsPanel.getHeaderTextAccessor().setText("Arguments");
-                    componentsPanel.setVisible(true);
-                    componentsGrid.setVisible(false);
-                    argumentsGrid.setVisible(true);
-                    break;
-            }
-
-            expandCmd = new Scheduler.ScheduledCommand() {
-                @Override
-                public void execute() {
-
-                    //expand all 
-                    TreeNodeExpand(propsCellTree.getRootTreeNode());
-
-                    //Restore previously selected Node
-                    if (previouslySelected != null) {
-                        if (previouslySelected instanceof PropKeyInfo) {
-                            PropKeyInfo keyInfo = model.getKeyInfo(((PropKeyInfo) previouslySelected).getLabel());
-                            if (keyInfo != null) {
-                                selectionModel.setSelected(keyInfo, true);
-                            }
-                        } else if (previouslySelected instanceof PropValueInfo) {
-
-                            PropValueInfo valueInfo = model.getValueInfo(((PropValueInfo) previouslySelected).getKeyInfo().getLabel(), ((PropValueInfo) previouslySelected).getIndex());
-                            if (valueInfo != null) {
-                                selectionModel.setSelected(valueInfo, true);
-                            }
+                        PropValueInfo valueInfo = getTreeViewModel().getValueInfo(((PropValueInfo) previouslySelected).getKeyInfo().getLabel(), ((PropValueInfo) previouslySelected).getIndex());
+                        if (valueInfo != null) {
+                            getSelectionModel().setSelected(valueInfo, true);
                         }
                     }
                 }
-            };
-
-        } else {
-            componentsPanel.setVisible(false);
-            propertiesPanel.setVisible(false);
-        }
-        model.setAnnotation(document, annotation, readonly, expandCmd);
-
-    }
-
-    @Override
-    public void onTyDIResourceSelectionChanged(TyDIResourceSelectionChangedEvent event) {
-        if (event instanceof TyDIResourceDirectSelectionChangedEvent) {
-            TyDIResourceRef resRef = event.getTyDIResourceRef();
-            if (resRef != null) {
-                if (resRef instanceof TyDISemClassRef) {
-                    lastSelectedSemClassRef = (TyDISemClassRef) resRef;
-                }
-            } else {
-                lastSelectedSemClassRef = null;
             }
-        }
-    }
-
-    @Override
-    protected void onAttach() {
-        super.onAttach();
-        EventBus eventBus = injector.getMainEventBus();
-        TyDIResourceSelectionChangedEvent.register(eventBus, this);
-    }
-
-    @Override
-    protected void onDetach() {
-        super.onDetach();
-        TyDIResourceSelectionChangedEvent.unregister(this);
+        };
     }
 }

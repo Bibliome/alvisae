@@ -14,9 +14,10 @@ import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.ResizeEvent;
+import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.http.client.Response;
 import com.google.gwt.resources.client.CssResource;
-import com.google.gwt.safehtml.shared.SafeHtmlUtils;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.Command;
@@ -26,13 +27,15 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.*;
 import com.google.web.bindery.event.shared.EventBus;
 import fr.inra.mig_bibliome.alvisae.client.Annotation.AnnotationDetailsUi;
+import fr.inra.mig_bibliome.alvisae.client.Annotation.AnnotationTable;
+import fr.inra.mig_bibliome.alvisae.client.Config.ApplicationOptions;
+import fr.inra.mig_bibliome.alvisae.client.Config.ApplicationOptions.PersistedOptionHandler;
 import fr.inra.mig_bibliome.alvisae.client.Config.GlobalStyles;
 import fr.inra.mig_bibliome.alvisae.client.Config.StaneClientGinInjector;
 import fr.inra.mig_bibliome.alvisae.client.Events.*;
 import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TermAnnotationsExpositionEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TermAnnotationsExpositionEventHandler;
 import fr.inra.mig_bibliome.alvisae.client.SemClass.StructTermUi;
-import fr.inra.mig_bibliome.alvisae.client.StanEditorResources;
 import fr.inra.mig_bibliome.alvisae.client.StaneResources;
 import fr.inra.mig_bibliome.alvisae.client.Start.MainToolBar;
 import fr.inra.mig_bibliome.alvisae.client.data.Retrieve.DetailedAsyncResponseHandler;
@@ -124,6 +127,12 @@ public class DocEditingViewImpl extends Composite implements DocEditingView, Edi
     @UiField
     SplitLayoutPanel docTableSplitPanel;
     @UiField
+    LayoutPanel annotTableLayoutPanel;
+    @UiField
+    AnnotationTable annotationTable;
+    @UiField
+    RequiresResizeSpy annotTableResizeSpy;
+    @UiField
     DockLayoutPanel bottomDockPanel;
     @UiField
     LayoutPanel statusBar;
@@ -153,12 +162,14 @@ public class DocEditingViewImpl extends Composite implements DocEditingView, Edi
     private int prevStatusBarSize;
     private final MainToolBar mainToolBar;
     private final DocEditingToolBar docEditingToolBar;
+    private final PersistedOptionHandler detailPanelWidthHnd = new ApplicationOptions.PersistedOptionHandler("docediting.proppanelwidth");
+    private final PersistedOptionHandler annotTableHeightHnd = new ApplicationOptions.PersistedOptionHandler("docediting.annottableheight");
 
     public DocEditingViewImpl() {
 
         initWidget(uiBinder.createAndBindUi(this));
 
-        mainToolBar = new MainToolBar("help/aaeDocAnnotation.html");
+        mainToolBar = new MainToolBar("help/AaeUserGuide.html#Editing-view");
         docEditingToolBar = new DocEditingToolBar(this);
         mainToolBar.addWidget(docEditingToolBar);
         toolBarHolder.add(mainToolBar);
@@ -195,6 +206,38 @@ public class DocEditingViewImpl extends Composite implements DocEditingView, Edi
         //force the split separator to be always visible, even when the view is zoomed
         docTableSplitPanel.setWidgetMinSize(bottomDockPanel, 2);
 
+        //restore panel sizes as set by the user                
+        Scheduler.get().scheduleDeferred(new Command() {
+            @Override
+            public void execute() {
+                {
+                    Integer detailPanelWidth = detailPanelWidthHnd.getValue();
+                    if (detailPanelWidth != null) {
+                        detailPanelWidth = Math.min(detailPanelWidth, detailsDocSplitPanel.getElement().getClientWidth() - 20);
+                        detailsDocSplitPanel.setWidgetSize(detailsPanel, detailPanelWidth);
+                    }
+                }
+                {
+                    Integer annotTableHeight = annotTableHeightHnd.getValue();
+                    if (annotTableHeight != null) {
+                        annotTableHeight = Math.min(annotTableHeight, docTableSplitPanel.getElement().getClientWidth() - 20);
+                        docTableSplitPanel.setWidgetSize(annotTableLayoutPanel, annotTableHeight);
+                    }
+                }
+
+            }
+        });
+
+
+        annotTableResizeSpy.addResizeHandler(new ResizeHandler() {
+            @Override
+            public void onResize(ResizeEvent event) {
+                detailPanelWidthHnd.persistValue(detailsPanel.getElement().getClientWidth());
+                annotTableHeightHnd.persistValue(event.getHeight());
+            }
+        });
+
+
         RootLayoutPanel.get().removeStyleName(StaneResources.INSTANCE.style().WaitCursor());
     }
 
@@ -206,35 +249,38 @@ public class DocEditingViewImpl extends Composite implements DocEditingView, Edi
     public Presenter getPresenter() {
         return presenter;
     }
-    
+
     @Override
     public void setDocument(final AnnotatedTextHandler document, boolean readOnly) {
-        
+
         docEditingToolBar.setDocUrl(null);
-        
+
         modified = false;
         docEditingToolBar.saveAnnotationsButton.setEnabled(modified);
 
         docEditingToolBar.nextDocButton.setEnabled(false);
         docEditingToolBar.prevDocButton.setEnabled(false);
+        annotationDetailsUI.clearDisplay();
         annotationDetailsUI.setReadOnly(readOnly);
+        annotationDetailsUI.setRegisteredAnnotatedText(document);
+        annotationTable.setRegisteredAnnotatedText(document);
         getDocumentView().setDocument(document, readOnly);
-        
+
         if (document != null) {
             //FIXME there must be a way to let GWT compute the actual URL associated to the place including its fragment identifier 
-            
+
             Properties props = document.getAnnotatedText().getDocument().getProperties();
-            String taskName = document.getAnnotatedText().getEditedTask() != null ? document.getAnnotatedText().getEditedTask().getName(): null;
+            String taskName = document.getAnnotatedText().getEditedTask() != null ? document.getAnnotatedText().getEditedTask().getName() : null;
             //Conveniently, the url parameter and the property key are identical !!
-            if (taskName!= null && props != null && props.getKeys().contains(DocDisplayPlace.BasicDocExtIdParams.DOCEXTERNALID_PARAMNAME)) {
-                
-                String token = "#" + DocDisplayPlace.PlacePrefix + ":" + new DocDisplayPlace.BasicDocExtIdParams(props.getValues(DocDisplayPlace.BasicDocExtIdParams.DOCEXTERNALID_PARAMNAME).get(0), 
-                                               taskName, 
-                                               campaignId).createToken();
-                
+            if (taskName != null && props != null && props.getKeys().contains(DocDisplayPlace.BasicDocExtIdParams.DOCEXTERNALID_PARAMNAME)) {
+
+                String token = "#" + DocDisplayPlace.PlacePrefix + ":" + new DocDisplayPlace.BasicDocExtIdParams(props.getValues(DocDisplayPlace.BasicDocExtIdParams.DOCEXTERNALID_PARAMNAME).get(0),
+                        taskName,
+                        campaignId).createToken();
+
                 docEditingToolBar.setDocUrl(GWT.getModuleBaseURL().replaceFirst("/" + GWT.getModuleName(), "") + token);
             }
-            
+
             document.setAdditionalAnnotationSetRequestHandler(new AnnotatedTextHandler.AdditionalAnnotationSetRequestHandler() {
                 @Override
                 public void requestAdditionalAnnotationSet(final AnnotatedTextHandler annotatedTextHandler, int annotationSetId) {
@@ -251,7 +297,7 @@ public class DocEditingViewImpl extends Composite implements DocEditingView, Edi
                         @Override
                         public void onSuccess(AnnotationSetListImpl result) {
                             for (AnnotationSetImpl as : new JsArrayDecorator<AnnotationSetImpl>(result)) {
-                                if (!annotatedTextHandler.getLoadedAnnotationSets().contains(as.getId())) {
+                                if (!annotatedTextHandler.getLoadedAnnotationSetIds().contains(as.getId())) {
                                     annotatedTextHandler.addAdditionalAnnotationSet(as);
                                 }
                             }

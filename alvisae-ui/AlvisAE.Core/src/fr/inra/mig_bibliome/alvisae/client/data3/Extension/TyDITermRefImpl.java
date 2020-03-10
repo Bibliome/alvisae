@@ -26,7 +26,7 @@ public class TyDITermRefImpl implements TyDITermRef {
 
     public static Integer getTermIdFromTermExternalId(String termExternalId) {
         Integer termId = null;
-        MatchResult result = TermExternalIdregex.exec(termExternalId);
+        MatchResult result = TermExternalIdregex.exec(ResourceLocator.stripUrlFragment(termExternalId));
         if (result != null && result.getGroupCount() == 3) {
             Integer projectId = Integer.valueOf(result.getGroup(1));
             termId = Integer.valueOf(result.getGroup(2));

@@ -130,8 +130,13 @@ public interface StaneResources extends ClientBundle {
     
     @Source("images/chain.png")
     ImageResource UrlLinkIcon();
-
     
+    @Source("images/blue-document-page-next.png")
+    ImageResource TaskInstNextIcon();
+
+    @Source("images/blue-document-page-last.png")
+    ImageResource TaskInstLastIcon();
+
     @Source("images/ui-progress-bar-indeterminate.gif")
     ImageResource ProgressBarImage();
 }

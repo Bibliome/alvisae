@@ -2,7 +2,7 @@
  *
  *      This software is a result of Quaero project and its use must respect the rules of the Quaero Project Consortium Agreement.
  *
- *      Copyright Institut National de la Recherche Agronomique, 2010.
+ *      Copyright Institut National de la Recherche Agronomique, 2010-2014.
  *
  */
 package fr.inra.mig_bibliome.alvisae.client.data3;
@@ -27,6 +27,7 @@ import java.util.Set;
 
 /**
  * Provides methods to process an AnnotatedText
+ *
  * @author fpapazian
  */
 public class AnnotatedTextProcessor {
@@ -52,7 +53,8 @@ public class AnnotatedTextProcessor {
         }
 
         /**
-         * Implements the convenient sorting order for processing (as if fragments where in a tree, with depth-first traversal)
+         * Implements the convenient sorting order for processing (as if
+         * fragments where in a tree, with depth-first traversal)
          */
         @Override
         public int compareTo(AnnotationFragment other) {
@@ -85,8 +87,12 @@ public class AnnotatedTextProcessor {
                             //if 2 fragments are identical, place before the one belonging to annotation with the overall largest coverage
                             c = this.getOverallSpan().compareTo(other.getOverallSpan());
                             if (c == 0) {
-                                //FIXME add timestamp : if 2 fragments are identical, place before the one belonging to the older annotation
-                                c = this.annotation.getId().compareTo(other.annotation.getId());
+                                //if 2 fragments are identical, place before the one belonging to the older annotation
+                                c = Integer.valueOf(this.annotation.getCreationDate()).compareTo(Integer.valueOf(other.annotation.getCreationDate()));
+                                if (c == 0) {
+                                    //well... just use id to have a constant relative order
+                                    c = this.annotation.getId().compareTo(other.annotation.getId());
+                                }
                             }
                         }
                     }
@@ -127,7 +133,8 @@ public class AnnotatedTextProcessor {
     }
 
     /**
-     * Manage the matching between Annotation & Fragment and their representation in the HTML via Markers
+     * Manage the matching between Annotation & Fragment and their
+     * representation in the HTML via Markers
      */
     public static class AnnotationFragmentMarkerMapper {
 
@@ -219,7 +226,8 @@ public class AnnotatedTextProcessor {
     // -------------------------------------------------------------------------
 
     /**
-     * Insert a string into the Net Text after the specified character position, and update the Annotations coordinates consequently
+     * Insert a string into the Net Text after the specified character position,
+     * and update the Annotations coordinates consequently
      */
     public static final void insertTextAfterCharacter(AnnotatedText annotatedText, String textToInsert, int characterPosition) {
         String oldtxt = annotatedText.getDocument().getContents();
@@ -248,6 +256,7 @@ public class AnnotatedTextProcessor {
 
     /**
      * Appends a new Element child representing the specified Fragment
+     *
      * @return the newly created Element
      */
     private static Element addElement(AnnotatedTextHandler annotationModificationHandler, AnnotationFragmentMarkerMapper annFragMarkmap, Element ancestorElt, AnnotationFragment currentFrag, int ordVal) {
@@ -288,7 +297,7 @@ public class AnnotatedTextProcessor {
         }
         if (annotation != null) {
             //FIXME: Surely not used anymore: What is the purpose of storing the properties as marker's attributes anyway?
-            
+
             //stored properties
             for (String key : annotation.getProperties().getKeys()) {
                 StringBuilder values = new StringBuilder();
@@ -303,14 +312,17 @@ public class AnnotatedTextProcessor {
     }
 
     /**
-     * Produces the HTML representation of the Annotation contained in the Annotated Text
-     * Crossing boundaries is resolved by splitting the Fragment closer to the tree leaf.
-     * @return a markerFragment of Document containing the Annotated document ready for display
+     * Produces the HTML representation of the Annotation contained in the
+     * Annotated Text Crossing boundaries is resolved by splitting the Fragment
+     * closer to the tree leaf.
+     *
+     * @return a markerFragment of Document containing the Annotated document
+     * ready for display
      */
     public static final Element getMarkedDoc(AnnotatedTextHandler annotatedTextHnd, String textContainerId) {
-        
+
         AlvisaeCore.speedTracerlog("getMarkedDoc - start...");
-        
+
         AnnotationFragmentMarkerMapper annFragMarkmap = new AnnotationFragmentMarkerMapper();
 
         //1- keep only annotation with TextBinding
@@ -330,7 +342,7 @@ public class AnnotatedTextProcessor {
 
         //3- in case of overlapping, split the fragments further from the root to eliminate overlapping
         for (int currentIndex = 0; currentIndex < annotationFragments.size(); currentIndex++) {
-           AnnotationFragment currentFragment = annotationFragments.get(currentIndex);
+            AnnotationFragment currentFragment = annotationFragments.get(currentIndex);
 
             int currentStartOffset = currentFragment.getMarkerFragment().getStart();
             //remove closed markerFragment
@@ -374,7 +386,7 @@ public class AnnotatedTextProcessor {
                 Collections.sort(annotationFragments);
             }
         }
-        
+
         //4- create the final html from the list of non-overlapping fragments
         //StringBuilder html = new StringBuilder();
 
@@ -462,10 +474,10 @@ public class AnnotatedTextProcessor {
             ancestors.add(currentFrag);
 
         }
-        
+
         //FIXME inline elements (SPAN) should not be parents of block element (DIV); hence 
         //5- replace annotation SPAN by DIV
-        
+
         AnnotationDocumentViewMapper.getMapper(annotatedTextHnd.getAnnotatedText()).setAnnotationFragmentMarkerMapper(annFragMarkmap);
         container.setId(textContainerId);
         AlvisaeCore.speedTracerlog("getMarkedDoc - END.");
@@ -475,7 +487,8 @@ public class AnnotatedTextProcessor {
     /**
      *
      * @param annotation
-     * @return the text corresponding to concatenated fragments of the specified Annotation
+     * @return the text corresponding to concatenated fragments of the specified
+     * Annotation
      */
     public static String getAnnotationText(Annotation annotation) {
         return annotation.getAnnotationText("¦");
@@ -502,8 +515,8 @@ public class AnnotatedTextProcessor {
                     break;
                 }
                 end = pos + patternLen;
-                if (coveredFragment!=null) {
-                    if (pos<coveredFragment.getStart() || end>coveredFragment.getEnd()) {
+                if (coveredFragment != null) {
+                    if (pos < coveredFragment.getStart() || end > coveredFragment.getEnd()) {
                         continue;
                     }
                 }
@@ -513,10 +526,11 @@ public class AnnotatedTextProcessor {
         return result;
     }
     //==========================================================================
-    
+
     /**
      *
-     * @return This first enclosing tag element that correspond to a Annotation marker
+     * @return This first enclosing tag element that correspond to a Annotation
+     * marker
      */
     public static Element getFirstEnclosingMarkerElement(Element element, String textContainerId) {
         Element result = element;
@@ -534,8 +548,9 @@ public class AnnotatedTextProcessor {
     }
 
     /**
-     * 
-     * @return The list of all Annotation markers enclosing the specified element 
+     *
+     * @return The list of all Annotation markers enclosing the specified
+     * element
      */
     public static List<Element> getAscendantMarkerElements(Element element, String textContainerId) {
         Element elt = element;
@@ -554,8 +569,8 @@ public class AnnotatedTextProcessor {
     }
 
     /**
-     * 
-     * @return the CSV representation of the 
+     *
+     * @return the CSV representation of the
      */
     public static String getAnnotationsAsCSV() {
         StringBuilder result = new StringBuilder();
@@ -564,11 +579,11 @@ public class AnnotatedTextProcessor {
 
     //#######################################################################
     private static native String midBlend(String backgroundColor) /*-{
-    var c = new $wnd.Color(backgroundColor);
-    var w = new $wnd.Color("white");
-    var pallet = c.blend(w, 5);
-    return pallet[2].hex();
-    }-*/;
+     var c = new $wnd.Color(backgroundColor);
+     var w = new $wnd.Color("white");
+     var pallet = c.blend(w, 5);
+     return pallet[2].hex();
+     }-*/;
 
     public static String getSampleCStyleSheet(AnnotationSchemaDefinition schema) {
         StringBuilder sheet = new StringBuilder();

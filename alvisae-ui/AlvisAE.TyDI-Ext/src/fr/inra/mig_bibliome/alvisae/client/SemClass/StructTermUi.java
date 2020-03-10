@@ -34,6 +34,7 @@ import com.google.gwt.user.cellview.client.TreeNode;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.Timer;
+import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.*;
 import com.google.gwt.view.client.SelectionChangeEvent;
 import com.google.gwt.view.client.SelectionChangeEvent.Handler;
@@ -54,6 +55,10 @@ import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceRefSelec
 import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceRequestInfoEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceSelectionChangedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourceSelectionChangedEventHandler;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIResourcesCheckChangesInfoEvent;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIVersionedResourcesInfoEvent;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIVersionedResourcesInfoEventHandler;
+import fr.inra.mig_bibliome.alvisae.client.Events.Extension.TyDIVersionedResourcesUnchangedInfoEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.GenericAnnotationSelectionChangedEvent;
 import fr.inra.mig_bibliome.alvisae.client.Events.GenericAnnotationSelectionEmptiedEvent;
 import fr.inra.mig_bibliome.alvisae.client.SemClass.CellFactory.SemClassNodeCell;
@@ -65,7 +70,8 @@ import fr.inra.mig_bibliome.alvisae.client.data.Retrieve.AsyncResponseHandler;
 import fr.inra.mig_bibliome.alvisae.client.data.Retrieve.DetailedAsyncResponseHandler;
 import fr.inra.mig_bibliome.alvisae.client.data.Retrieve.NetworkActivityDisplayer;
 import fr.inra.mig_bibliome.alvisae.client.data.Retrieve.RequestManager;
-import fr.inra.mig_bibliome.alvisae.client.data3.BranchesImpl;
+import fr.inra.mig_bibliome.alvisae.client.data3.Extension.CheckedSemClassImpl;
+import fr.inra.mig_bibliome.alvisae.client.data3.Extension.TyDIResRefPropValImpl;
 import fr.inra.mig_bibliome.alvisae.client.data3.Extension.TyDISemClassRefImpl;
 import fr.inra.mig_bibliome.alvisae.client.data3.Extension.TyDITermRefImpl;
 import fr.inra.mig_bibliome.alvisae.client.data3.JsArrayDecorator;
@@ -77,7 +83,10 @@ import fr.inra.mig_bibliome.alvisae.client.data3.SemClassNTermsImpl;
 import fr.inra.mig_bibliome.alvisae.client.data3.SemClassTreeLevelImpl;
 import fr.inra.mig_bibliome.alvisae.client.data3.TermExistsResponseImpl;
 import fr.inra.mig_bibliome.alvisae.client.data3.TermMembershipImpl;
+import fr.inra.mig_bibliome.alvisae.client.data3.VersionedBranchesImpl;
+import fr.inra.mig_bibliome.alvisae.client.data3.VersionedSemClassImpl;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Annotation;
+import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.CheckedSemClass;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TermAnnotation;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TyDIResourceRef;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TyDISemClassRef;
@@ -106,7 +115,7 @@ import java.util.logging.Logger;
  *
  * @author fpapazian
  */
-public class StructTermUi extends Composite implements TermAnnotationsExpositionEventHandler, AnnotationSelectionChangedEventHandler, TyDIResourceSelectionChangedEventHandler, TyDIResourceInfoEventHandler {
+public class StructTermUi extends Composite implements TermAnnotationsExpositionEventHandler, AnnotationSelectionChangedEventHandler, TyDIResourceSelectionChangedEventHandler, TyDIResourceInfoEventHandler, TyDIVersionedResourcesInfoEventHandler {
 
     private static final Logger log = Logger.getLogger(StructTermUi.class.getName());
     private static final StaneClientExtGinInjector termInjector = GWT.create(StaneClientExtGinInjector.class);
@@ -283,8 +292,8 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
     }
 
     /**
-     * Popup menu used to decide whether to create a class or a term when drop
-     * an Annotation on the Semantic Class tree
+     * Popup menu used to decide whether to create a class or a term when
+     * dropping an Annotation on the Semantic Class tree
      */
     public static class SelectDropTermAnnotActionPopup extends SelectDropActionPopup {
 
@@ -293,7 +302,16 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
             public void actionSelected(boolean createSemClass);
         }
 
-        public SelectDropTermAnnotActionPopup(final SemClassExtendedInfo targetedSemClass, TermAnnotation termAnnot, final SelectDropTermAnnotActionCallback selectingActionCallback) {
+        public static SelectDropTermAnnotActionPopup createDropActionsPopup(final SemClassExtendedInfo targetedSemClass, TermAnnotation termAnnot, final SelectDropTermAnnotActionCallback selectingActionCallback) {
+            if (termAnnot.isTyDIClassOrTermGenerator()) {
+                //actions will be proposed only if the TermAnnotation is enabled for creating Term or Class 
+                return new SelectDropTermAnnotActionPopup(targetedSemClass, termAnnot, selectingActionCallback);
+            } else {
+                return null;
+            }
+        }
+
+        private SelectDropTermAnnotActionPopup(final SemClassExtendedInfo targetedSemClass, TermAnnotation termAnnot, final SelectDropTermAnnotActionCallback selectingActionCallback) {
             super();
 
             setGlassEnabled(false);
@@ -340,8 +358,8 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
     }
 
     /**
-     * Popup menu used to decide whether to create a class or a term when drop
-     * an Annotation on the Semantic Class tree
+     * Popup menu used to decide whether to create a class or a term when
+     * dropping a Semantic Class dragged from the tree
      */
     public static class SelectDropSemClassActionPopup extends SelectDropActionPopup {
 
@@ -513,19 +531,20 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                 final SemClassExtendedInfo droppedSemClass = context.getDroppableData();
                 final TermAnnotation termAnnot = context.getDraggableData();
 
-                SelectDropTermAnnotActionPopup contextMenu = new SelectDropTermAnnotActionPopup(droppedSemClass, termAnnot, new SelectDropTermAnnotActionPopup.SelectDropTermAnnotActionCallback() {
+                SelectDropTermAnnotActionPopup contextMenu = SelectDropTermAnnotActionPopup.createDropActionsPopup(droppedSemClass, termAnnot, new SelectDropTermAnnotActionPopup.SelectDropTermAnnotActionCallback() {
                     @Override
                     public void actionSelected(boolean createSemClass) {
                         performClassOrTermCreation(createSemClass, droppedSemClass, termAnnot);
                     }
                 });
-                Element targetElement = context.getDroppable();
-                int top = targetElement.getAbsoluteTop() + (targetElement.getAbsoluteBottom() - targetElement.getAbsoluteTop()) / 2;
-                int left = targetElement.getAbsoluteLeft() + (targetElement.getAbsoluteRight() - targetElement.getAbsoluteLeft()) / 2;
+                if (contextMenu != null) {
+                    Element targetElement = context.getDroppable();
+                    int top = targetElement.getAbsoluteTop() + (targetElement.getAbsoluteBottom() - targetElement.getAbsoluteTop()) / 2;
+                    int left = targetElement.getAbsoluteLeft() + (targetElement.getAbsoluteRight() - targetElement.getAbsoluteLeft()) / 2;
 
-                contextMenu.setPopupPosition(left, top);
-                contextMenu.show();
-
+                    contextMenu.setPopupPosition(left, top);
+                    contextMenu.show();
+                }
             }
         }
 
@@ -693,6 +712,8 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
     Image searchResult;
     @UiField
     PushButton refreshButton;
+    @UiField
+    PushButton seeChangesButton;
     // --
     @UiField
     NetworkActivityDisplayer networkActivityDisplayer;
@@ -751,12 +772,14 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
     private TyDIResourceRef tydiResourceRef;
     private Integer projectId = null;
     private String projectName = null;
+    private Integer oldestReferencedVersion;
     private final String dragContainerId;
     private boolean infoBeingDisplayed = false;
     private final CellListPanel<SmallDialogInfo> smallDialogsPanel;
     private final SmallDialogCell smallDialogsCell;
     private final ValueUpdater<SmallDialogInfo> smallDialogsUpdater;
     private final ArrayList<SmallDialogInfo> smallDislogsList;
+    private SemClassInfo lastSelectedClass;
     //
     private SemClassTreeDnDHandler semClassTreeDnDHandler = new SemClassTreeDnDHandler();
 
@@ -817,8 +840,10 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
             @Override
             public void onSelectionChange(SelectionChangeEvent event) {
                 resetTreeErrorMessage();
+                lastSelectedClass = null;
                 if (selectionModel.getSelectedObject() instanceof SemClassInfo) {
                     SemClassInfo selectedClass = (SemClassInfo) selectionModel.getSelectedObject();
+                    lastSelectedClass = selectedClass;
                     displayClassDetails(selectedClass);
 
                     //inform others components that concept selection changed
@@ -956,6 +981,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
     }
 
     private void initDisplayers() {
+        resetDisplayers();
         CellTree.Resources resource = GWT.create(TreeResources.class);
         SemClassTreeViewModel classTreeModel = new SemClassTreeViewModel(selectionModel, getProjectId(), getDragContainerId(), semClassTreeDnDHandler);
         classesTree = new DragAndDropCellTree(classTreeModel, null, resource);
@@ -973,7 +999,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
     }
 
     public void resetTyDIParameters(TyDIResourceRef locator) {
-        if (this.projectId != null) {
+        if (this.projectId != null && ProviderStore.forProject(projectId) != null) {
             ProviderStore.forProject(projectId).clear();
         }
 
@@ -1142,53 +1168,54 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 
     private void expandAndSelect(final int HyperClassId, int semClassId) {
 
+        if (classesTree != null) {
 
-        termInjector.getTermDataProvider().getBranchesBetweenClasses(projectId, SemClass.ROOT_ID, semClassId, new AsyncResponseHandler<BranchesImpl>() {
-            private Image expandingImg = new Image(StructTermResources.INSTANCE.SearchExpandTreeIcon());
-            private Image normalImg = new Image(StructTermResources.INSTANCE.SearchTreeIcon());
-            private TreeExpander expander = new TreeExpander(selectionModel) {
-                @Override
-                void onStart() {
-                    searchButton.getUpFace().setImage(expandingImg);
-                    showGlassPanel(true);
-                }
-
-                @Override
-                void onFinish() {
-                    searchButton.getUpFace().setImage(normalImg);
-                    showGlassPanel(false);
-                    //at this point, the tree has been expanded in order to display the intended class/concept
-                }
-            };
-
-            @Override
-            public void onSuccess(BranchesImpl result) {
-
-                //inform others components with the full info about the class/concept about to be selected
-                SemClassImpl toSemClass = result.getToSemClass();
-                injector.getMainEventBus().fireEvent(new TyDIResourceBroadcastInfoEvent(new TyDISemClassRefImpl(tydiResourceRef, toSemClass.getId(), toSemClass.getCanonicId(), toSemClass.getCanonicLabel())));
-
-                //start tree expansion until displaying the intended class/concept
-                TreeNode parentNode = classesTree.getRootTreeNode();
-                ArrayList<SemClassImpl> levels = new ArrayList<SemClassImpl>();
-
-                for (PathImpl path : new JsArrayDecorator<PathImpl>(result.getPaths())) {
-                    JsArray<SemClassImpl> pl = path.getLevels();
-                    //choose the path which pass through the specified Hyperonym
-                    if (pl.get(pl.length() - 1).getId() == HyperClassId) {
-                        levels.addAll(new JsArrayDecorator<SemClassImpl>(pl));
-                        break;
+            termInjector.getTermDataProvider().getBranchesBetweenClasses(projectId, SemClass.ROOT_ID, semClassId, new AsyncResponseHandler<VersionedBranchesImpl>() {
+                private Image expandingImg = new Image(StructTermResources.INSTANCE.SearchExpandTreeIcon());
+                private Image normalImg = new Image(StructTermResources.INSTANCE.SearchTreeIcon());
+                private TreeExpander expander = new TreeExpander(selectionModel) {
+                    @Override
+                    void onStart() {
+                        searchButton.getUpFace().setImage(expandingImg);
+                        showGlassPanel(true);
                     }
-                }
 
-                if (levels.isEmpty()) {
-                    levels.addAll(new JsArrayDecorator<SemClassImpl>(result.getPaths().get(0).getLevels()));
-                }
-                levels.add(result.getToSemClass());
-                expander.start(parentNode, levels);
-            }
-        });
+                    @Override
+                    void onFinish() {
+                        searchButton.getUpFace().setImage(normalImg);
+                        showGlassPanel(false);
+                        //at this point, the tree has been expanded in order to display the intended class/concept
+                    }
+                };
 
+                @Override
+                public void onSuccess(VersionedBranchesImpl result) {
+
+                    //inform others components with the full info about the class/concept about to be selected
+                    SemClassImpl toSemClass = result.getToSemClass();
+                    injector.getMainEventBus().fireEvent(new TyDIResourceBroadcastInfoEvent(new TyDISemClassRefImpl(tydiResourceRef, toSemClass.getId(), toSemClass.getCanonicId(), toSemClass.getCanonicLabel())));
+
+                    //start tree expansion until displaying the intended class/concept
+                    TreeNode parentNode = classesTree.getRootTreeNode();
+                    ArrayList<SemClassImpl> levels = new ArrayList<SemClassImpl>();
+
+                    for (PathImpl path : new JsArrayDecorator<PathImpl>(result.getPaths())) {
+                        JsArray<SemClassImpl> pl = path.getLevels();
+                        //choose the path which pass through the specified Hyperonym
+                        if (pl.get(pl.length() - 1).getId() == HyperClassId) {
+                            levels.addAll(new JsArrayDecorator<SemClassImpl>(pl));
+                            break;
+                        }
+                    }
+
+                    if (levels.isEmpty()) {
+                        levels.addAll(new JsArrayDecorator<SemClassImpl>(result.getPaths().get(0).getLevels()));
+                    }
+                    levels.add(result.getToSemClass());
+                    expander.start(parentNode, levels);
+                }
+            });
+        }
 
     }
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -1822,9 +1849,21 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                 SemClassDataProvider.reloadSemClass(projectId, newHyperSemClassId);
                 displayClassDetails(new SemClassExtendedInfo(projectId, newHyperSemClassId, newHyperSemClassVersion));
 
-                Integer addedTermId = result.getAddedTermId();
+                final Integer addedTermId = result.getAddedTermId();
                 termAnnot.setTermExternalId(termInjector.getTermDataProvider().getTermExternalId(projectId, addedTermId));
-                termAnnot.setSemClassExternalId(termInjector.getTermDataProvider().getSemClassExternalId(projectId, result.getId(), addedTermId));
+
+                termInjector.getTermDataProvider().ensureSemanticClassVersioned(projectId, result.getId(), new AsyncCallback<VersionedSemClassImpl>() {
+                    @Override
+                    public void onSuccess(VersionedSemClassImpl versionedSemClass) {
+                        String extId = termInjector.getTermDataProvider().getSemClassExternalId(projectId, versionedSemClass.getId(), addedTermId);
+                        termAnnot.setTyDIResourceRef(TyDIResRefPropValImpl.create(extId, versionedSemClass.getCanonicLabel(), versionedSemClass.getTermStructVersion()));
+                    }
+
+                    @Override
+                    public void onFailure(Throwable caught) {
+                        displayGlobalWarning(caught.getMessage());
+                    }
+                });
             }
 
             @Override
@@ -2032,6 +2071,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
     void handleSignOutButtonClick(ClickEvent e) {
         resetDisplayers();
         ProviderStore.clear();
+        termInjector.getTermDataProvider().getRequestManager().signOut(null);
         showInForeGround(globalExclusivePanels, authenticationPanel);
     }
 
@@ -2078,6 +2118,12 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                 SemClassDataProvider.reloadSemClassParents(projectId, semClassId);
             }
         }
+    }
+
+    @UiHandler("seeChangesButton")
+    void handleSeeChangesButtonClick(ClickEvent e) {
+        int fromVersion = oldestReferencedVersion == null ? 1 : oldestReferencedVersion;
+        ShowChangesDialogBox.show(projectId, fromVersion, lastSelectedClass);
     }
 
     @Override
@@ -2170,9 +2216,10 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                         SemClassDataProvider.ensureSemanticClassLoaded(projectId, semClassId, new Command() {
                             @Override
                             public void execute() {
-                                SemClass semClass = ProviderStore.forProject(projectId).getCacheSemClass(semClassId);
-                                injector.getMainEventBus().fireEvent(new TyDIResourceBroadcastInfoEvent(new TyDISemClassRefImpl(tydiResourceRef, semClass.getId(), semClass.getCanonicId(), semClass.getCanonicLabel())));
-
+                                if (ProviderStore.forProject(projectId) != null) {
+                                    SemClass semClass = ProviderStore.forProject(projectId).getCacheSemClass(semClassId);
+                                    injector.getMainEventBus().fireEvent(new TyDIResourceBroadcastInfoEvent(new TyDISemClassRefImpl(tydiResourceRef, semClass.getId(), semClass.getCanonicId(), semClass.getCanonicLabel())));
+                                }
                             }
                         });
 
@@ -2189,6 +2236,40 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
         }
     }
 
+    @Override
+    public void onTyDIVersionedResourceInfoEvent(TyDIVersionedResourcesInfoEvent event) {
+        if (event instanceof TyDIResourcesCheckChangesInfoEvent) {
+            List<CheckedSemClassImpl> resRefs = event.getTyDIResourcesRef();
+            if (resRefs != null && !resRefs.isEmpty()) {
+                //FIXME check that resource reference is same TyDI instance+project
+
+                for (CheckedSemClass r : resRefs) {
+                    oldestReferencedVersion = Math.min(oldestReferencedVersion == null ? Integer.MAX_VALUE : oldestReferencedVersion, r.getVersionNum());
+                }
+
+                termInjector.getTermDataProvider().checkStructTermChanges(projectId, resRefs, new AsyncCallback<JsArray<CheckedSemClassImpl>>() {
+                    private void signalUnaffectedSemClass(JsArray<CheckedSemClassImpl> unaffectedClass) {
+                        List<CheckedSemClassImpl> unaffected = new ArrayList<CheckedSemClassImpl>();
+                        if (unaffectedClass != null) {
+                            unaffected.addAll(new JsArrayDecorator<CheckedSemClassImpl>(unaffectedClass));
+                        }
+                        injector.getMainEventBus().fireEvent(new TyDIVersionedResourcesUnchangedInfoEvent(unaffected));
+                    }
+
+                    @Override
+                    public void onFailure(Throwable caught) {
+                        signalUnaffectedSemClass(null);
+                    }
+
+                    @Override
+                    public void onSuccess(JsArray<CheckedSemClassImpl> result) {
+                        signalUnaffectedSemClass(result);
+                    }
+                });
+            }
+        }
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     @Override
     protected void onAttach() {
@@ -2198,6 +2279,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
         GenericAnnotationSelectionChangedEvent.register(eventBus, this);
         TyDIResourceSelectionChangedEvent.register(eventBus, this);
         TyDIResourceRequestInfoEvent.register(eventBus, this);
+        TyDIVersionedResourcesInfoEvent.register(eventBus, this);
     }
 
     @Override
@@ -2208,5 +2290,6 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
         GenericAnnotationSelectionChangedEvent.unregister(this);
         TyDIResourceSelectionChangedEvent.unregister(this);
         TyDIResourceRequestInfoEvent.unregister(this);
+        TyDIVersionedResourcesInfoEvent.unregister(this);
     }
 }

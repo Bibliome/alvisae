@@ -90,7 +90,7 @@
         <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/3">
             <compilation-unit>
                 <package-root>src</package-root>
-                <classpath mode="compile">../../GWT2/gwt-dev.jar:../../GWT2/gwt-user.jar:../../GWT2/validation-api-1.0.0.GA-sources.jar:../../GWT2/validation-api-1.0.0.GA.jar:../libs/aopalliance.jar:../libs/gin-1.5-post-gwt-2.2.jar:../libs/guice-snapshot.jar:../libs/guice-assistedinject-snapshot.jar:../libs/javax.inject.jar:../libs/gwt-dnd-3.2.0.jar:../libs/gwt-graphics-1.0.0.jar:../libs/junit.jar:../AlvisAE.shared/dist/AlvisAE.shared-1.0.jar:../AlvisAE.Core/dist/alvisaeCore.jar:../libs/gquery-dnd-bundle-1.0.6.jar</classpath>
+                <classpath mode="compile">../../GWT2/gwt-dev.jar:../../GWT2/gwt-user.jar:../../GWT2/validation-api-1.0.0.GA-sources.jar:../../GWT2/validation-api-1.0.0.GA.jar:../libs/aopalliance.jar:../libs/gin-1.5-post-gwt-2.2.jar:../libs/guice-snapshot.jar:../libs/guice-assistedinject-snapshot.jar:../libs/javax.inject.jar:../libs/gwt-dnd-3.2.3.jar:../libs/gwt-graphics-1.0.0.jar:../libs/junit.jar:../AlvisAE.shared/dist/AlvisAE.shared-1.0.jar:../AlvisAE.Core/dist/alvisaeCore.jar:../libs/gquery-dnd-bundle-1.0.6.jar</classpath>
                 <source-level>1.6</source-level>
             </compilation-unit>
         </java-data>

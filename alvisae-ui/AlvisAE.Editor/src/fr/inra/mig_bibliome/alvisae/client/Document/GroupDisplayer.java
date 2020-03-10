@@ -307,7 +307,7 @@ public class GroupDisplayer extends CombinedAnnotationDisplayer implements Group
             getEventBus().fireEvent(new TextAnnotationSelectionEmptiedEvent(getAnnotatedTextHandler()));
             getEventBus().fireEvent(new RelationSelectionEmptiedEvent(getAnnotatedTextHandler()));
         }
-        
+
         if (selectedGroups.isEmpty()) {
             getEventBus().fireEvent(new GroupSelectionEmptiedEvent(getAnnotatedTextHandler()));
         } else {
@@ -371,17 +371,23 @@ public class GroupDisplayer extends CombinedAnnotationDisplayer implements Group
 
     @Override
     public boolean processAnnotation(SpecifiedAnnotation annotation, String color, boolean veiled) {
-        CombinedAnnotationWidget widget = addAnnotation(annotation.getAnnotation());
-        if (widget != null) {
-            widget.createOverlay(engine.getOverlayContainer());
+        if (!isRefreshOptional()) {
+            CombinedAnnotationWidget widget = addAnnotation(annotation.getAnnotation());
+            if (widget != null) {
+                widget.createOverlay(engine.getOverlayContainer());
+            }
+            return (widget != null);
+        } else {
+            return true;
         }
-        return (widget != null);
     }
 
     @Override
     public void init(AnnotationDisplayerEngine engine) {
-        this.engine = engine;
-        clearCombinedWidget();
+        if (!isRefreshOptional()) {
+            this.engine = engine;
+            clearCombinedWidget();
+        }
     }
 
     @Override
@@ -391,5 +397,6 @@ public class GroupDisplayer extends CombinedAnnotationDisplayer implements Group
     @Override
     public void complete() {
         engine = null;
+        setRefreshOptional(false);
     }
 }

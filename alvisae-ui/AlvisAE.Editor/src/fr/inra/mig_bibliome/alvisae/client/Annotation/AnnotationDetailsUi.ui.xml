@@ -15,16 +15,16 @@ Uncomment this for XHTML entities
 <ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
              xmlns:g="urn:import:com.google.gwt.user.client.ui"
              xmlns:Annotation="urn:import:fr.inra.mig_bibliome.alvisae.client.Annotation"
-             xmlns:Metadata="urn:import:fr.inra.mig_bibliome.alvisae.client.Annotation.Metadata" >
+             xmlns:AD="urn:import:fr.inra.mig_bibliome.alvisae.client.Annotation.Metadata" >
 
     <ui:with field='staneRes' type='fr.inra.mig_bibliome.alvisae.client.StanEditorResources'/>
-    <ui:style type='fr.inra.mig_bibliome.alvisae.client.Annotation.AnnotationDetailsUi.Styles'>
+    <ui:style>
         .SpaceAround {
         margin: 2px;
         }  
     </ui:style>
 
     <g:FlowPanel>
-        <Metadata:PropertiesTree addStyleNames= '{style.SpaceAround}' ui:field='propertyTree' ></Metadata:PropertiesTree>
+        <AD:AnnotationPropertySheet addStyleNames= '{style.SpaceAround}' ui:field='annotPropSheet' ></AD:AnnotationPropertySheet>
     </g:FlowPanel>
 </ui:UiBinder>

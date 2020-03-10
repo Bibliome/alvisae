@@ -25,20 +25,31 @@ public abstract class AnnotationSchemaCell extends AbstractCell<String> {
         @Template("<span class='{0}' style='width:2em;'>&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;<span>{0}</span>")
         public SafeHtml classedSpan(String className);
 
+        @Template("<span class='{0}' title='{0}' style='width:2em;'>&nbsp;&nbsp;&nbsp;&nbsp;</span>")
+        public SafeHtml classedUnNamedSpan(String className);
+
         @Template("<span class='{0}'>&nbsp;{0}&nbsp;</span>")
         public SafeHtml classedNamedSpan(String className);
     }
-    
     private static final AnnotationSchemaCellTemplates TEMPLATES = GWT.create(AnnotationSchemaCellTemplates.class);
-
 
     public static void renderType(String annotationType, SafeHtmlBuilder sb) {
         sb.append(TEMPLATES.classedSpan(annotationType));
     }
 
+    public static void renderUnNamedType(String annotationType, SafeHtmlBuilder sb) {
+        sb.append(TEMPLATES.classedUnNamedSpan(annotationType));
+    }
+
     public static SafeHtml renderType(String annotationType) {
         SafeHtmlBuilder sb = new SafeHtmlBuilder();
         renderType(annotationType, sb);
+        return sb.toSafeHtml();
+    }
+
+    public static SafeHtml renderUnNamedType(String annotationType) {
+        SafeHtmlBuilder sb = new SafeHtmlBuilder();
+        renderUnNamedType(annotationType, sb);
         return sb.toSafeHtml();
     }
 

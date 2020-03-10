@@ -190,11 +190,6 @@
 							<g:PushButton tabIndex='-1' ui:field='deleteAnnButton' title='delete the selected annotation marker (shortcut [Del])'  enabled='false' addStyleNames='{style.SmallButton}'>
 								<g:upFace image='{staneRes.DelAnnotIcon}' />
 							</g:PushButton>
-							<!--
-							<g:PushButton tabIndex='-1' ui:field='editAnnButton' title='edit the selected annotation marker'  enabled='false' addStyleNames='{style.SmallButton}'>
-								<g:upFace image='{staneRes.EditAnnotIcon}' />
-							</g:PushButton>
-							-->
 							<g:PushButton tabIndex='-1' ui:field='addSelectionButton' title='add the text selection to the selected annotation' enabled='false' addStyleNames='{style.SmallButton}' >
 								<g:upFace image='{staneRes.AddTextToAnnotIcon}' />
 							</g:PushButton>
@@ -211,18 +206,12 @@
 							<g:PushButton tabIndex='-1' ui:field='deleteGroupButton' title='delete the selected group'  enabled='false' addStyleNames='{style.SmallButton}'>
 								<g:upFace image='{staneRes.DelGroupIcon}' />
 							</g:PushButton>
-							<g:PushButton tabIndex='-1' ui:field='editGroupButton' title='edit the selected group'  enabled='false' addStyleNames='{style.SmallButton}'>
-								<g:upFace image='{staneRes.EditGroupIcon}' />
-							</g:PushButton>
 							<g:SimplePanel addStyleNames='{style.SmallSeparator}' />
 							<g:PushButton tabIndex='-1' ui:field='addRelButton' title='create a relation with the selected annotations'  enabled='false' addStyleNames='{style.SmallButton}'>
 								<g:upFace image='{staneRes.AddRelationIcon}' />
 							</g:PushButton>
 							<g:PushButton tabIndex='-1' ui:field='deleteRelButton' title='delete the selected relation'  enabled='false' addStyleNames='{style.SmallButton}'>
 								<g:upFace image='{staneRes.DelRelationIcon}' />
-							</g:PushButton>
-							<g:PushButton tabIndex='-1' ui:field='editRelButton' title='edit the selected relation'  enabled='false' addStyleNames='{style.SmallButton}'>
-								<g:upFace image='{staneRes.EditRelationIcon}' />
 							</g:PushButton>
 							<g:SimplePanel addStyleNames='{style.SmallButton}' />
 							<g:ToggleButton tabIndex='-1' ui:field='selectionModeBtn' title='switch between Text selection and Relation selection modes' enabled='false' addStyleNames='{style.SmallButton}'>
@@ -235,6 +224,10 @@
 							</g:PushButton>
 							<g:PushButton tabIndex='-1' ui:field='validateButton' title='validate the current document'  enabled='false' addStyleNames='{style.SmallButton}'>
 								<g:upFace image='{staneRes.DocValidateIcon}' />
+							</g:PushButton>
+                                                        <g:SimplePanel addStyleNames='{style.SmallButton}' />
+                                                        <g:PushButton tabIndex='-1' ui:field='termRefreshBtn' enabled='false' addStyleNames='{style.SmallButton}'>
+								<g:upFace image='{staneRes.TermResRefRefresh}' />
 							</g:PushButton>
 							<g:SimplePanel addStyleNames='{style.SmallSeparator}' />  
 							<!--

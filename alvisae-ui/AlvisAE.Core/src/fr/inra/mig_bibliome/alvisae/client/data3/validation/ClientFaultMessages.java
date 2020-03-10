@@ -14,10 +14,10 @@ import fr.inra.mig_bibliome.alvisae.shared.data3.validation.BasicFaultListener;
  *
  * @author fpapazian
  */
-public interface ClientFaultMessages extends Messages, BasicFaultListener.FaultMessages {
+public interface ClientFaultMessages extends Messages, BasicFaultListener.FaultMessages<String> {
 
     @Override
-    @Messages.DefaultMessage("Invalid argument type \"{0}\" for role \"{2}\" in annotation #{1} ")
+    @Messages.DefaultMessage("Invalid argument type \"{0}\" for role \"{2}\" in Annotation #{1} ")
     public String invalidArgumentType(String annotationType, String id, String role);
 
     @Override

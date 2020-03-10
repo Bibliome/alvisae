@@ -46,7 +46,7 @@
                             <g:TabLayoutPanel height='100%' barHeight="20">
                                 <g:tab>
                                     <g:header>Annotation details</g:header>
-                                    <Annotation:AnnotationDetailsUi title='details of the selected annotation'/>
+                                    <Annotation:AnnotationDetailsUi ui:field='annotationDetailsUI' title='details of the selected annotation'/>
                                 </g:tab>
                             </g:TabLayoutPanel>
                         </g:layer>

@@ -12,6 +12,13 @@ import java.util.Map;
 
 public interface Relation {
 
+    public interface Argument {
+
+        String getRole();
+
+        Annotation getArgument();
+    }
+
     /**
      * Return the roles defined in this relation.
      * The returned value is read-only.

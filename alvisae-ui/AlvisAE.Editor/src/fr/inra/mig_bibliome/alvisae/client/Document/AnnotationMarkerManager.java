@@ -31,7 +31,6 @@ public class AnnotationMarkerManager {
     private static final String TextContainerId = "aae_DocTextContainer";
     private static final String DocumentCanvasId = "aae_DocumentCanvas";
     private static final String OverlayContainerId = "aae_OverlayContainer";
-    
     private static int instanceNb = 0;
 
 // -----------------------------------------------------------------------------
@@ -54,41 +53,41 @@ public class AnnotationMarkerManager {
 
 // -----------------------------------------------------------------------------
     public static native float getInternetExplorerVersion() /*-{
-    var rv = -1;
-    if ($wnd.navigator.appName == 'Microsoft Internet Explorer')
-    {
-    var ua = $wnd.navigator.userAgent;
-    var re  = new RegExp("MSIE ([0-9]{1,}[\.0-9]{0,})");
-    if (re.exec(ua) != null)
-    rv = parseFloat( RegExp.$1 );
-    }
-    return rv;
-    }-*/;
+     var rv = -1;
+     if ($wnd.navigator.appName == 'Microsoft Internet Explorer')
+     {
+     var ua = $wnd.navigator.userAgent;
+     var re  = new RegExp("MSIE ([0-9]{1,}[\.0-9]{0,})");
+     if (re.exec(ua) != null)
+     rv = parseFloat( RegExp.$1 );
+     }
+     return rv;
+     }-*/;
 // -----------------------------------------------------------------------------
 
     public static native void restoreNativeSelection() /*-{
-    if ($doc.selection) {
-    //IE :
-    throw ("IE support not implemented yet!!");
-    } else {
-    $wnd.getSelection().removeAllRanges();
-    for (i=0; i<$wnd.backupSelection.length; i++) {
-    var range = $wnd.backupSelection[i];
-    $wnd.getSelection().addRange(range);
-    }
-    }
-    }-*/;
+     if ($doc.selection) {
+     //IE :
+     throw ("IE support not implemented yet!!");
+     } else {
+     $wnd.getSelection().removeAllRanges();
+     for (i=0; i<$wnd.backupSelection.length; i++) {
+     var range = $wnd.backupSelection[i];
+     $wnd.getSelection().addRange(range);
+     }
+     }
+     }-*/;
 // -----------------------------------------------------------------------------
 
     public static native void clearNativeSelection() /*-{
-    $wnd.backupSelection = new Array();
-    if ($doc.selection) {
-    //IE :
-    throw ("IE support not implemented yet!!");
-    } else {
-    $wnd.getSelection().removeAllRanges();
-    }
-    }-*/;
+     $wnd.backupSelection = new Array();
+     if ($doc.selection) {
+     //IE :
+     throw ("IE support not implemented yet!!");
+     } else {
+     $wnd.getSelection().removeAllRanges();
+     }
+     }-*/;
 // -----------------------------------------------------------------------------
 
     //FIXME : replace by DOM.isOrHasChild()
@@ -285,7 +284,7 @@ public class AnnotationMarkerManager {
         Fragment result = null;
         ArrayList<DOMRange> ranges = getSelectedRanges();
         List<Fragment> fragments = computeTargets(ranges);
-        if (fragments != null && ! fragments.isEmpty()) {
+        if (fragments != null && !fragments.isEmpty()) {
             int start = annotatedTextHnd.getAnnotatedText().getDocument().getContents().length();
             int end = 0;
             for (Fragment frag : fragments) {
@@ -332,8 +331,8 @@ public class AnnotationMarkerManager {
 
 // -----------------------------------------------------------------------------
     private static native AnnotationMarkerIpml createAnnotationMarkerIpml() /*-{
-    return new $wnd.AnnotationMarkerIpml();
-    }-*/;
+     return new $wnd.AnnotationMarkerIpml();
+     }-*/;
 
     private static AnnotationMarkerIpml _RangeToMarkerCoordinates(DOMRange range, Node textContainer) {
         if (textContainer != null) {
@@ -428,11 +427,11 @@ public class AnnotationMarkerManager {
     public String getDocumentCanvasId() {
         return DocumentCanvasId + ":" + instanceNum + ".";
     }
-    
+
     public String getOverlayContainerId() {
         return OverlayContainerId + ":" + instanceNum + ".";
     }
-    
+
     // -------------------------------------------------------------------------
     // globally create all annotation Markers for the selected ranges
     public void createMarkersForTargets(AnnotatedTextHandler annotatedDoc, AnnotationSchemaDefinition params, String newAnnotationType, List<Fragment> targets, Properties props) {
@@ -453,7 +452,7 @@ public class AnnotationMarkerManager {
         }
         Element docContainer = Document.get().getElementById(getDocContainerId());
         docContainer.appendChild(newDoc);
-    }
+     }
 
     // -------------------------------------------------------------------------
     public void reset(AnnotatedTextHandler sourceDoc) {

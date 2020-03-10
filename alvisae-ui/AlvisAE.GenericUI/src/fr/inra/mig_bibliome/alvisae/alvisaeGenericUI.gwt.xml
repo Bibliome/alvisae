@@ -30,9 +30,6 @@
   <!-- SVG/Canvas graphics                                        -->
     <inherits name='org.vaadin.gwtgraphics.GWTGraphics' />
 
-  <!-- GWTUpload library                                          -->
-    <inherits name="gwtupload.GWTUpload"/>
-
   <!-- gwt-dnd support                                            -->
     <inherits name='com.allen_sauer.gwt.dnd.gwt-dnd'/>
 

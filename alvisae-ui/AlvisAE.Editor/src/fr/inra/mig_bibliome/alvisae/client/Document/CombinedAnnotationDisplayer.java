@@ -169,6 +169,7 @@ public abstract class CombinedAnnotationDisplayer {
     private HashMap<Integer, Integer> interlineOccupancy = new HashMap<Integer, Integer>();
     private int interlineSize = 0;
     private final Map<String, List<String>> inboundSegmentByAnnId = new HashMap<String, List<String>>();
+    private boolean refreshOptional;
 
     public CombinedAnnotationDisplayer(DrawingArea canvas, final EventBus eventBus) {
         this.canvas = canvas;
@@ -190,6 +191,18 @@ public abstract class CombinedAnnotationDisplayer {
 
     protected void addWidget(String combinedAnnotationId, CombinedAnnotationWidget widget) {
         combinedAnnWidget.put(combinedAnnotationId, widget);
+    }
+
+    public void setRefreshOptional() {
+        setRefreshOptional(true);
+    }
+
+    protected void setRefreshOptional(boolean optionalRefresh) {
+        this.refreshOptional = optionalRefresh;
+    }
+
+    protected boolean isRefreshOptional() {
+        return refreshOptional;
     }
 
     public void refresh() {

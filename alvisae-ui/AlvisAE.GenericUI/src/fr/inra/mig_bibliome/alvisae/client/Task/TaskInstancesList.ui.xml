@@ -12,6 +12,7 @@
              xmlns:g="urn:import:com.google.gwt.user.client.ui"
              xmlns:Annotation="urn:import:fr.inra.mig_bibliome.alvisae.client.Annotation"
              xmlns:c="urn:import:com.google.gwt.user.cellview.client"
+             xmlns:mc="urn:import:fr.inra.mig_bibliome.alvisae.client.Task"
              xmlns:Network="urn:import:fr.inra.mig_bibliome.alvisae.client.data.Retrieve" 
 >
 
@@ -127,10 +128,20 @@
                                                                         <g:Label ui:field='taskDocLabel'></g:Label>
                                                                     </g:HorizontalPanel>
                                                                 </g:layer>
+                                                                <g:layer top='0.3EM' height='2EM' right='3.7EM' width='2EM'>
+                                                                    <g:PushButton ui:field='nextTaskInstButton' height='1.2em' width='1.2em' title='retrieve next page'>
+                                                                        <g:upFace image='{staneRes.TaskInstNextIcon}' />
+                                                                    </g:PushButton>
+                                                                </g:layer>
+                                                                <g:layer top='0.3EM' height='2EM' right='1.2EM' width='2EM'>
+                                                                    <g:PushButton ui:field='lastTaskInstButton' height='1.2em' width='1.2em' title='retrieve all'>
+                                                                        <g:upFace image='{staneRes.TaskInstLastIcon}' />
+                                                                    </g:PushButton>
+                                                                </g:layer>
                                                             </g:LayoutPanel>                                            
                                                         </g:north>
                                                         <g:center>
-                                                            <c:DataGrid ui:field='taskInstancesGrid' width='100%' height='100%' />
+                                                            <mc:ScrollExposedDataGrid ui:field='taskInstancesGrid' width='100%' height='100%' />
                                                         </g:center>
                                                     </g:DockLayoutPanel>
                                                 </g:center>

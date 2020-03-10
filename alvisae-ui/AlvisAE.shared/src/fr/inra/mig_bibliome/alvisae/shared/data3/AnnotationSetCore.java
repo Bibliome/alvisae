@@ -31,5 +31,5 @@ public interface AnnotationSetCore {
 
     int getOwner();
     
-    Boolean isInvalidated();
+    boolean isInvalidated();
 }

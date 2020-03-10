@@ -70,6 +70,10 @@ public class AnnotationRelationCreationEdit extends AnnotationCreationEdit {
         return messages.redoAnnotationRelationCreationPresentationName(getAnnotationType(), getDisplayForm());
     }
 
+    public Annotation getCreatedRelation() {
+        return newAnnotationRelation;
+    }
+    
     private String getDisplayForm() {
         StringBuilder displayForm = new StringBuilder();
         for (Entry<String, AnnotationReference> e : argumentRoleMap.entrySet()) {

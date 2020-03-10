@@ -17,6 +17,7 @@ import fr.inra.mig_bibliome.alvisae.client.Config.ApplicationOptions;
 import fr.inra.mig_bibliome.alvisae.client.Events.ApplicationStatusChangedEvent;
 import fr.inra.mig_bibliome.alvisae.client.data.AuthenticationInfoImpl;
 import fr.inra.mig_bibliome.alvisae.client.data.GenericRequestCallback;
+import fr.inra.mig_bibliome.alvisae.client.data3.Extension.ResourceLocator;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Queries.AuthenticationInfo;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Queries.AuthenticationQueries;
 import java.util.LinkedList;
@@ -92,7 +93,7 @@ public abstract class AbstractRequestManager implements AuthenticationQueries {
     }
 
     public void setServerBaseUrl(String serverBaseUrl) {
-        this.serverBaseUrl = serverBaseUrl;
+        this.serverBaseUrl = ResourceLocator.cleanUrl(serverBaseUrl);
         if (serverBaseUrl!=null) {
             applicationOptions = new ApplicationOptions(serverBaseUrl);
         } else {

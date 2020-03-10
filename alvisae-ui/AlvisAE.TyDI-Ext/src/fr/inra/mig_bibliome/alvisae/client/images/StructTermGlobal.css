@@ -42,3 +42,11 @@
     background-color:  white;
     padding: 4px;
 }
+
+.ScrollableContent {
+    overflow-y: scroll;
+    min-height: 100px;
+    max-height: 400px;
+    min-width: 550px;
+    padding: 10px;
+}

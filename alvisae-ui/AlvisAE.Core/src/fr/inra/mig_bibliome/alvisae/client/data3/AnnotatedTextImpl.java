@@ -2,7 +2,7 @@
  *
  *      This software is a result of Quaero project and its use must respect the rules of the Quaero Project Consortium Agreement.
  *
- *      Copyright Institut National de la Recherche Agronomique, 2010-2012.
+ *      Copyright Institut National de la Recherche Agronomique, 2010-2014.
  *
  */
 package fr.inra.mig_bibliome.alvisae.client.data3;
@@ -16,8 +16,10 @@ import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotatedText;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationKind;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationReference;
 import com.google.gwt.core.client.JavaScriptObject;
+import com.google.gwt.core.client.JsArrayInteger;
 import com.google.gwt.core.client.JsonUtils;
 import com.google.gwt.json.client.JSONObject;
+import fr.inra.mig_bibliome.alvisae.client.data3.UserAuthorizationsImpl.JsArrayIntegerDecorator;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationBackReference;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationSet;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Properties;
@@ -25,17 +27,17 @@ import fr.inra.mig_bibliome.alvisae.shared.data3.SpecifiedAnnotation;
 import fr.inra.mig_bibliome.alvisae.shared.data3.SpecifiedAnnotationImpl;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  *
  * @author fpapazian
  */
 public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText {
-
-    private static final String AnnotationIdPrefix = "ann-";
 
     private static interface AnnotationFilter {
 
@@ -46,14 +48,15 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
 
         public boolean accept(AnnotationSet annotationSet, Annotation annotation);
     }
-    
+
     static interface AnnotationProcessor {
 
         public boolean process(AnnotationSetImpl annotationSet, AnnotationImpl annotation);
     }
 
     /**
-     * @throws IllegalArgumentException if invalid JSON string or structure not corresponding to AnnotatedText
+     * @throws IllegalArgumentException if invalid JSON string or structure not
+     * corresponding to AnnotatedText
      */
     public final static AnnotatedTextImpl createFromJSON(String jsonStr) {
         AnnotatedTextImpl result = JsonUtils.safeEval(jsonStr).cast();
@@ -73,7 +76,14 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
 
     @Override
     public final native TaskDefinition getEditedTask() /*-{ if (this.hasOwnProperty('edited_task')) { return this['edited_task']; } else { return null; } }-*/;
+
+    @Override
+    public final Set<Integer> getOutdatedAnnotationSetIds() {
+        return new HashSet<Integer>( new JsArrayIntegerDecorator(_getOutdatedAnnotationSetIds()));
+    }
     
+    private final native JsArrayInteger _getOutdatedAnnotationSetIds() /*-{ if (this.hasOwnProperty('outdated')) { return this['outdated']; } else { return []; } }-*/;
+
     final native AnnotationSetListImpl _getAnnotationSetList() /*-{ return this.annotation; }-*/;
 
     @Override
@@ -97,7 +107,6 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
     @Override
     public final void scanAnnotations(final AnnotatedText.AnnotationProcessor processor) {
         scanAnnotations(new AnnotatedTextImpl.AnnotationProcessor() {
-
             @Override
             public boolean process(AnnotationSetImpl annotationSet, AnnotationImpl annotation) {
                 return processor.process(annotationSet, annotation);
@@ -115,7 +124,6 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
 
     private final void addBackRef() {
         scanAnnotations(new AnnotatedTextImpl.AnnotationProcessor() {
-
             @Override
             public boolean process(AnnotationSetImpl annotationSet, AnnotationImpl annotation) {
                 annotation.setAnnotatedText(AnnotatedTextImpl.this);
@@ -127,7 +135,6 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
     private final AnnotatedTextImpl removeBackRef() {
         final AnnotatedTextImpl[] annotatedText = {null};
         scanAnnotations(new AnnotatedTextImpl.AnnotationProcessor() {
-
             @Override
             public boolean process(AnnotationSetImpl annotationSet, AnnotationImpl annotation) {
                 annotatedText[0] = annotation.getAnnotatedText();
@@ -159,7 +166,6 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
     public final Annotation getAnnotation(final String annotationId) {
         final List<Annotation> liste = new ArrayList<Annotation>();
         scanAnnotations(new AnnotatedTextImpl.AnnotationProcessor() {
-
             @Override
             public boolean process(AnnotationSetImpl annotationSet, AnnotationImpl annotation) {
                 if (annotationId.equals(annotation.getId())) {
@@ -177,7 +183,6 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
     public final List<Annotation> getFilteredAnnotations(final AnnotationFilter filter) {
         final List<Annotation> liste = new ArrayList<Annotation>();
         scanAnnotations(new AnnotatedTextImpl.AnnotationProcessor() {
-
             @Override
             public boolean process(AnnotationSetImpl annotationSet, AnnotationImpl annotation) {
                 if (filter == null || filter.accept(annotation)) {
@@ -188,11 +193,10 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
         });
         return liste;
     }
-    
+
     public final List<SpecifiedAnnotation> getFilteredSpecifiedAnnotations(final SpecifiedAnnotationFilter filter) {
         final List<SpecifiedAnnotation> liste = new ArrayList<SpecifiedAnnotation>();
         scanAnnotations(new AnnotatedTextImpl.AnnotationProcessor() {
-
             @Override
             public boolean process(AnnotationSetImpl annotationSet, AnnotationImpl annotation) {
                 if (filter == null || filter.accept(annotationSet, annotation)) {
@@ -202,7 +206,7 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
             }
         });
         return liste;
-    }    
+    }
 
     @Override
     public final Collection<Annotation> getAnnotations(final String type) {
@@ -210,7 +214,6 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
             throw new NullPointerException("Annotation type should not be null");
         }
         return getFilteredAnnotations(new AnnotationFilter() {
-
             @Override
             public boolean accept(Annotation annotation) {
                 return type.equals(annotation.getAnnotationType());
@@ -224,7 +227,6 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
             throw new NullPointerException("AnnotationKind should not be null");
         }
         return getFilteredAnnotations(new AnnotationFilter() {
-
             @Override
             public boolean accept(Annotation annotation) {
                 return kind.equals(annotation.getAnnotationKind());
@@ -237,17 +239,33 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
             throw new NullPointerException("AnnotationKind should not be null");
         }
         return getFilteredSpecifiedAnnotations(new SpecifiedAnnotationFilter() {
-
             @Override
             public boolean accept(AnnotationSet annotationSet, Annotation annotation) {
                 return kind.equals(annotation.getAnnotationKind());
             }
         });
     }
-    
+
+    private final Collection<Fragment> getBoundedFragments(Collection<Fragment> fragments) {
+        int maxPos = getDocument().getContents().length() - 1;
+        for (Fragment f : fragments) {
+            if (f.getStart() < 0) {
+                f.setStart(0);
+            } else if (f.getStart() >= maxPos) {
+                f.setStart(maxPos);
+            }
+            if (f.getEnd() < 0) {
+                f.setEnd(0);
+            } else if (f.getEnd() >= maxPos) {
+                f.setEnd(maxPos);
+            }
+        }
+        return fragments;
+    }
+
     public final AnnotationImpl createLooseTextAnnotation(String id, String type, Collection<Fragment> fragments, Properties props, List<AnnotationBackReference> backRefs) {
         AnnotationImpl annotation = AnnotationImpl.create(id, AnnotationKind.TEXT, type);
-        annotation.getTextBinding().addFragments(fragments);
+        annotation.getTextBinding().addFragments(getBoundedFragments(fragments));
         annotation.setProperties(props);
         annotation.setSourceAnnotations(backRefs);
         annotation.setAnnotatedText(this);
@@ -274,11 +292,12 @@ public class AnnotatedTextImpl extends JavaScriptObject implements AnnotatedText
         annotation.setAnnotatedText(this);
         return annotation;
     }
-    
     private final static String INVALIDFIELD_PREFIX = "AnnotatedText : invalid field ";
 
     /**
-     * Check that the annotatedText parsed from a JSON string conforms to the expected structure 
+     * Check that the annotatedText parsed from a JSON string conforms to the
+     * expected structure
+     *
      * @throws IllegalArgumentException
      */
     public final void checkStructure() {

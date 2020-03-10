@@ -7,17 +7,22 @@
  */
 package fr.inra.mig_bibliome.alvisae.client.data3;
 
+import fr.inra.mig_bibliome.alvisae.client.data3.Extension.ResourceLocator;
+import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationKind;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationSchemaDefinition;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationSchemaDefinition.TypeUrlEntry;
+import fr.inra.mig_bibliome.alvisae.shared.data3.TaskDefinition;
 import fr.inra.mig_bibliome.alvisae.shared.data3.validation.PropType_TyDIConceptRef;
 import fr.inra.mig_bibliome.alvisae.shared.data3.validation.PropType_TyDISemClassRef;
 import fr.inra.mig_bibliome.alvisae.shared.data3.validation.PropType_TyDITermRef;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  *
@@ -25,6 +30,15 @@ import java.util.Map.Entry;
  */
 public class AnnotationSchemaDefHandler {
 
+    public static List<String> getEditableAnnotationTypes(AnnotationSchemaDefinition schema, AnnotationKind kind, TaskDefinition taskDef) {
+        Set<String> editedTypes = new LinkedHashSet<String>();
+        if (taskDef != null) {
+            editedTypes.addAll(taskDef.getEditedAnnotationTypes());
+        }
+        editedTypes.retainAll(schema.getAnnotationTypes(kind));
+        return new ArrayList<String>(editedTypes);
+    }
+    
     private final AnnotationSchemaDefinition schemaDefinition;
     private Map<String, Map<String, TypeUrlEntry>> tyDIResReferencingTypes = null;
 
@@ -32,6 +46,10 @@ public class AnnotationSchemaDefHandler {
         this.schemaDefinition = schemaDefinition;
     }
 
+    public List<String> getEditableAnnotationTypes(AnnotationKind kind, TaskDefinition taskDef) {
+        return getEditableAnnotationTypes(getSchemaDefinition(), kind, taskDef);
+    }    
+    
     private void initTyDIResReferencingTypes() {
         tyDIResReferencingTypes = schemaDefinition.getTyDIResourceReferencingTypes();
     }
@@ -114,7 +132,7 @@ public class AnnotationSchemaDefHandler {
         HashSet<String> result = new HashSet<String>();
         for (Map<String, TypeUrlEntry> forType : tyDIResReferencingTypes.values()) {
             for (TypeUrlEntry e : forType.values()) {
-                result.add(e.getUrl());
+                result.add(ResourceLocator.cleanUrl(e.getUrl()));
             }
         }
         return result;

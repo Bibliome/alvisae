@@ -2,7 +2,6 @@ package fr.inra.mig_bibliome.alvisae.shared.data3.validation;
 
 import fr.inra.mig_bibliome.alvisae.shared.data3.Annotation;
 import fr.inra.mig_bibliome.alvisae.shared.data3.Fragment;
-import java.util.List;
 
 public interface FaultListener {
 
@@ -75,4 +74,35 @@ public interface FaultListener {
      * the Text Binding of an Annotation is
      */
     void conflictingTextBinding(AnnotationTypeDefinition typeDef, Annotation a);
+
+    public interface FaultMessages<T> {
+
+        public T invalidArgumentType(String annotationType, String id, String role);
+
+        public T invalidComponentType(String annotationType, String id);
+
+        public T invalidFragmentBoundaries(int start, int end, String id, String annotationType);
+
+        public T invalidNumberOfComponents(int size, String id, int minComponents, int maxComponents);
+
+        public T invalidNumberOfFragments(int size, String id, int minFragments, int maxFragments);
+
+        public T invalidNumberOfPropertyValues(String key, String id, int minValues, int maxValues);
+
+        public T invalidPropertyValue(String value, String key, String id);
+
+        public T missingArgument(String role, String id);
+
+        public T missingMandatoryProperty(String key, String id);
+
+        public T unsupportedAnnotationType(String annotationType, String id, String kind);
+
+        public T unsupportedPropertyKey(String key, String id);
+
+        public T unsupportedRole(String role, String id);
+
+        public T wrongAnnotationKind(String kind, String id);
+
+        public T conflictingTextBinding(String type, String id);
+    }
 }

@@ -16,11 +16,13 @@ import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.client.ui.*;
+import fr.inra.mig_bibliome.alvisae.client.Annotation.AnnotationDetailsUi;
 import fr.inra.mig_bibliome.alvisae.client.Config.GlobalStyles;
 import fr.inra.mig_bibliome.alvisae.client.Config.StaneClientBaseGinInjector;
 import fr.inra.mig_bibliome.alvisae.client.Document.DocumentUi;
 import fr.inra.mig_bibliome.alvisae.client.Document.DocumentView;
 import fr.inra.mig_bibliome.alvisae.client.data.Retrieve.NetworkActivityDisplayer;
+import fr.inra.mig_bibliome.alvisae.client.data3.AnnotatedTextHandler;
 
 /**
  * Main UI of the Annotation Editor, containing the DocumentView and several auxiliary views
@@ -39,6 +41,8 @@ public class Tester extends Composite {
     Label statusLabel;
     @UiField
     DocumentUi documentUI;
+    @UiField
+    AnnotationDetailsUi annotationDetailsUI;
     @UiField
     PushButton exportButton;
     @UiField
@@ -67,8 +71,9 @@ public class Tester extends Composite {
 
     }
 
-    public DocumentView getDocumentView() {
-        return documentUI;
+     public void setDocument(final AnnotatedTextHandler document, final DocumentView.Options options) {
+        documentUI.setDocument(document, options);
+        annotationDetailsUI.setRegisteredAnnotatedText(document);
     }
     
     @UiHandler("exportButton")

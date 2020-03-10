@@ -106,7 +106,10 @@ public interface StructTermResources extends ClientBundle {
 
     @Source("images/156.png")
     ImageResource SemClassAltDragHandleIcon();
-
+    
+    @Source("images/eye--pencil.png")
+    ImageResource SeeChangesIcon();
+    
     static interface StructTermGlobalCSS extends CssResource {
 
         String DefaultCursor();
@@ -122,6 +125,8 @@ public interface StructTermResources extends ClientBundle {
         String FlatButton();
         
         String TermDroppableHover();
+        
+        String ScrollableContent();
     }
 
     @Source("images/StructTermGlobal.css")

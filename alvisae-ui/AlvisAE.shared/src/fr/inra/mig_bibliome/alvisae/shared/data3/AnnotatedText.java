@@ -9,6 +9,7 @@ package fr.inra.mig_bibliome.alvisae.shared.data3;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Main data structure used for exchange between server and client.
@@ -40,6 +41,12 @@ public interface AnnotatedText {
      * @return the Task definition of the edited Task
      */
     TaskDefinition getEditedTask();
+    
+    /**
+     * 
+     * @return Set containing the identifiers of (referenced) outdated AnnotationSets  
+     */    
+    Set<Integer> getOutdatedAnnotationSetIds();
     
     /**
      *  Perform an exhaustive scan of annotations contained in this AnnotatedText, and invoke the specified AnnotationProcessor for each annotation

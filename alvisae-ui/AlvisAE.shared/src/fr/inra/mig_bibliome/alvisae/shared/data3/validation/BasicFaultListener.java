@@ -20,45 +20,13 @@ import java.util.Map;
  *
  * @author fpapazian
  */
-public class BasicFaultListener implements FaultListener {
+public class BasicFaultListener<T> implements FaultListener {
 
-    public interface FaultMessages {
-
-        public String invalidArgumentType(String annotationType, String id, String role);
-
-        public String invalidComponentType(String annotationType, String id);
-
-        public String invalidFragmentBoundaries(int start, int end, String id, String annotationType);
-
-        public String invalidNumberOfComponents(int size, String id, int minComponents, int maxComponents);
-
-        public String invalidNumberOfFragments(int size, String id, int minFragments, int maxFragments);
-
-        public String invalidNumberOfPropertyValues(String key, String id, int minValues, int maxValues);
-
-        public String invalidPropertyValue(String value, String key, String id);
-
-        public String missingArgument(String role, String id);
-
-        public String missingMandatoryProperty(String key, String id);
-
-        public String unsupportedAnnotationType(String annotationType, String id, String kind);
-
-        public String unsupportedPropertyKey(String key, String id);
-
-        public String unsupportedRole(String role, String id);
-
-        public String wrongAnnotationKind(String kind, String id);
-
-        public String conflictingTextBinding(String type, String id);
-    }
-    
-        
-    private final FaultMessages faultMessages;
-    private List<String> msgs = new ArrayList<String>();
+    private final FaultMessages<T> faultMessages;
+    private List<T> msgs = new ArrayList<T>();
     private Map<Integer, Annotation> conflictingAnnotation = new HashMap<Integer, Annotation>();
 
-    public BasicFaultListener(FaultMessages faultMessages) {
+    public BasicFaultListener(FaultMessages<T> faultMessages) {
         this.faultMessages = faultMessages;
     }
     
@@ -71,11 +39,11 @@ public class BasicFaultListener implements FaultListener {
      * 
      * @return Messages produced during validation
      */
-    public List<String> getMessages() {
+    public List<T> getMessages() {
         return msgs;
     }
 
-    public String getLastMessage() {
+    public T getLastMessage() {
         return !msgs.isEmpty() ? msgs.get(msgs.size() - 1) : null;
     }
 

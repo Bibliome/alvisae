@@ -43,7 +43,7 @@ public interface TermAnnotation {
      */
     String getSemClassExternalId();
 
-    void setSemClassExternalId(String semClassExternalId);
+    void setTyDIResourceRef(TyDIResRefPropVal resourceRef);
 
     /**
      * 

@@ -11,6 +11,7 @@ import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.client.JsArray;
 import fr.inra.mig_bibliome.alvisae.client.data3.AnnotationReferenceImpl;
 import fr.inra.mig_bibliome.alvisae.client.data3.JsArrayDecorator;
+import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationKind;
 import fr.inra.mig_bibliome.alvisae.shared.data3.AnnotationReference;
 import fr.inra.mig_bibliome.alvisae.shared.data3.validation.ConsolidationBlock;
 import java.util.ArrayList;
@@ -23,9 +24,18 @@ import java.util.List;
 public class ConsolidationBlockImpl extends JavaScriptObject implements ConsolidationBlock {
 
     protected ConsolidationBlockImpl() {
-        
     }
-    
+
+    @Override
+    public final native int getAdjudicationLevel() /*-{ return this.level; }-*/;
+
+    @Override
+    public final AnnotationKind getAnnotationKind() {
+        return AnnotationKind.values()[_getKind()];
+    }
+
+    private final native int _getKind() /*-{ return this.kind; }-*/;
+
     @Override
     public final native int getStart() /*-{ return this.start; }-*/;
 
@@ -46,5 +56,21 @@ public class ConsolidationBlockImpl extends JavaScriptObject implements Consolid
             result.add(lar);
         }
         return result;
+    }
+
+    @Override
+    public final List<? extends AnnotationReference> getMembersByAnnotationSet(int annotationSetId) {
+        blocksLoop:
+        for (List<? extends AnnotationReference> members : getMembers()) {
+            for (AnnotationReference aRef : members) {
+                if (aRef.getAnnotationSetId() != annotationSetId) {
+                    //specified Annotation Set not found yet, skip to the next one
+                    continue blocksLoop;
+                }
+                //found the specified Annotation Set
+                return members;
+            }
+        }
+        return new ArrayList<AnnotationReference>();
     }
 }
