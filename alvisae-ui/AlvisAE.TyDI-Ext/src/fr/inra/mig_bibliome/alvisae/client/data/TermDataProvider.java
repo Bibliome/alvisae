@@ -114,13 +114,18 @@ public class TermDataProvider implements TermQueries {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     @Override
     public void getSemanticClassNTerms(int projectId, int semClassId, AsyncCallback<SemClassNTermsImpl> resultCallback) {
-        String methodUrl = requestManager.getServerBaseUrl() + "projects/" + projectId + "/semClassNTerms/" + semClassId;
+        final String locator = requestManager.getServerBaseUrl() + "projects/" + projectId;
+        String methodUrl = locator + "/semClassNTerms/" + semClassId;
 
         requestManager.genericCall(methodUrl, RequestBuilder.GET, null, null,
                 new GenericRequestCallback<SemClassNTermsImpl>(eventBus, resultCallback, getRequestManager()) {
             @Override
             public SemClassNTermsImpl decode(String responseText) {
                 SemClassNTermsImpl parsedResponse = SemClassNTermsImpl.createFromJSON(responseText);
+
+                TyDISemClassRefImpl res = new TyDISemClassRefImpl(new ResourceLocator(locator), parsedResponse.getId(), parsedResponse.getCanonicId(), parsedResponse.getCanonicLabel());
+                eventBus.fireEvent(new TyDIResourceBroadcastInfoEvent(res));
+
                 return parsedResponse;
             }
         });
