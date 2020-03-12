@@ -1,25 +1,35 @@
 # AlvisAE
 
-AlvisAE is an editor that facilitates the annotation of text documents with the goal of extracting knowledge.
+AlvisAE is an annotation editor for textual documents with the goal of extracting knowledge.
 
-This project is the server side of alvisae. It is a web service that implements all the operations to manage campaigns, documents, annotations, curations, tasks, workflows and users. It assures the storage of document annotations as well as linguistic processing via [AlvisNLP](https://github.com/Bibliome/alvisnlp).
+This project is the server-side of AlvisAE, and it includes : 
 
-## How to install
+1. a double set of **web services** , subdivised in :
+
+    * web services natively used by the Web UI for its normal operations on campaigns, documents, annotations, curations, tasks, workflows and users.
+
+    * web services designed for interoperability with other projects, which implement the [AERO protocol](https://github.com/openminted/omtd-aero), whose usage is detailed [here](documentation/ws-aero-usage.md).
+
+2. a **command line interface** allowing campaign initialisation and management (creating campaign & users, adding docs, importing/exporting annotations), whose usage is detailed [here](documentation/cli-usage.md).
+
+---
+## Web services
+### How to install
 We assume that the user is familiar with the technologies and has glassfish and postgresql already installed in the server
 
-### get the source code and package the web service
+#### get the source code and package the web service
 
 ```sh
-git clone https://github.com/mandiayba/alvisae \
-cd alvisae \
-mvn compile package 
+git clone https://github.com/ ... /alvisae
+cd alvisae/alvisae-ws
+mvn compile package
 ```
 
-### create and initialize the database
+#### create and initialize the database
 [See here on how to initialize the database using the scala console](documentation/create-database.md)
 
 
-### deploy the war
+#### deploy the war
 copy the generated package to a directory accessible from the GlassFish server
 
 ```
@@ -34,7 +44,7 @@ cd \
 glassfishv3/bin/asadmin  -p 5848 deploy --force  --contextroot <context root of the instance> --name <name of the instance> /tmp/cdxws-lift-1.0-SNAPSHOT.war \
 ```
 
-### set-up database parameters
+#### set-up database parameters
 The content of property file look like this. Save the file with name of the following format <user>.<hostname>.props
 
 ```
@@ -54,59 +64,5 @@ GLASSFISH_HOME/bin/asadmin set-web-context-param --name configFilePath --value '
 
 GLASSFISH_HOME/bin/asadmin restart-domain
 ```
-## How to use
-The web service implement the [aero protocol](https://github.com/openminted/omtd-aero). Here are the calls for the moment avalaible to the users. 
 
-### Projects
-#### List Projects
-```bash
-curl -u aae_root:Tadmin -w "%{http_code}" http://localhost:8080/alvisae/api/projects
-```
-#### Create a project named with the creator named Ba
-```bash
-curl -u aae_root:Tadmin -w "%{http_code}" -X POST -d 'name=new project&creator=Ba' http://localhost:8080/alvisae/api/projects
-```
-#### Delete the project 1
-```bash
-curl -u aae_root:Tadmin -w "%{http_code}" -X DELETE http://localhost:8080/alvisae/api/projects/1
-```
-
-#### JSON export
-```bash
-curl -u aae_root:Tadmin -w "\n%{http_code}\n" http://localhost:8080/alvisae/api/projects/5/export.zip
-```
-
-#### JSON import
-```bash
-```
-
-### Documents
-#### List documents of project 4
-```bash
-curl -u aae_root:Tadmin -w "%{http_code}" http://localhost:8080/alvisae/api/projects/4/documents
-```
-#### Create a document into the project 1
-```bash
-curl -u aae_root:Tadmin -w "%{http_code}" -X POST -d 'name=new document&format=text&content=some content&creator' http://localhost:8080/alvisae/api/projects/1/documents
-```
-#### Delete Document
-```bash
-curl -u aae_root:Tadmin -w "%{http_code}" -X DELETE http://localhost:8080/alvisae/api/projects/1/documents/3
-```
-
-### Annotations
-#### List Annotations
-```bash
-curl -u aae_root:Tadmin -w "%{http_code}" http://localhost:8080/alvisae/api/projects/4/documents/4/annotations
-```
-#### Create Annotation
-```bash
-curl -u aae_root:Tadmin -w "%{http_code}" -X POST \
--d 'format=json&content=[{"id":"946b5154-6b47-4e72-86cb-9f9096e7475f","propes":{},"text":[[0,28]],"type":"","kind":0}]&state=NEW' \
-http://localhost:8080/alvisae/api/projects/4/documents/4/annotations/1
-```
-#### Delete Annotation
-```bash
-curl -u aae_root:Tadmin -w "%{http_code}" -X DELETE http://localhost:8080/alvisae/api/projects/4/documents/4/annotations/1
-```
 
