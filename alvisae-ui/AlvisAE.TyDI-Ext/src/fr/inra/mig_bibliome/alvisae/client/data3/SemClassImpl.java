@@ -7,7 +7,7 @@
  */
 package fr.inra.mig_bibliome.alvisae.client.data3;
 
-import com.google.gwt.core.client.JsArrayInteger;
+import com.google.gwt.core.client.JsArrayString;
 import fr.inra.mig_bibliome.alvisae.shared.data3.SemClass;
 
 /**
@@ -16,7 +16,7 @@ import fr.inra.mig_bibliome.alvisae.shared.data3.SemClass;
  */
 public class SemClassImpl extends SemClassBasicImpl implements SemClass {
 
-    private static final native SemClassImpl _create(int groupId, String canonicLabel) /*-{
+    private static final native SemClassImpl _create(String groupId, String canonicLabel) /*-{
     a = {};
     a.groupId=groupId;
     a.canonicId=0;
@@ -35,13 +35,13 @@ public class SemClassImpl extends SemClassBasicImpl implements SemClass {
     }
 
     @Override
-    public final native JsArrayInteger getHyperGroupIds() /*-{ return this.hyperGroupIds; }-*/;
+    public final native JsArrayString getHyperGroupIds() /*-{ return this.hyperGroupIds; }-*/;
 
     @Override
-    public final native JsArrayInteger getHypoGroupIds() /*-{ return this.hypoGroupIds; }-*/;
+    public final native JsArrayString getHypoGroupIds() /*-{ return this.hypoGroupIds; }-*/;
 
     @Override
     public final boolean isRooted() {
-        return getHyperGroupIds().length() == 0 || (getHyperGroupIds().length() == 1 && getHyperGroupIds().get(0) == ROOT_ID);
+        return getHyperGroupIds().length() == 0 || (getHyperGroupIds().length() == 1 && ROOT_ID.equals(getHyperGroupIds().get(0)) );
     }
 }

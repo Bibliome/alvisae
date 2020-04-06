@@ -12,7 +12,7 @@ package fr.inra.mig_bibliome.alvisae.shared.data3;
  */
 public interface ProjectInfo {
 
-    public int getProjectId();
+    public String getProjectId();
 
     public String getName();
 }

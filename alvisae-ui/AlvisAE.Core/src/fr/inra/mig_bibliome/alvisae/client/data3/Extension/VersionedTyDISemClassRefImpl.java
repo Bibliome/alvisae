@@ -18,13 +18,13 @@ public class VersionedTyDISemClassRefImpl extends TyDISemClassRefImpl implements
     private final int termStructVersion;
     private final boolean versionObsolete;
 
-    public VersionedTyDISemClassRefImpl(TyDIResourceRef resRef, int semClassId, Integer canonicId, String canonicLabel, int termStructVersion, boolean versionObsolete) {
-        super(resRef, semClassId, canonicId);
+    public VersionedTyDISemClassRefImpl(TyDIResourceRef resRef, String semClassId, String canonicId, String canonicLabel, int termStructVersion, boolean versionObsolete) {
+        super(resRef, semClassId, canonicId, canonicLabel);
         this.termStructVersion = termStructVersion;
         this.versionObsolete = versionObsolete;
     }
     
-    public VersionedTyDISemClassRefImpl(TyDIResourceRef resRef, int semClassId, Integer canonicId, int termStructVersion, boolean versionObsolete) {
+    public VersionedTyDISemClassRefImpl(TyDIResourceRef resRef, String semClassId, String canonicId, int termStructVersion, boolean versionObsolete) {
         this(resRef, semClassId, canonicId, null, termStructVersion, versionObsolete);
     }
   

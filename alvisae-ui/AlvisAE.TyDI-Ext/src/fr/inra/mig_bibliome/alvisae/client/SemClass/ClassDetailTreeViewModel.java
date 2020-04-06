@@ -22,12 +22,12 @@ import java.util.ArrayList;
 public class ClassDetailTreeViewModel implements TreeViewModel {
 
     private final AbstractSelectionModel<TermInfo> selectionModel;
-    private final int projectId;
+    private final String projectId;
     private SemClassInfo semClassInfo = null;
     private ClassDetailRootDataProvider rootDataProvider = null;
     private ClassDetailMembersDataProvider rootChildrenDataProvider = null;
 
-    public ClassDetailTreeViewModel(AbstractSelectionModel<TermInfo> selectionModel, int projectId) {
+    public ClassDetailTreeViewModel(AbstractSelectionModel<TermInfo> selectionModel, String projectId) {
         super();
         this.selectionModel = selectionModel;
         this.projectId = projectId;

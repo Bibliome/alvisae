@@ -28,19 +28,19 @@ public class ClassDetailMembersDataProvider extends AsyncDataProvider<TermInfo> 
 
     private static final StaneClientExtGinInjector termInjector = GWT.create(StaneClientExtGinInjector.class);
 
-    public static void reloadClassDetails(int projectId, int semClassId) {
+    public static void reloadClassDetails(String projectId, String semClassId) {
         ClassDetailMembersDataProvider detailProvider = ProviderStore.forProject(projectId).getDetailsProvider(semClassId);
         if (detailProvider != null) {
             detailProvider.reloadData(null);
         }
     }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    private final int projectId;
+    private final String projectId;
     private final SemClassInfo semClassInfo;
     private boolean loaded = false;
     private ArrayList<TermMemberInfo> data = new ArrayList<TermMemberInfo>();
 
-    protected ClassDetailMembersDataProvider(ProvidesKey<TermInfo> KEY_PROVIDER, int projectId, SemClassInfo semClassInfo) {
+    protected ClassDetailMembersDataProvider(ProvidesKey<TermInfo> KEY_PROVIDER, String projectId, SemClassInfo semClassInfo) {
         super(KEY_PROVIDER);
         this.projectId = projectId;
         this.semClassInfo = semClassInfo;

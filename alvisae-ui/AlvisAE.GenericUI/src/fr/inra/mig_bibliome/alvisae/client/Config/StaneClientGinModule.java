@@ -12,8 +12,6 @@ import fr.inra.mig_bibliome.alvisae.client.Campaign.CampaignAssignment;
 import fr.inra.mig_bibliome.alvisae.client.Campaign.CampaignAssignmentView;
 import fr.inra.mig_bibliome.alvisae.client.Config.History.StaneActivityMapper;
 import fr.inra.mig_bibliome.alvisae.client.Config.History.StaneActivityMapperImpl;
-import fr.inra.mig_bibliome.alvisae.client.Conso.AnnSetCompare;
-import fr.inra.mig_bibliome.alvisae.client.Conso.AnnotationSetConsoViewImpl;
 import fr.inra.mig_bibliome.alvisae.client.Document.DocEditingView;
 import fr.inra.mig_bibliome.alvisae.client.Document.DocEditingViewImpl;
 import fr.inra.mig_bibliome.alvisae.client.SignIn.SignInDialog;

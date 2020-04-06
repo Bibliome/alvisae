@@ -49,13 +49,13 @@ public class SemClassTreeViewModel implements TreeViewModel {
     };
     //
     private final SingleSelectionModel<SemClassInfo> selectionModel;
-    private final int projectId;
+    private final String projectId;
     private final String dragContainerId;
     private final SemClassTreeDnDManager treeEventCallback;
     private final SemClassExtendedNodeCell cell;
     private final DraggableOptions stdDragOptions;
 
-    public SemClassTreeViewModel(SingleSelectionModel<SemClassInfo> selectionModel, int projectId, String dragContainerId, SemClassTreeDnDManager treeEventCallback) {
+    public SemClassTreeViewModel(SingleSelectionModel<SemClassInfo> selectionModel, String projectId, String dragContainerId, SemClassTreeDnDManager treeEventCallback) {
         super();
         this.selectionModel = selectionModel;
         this.projectId = projectId;

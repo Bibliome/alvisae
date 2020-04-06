@@ -20,7 +20,7 @@ public class TermBasicImpl extends JavaScriptObject implements TermBasic {
     }
 
     @Override
-    public final native int getTermId() /*-{ return this.termId; }-*/;
+    public final native String getTermId() /*-{ return this.termId.toString(); }-*/;
 
     @Override
     public final native String getSurfaceForm() /*-{ return this.form; }-*/;

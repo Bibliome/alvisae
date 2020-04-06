@@ -69,7 +69,7 @@ public class TermDataProvider implements TermQueries {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Override
-    public void getSemanticClass(int projectId, int semClassId, AsyncCallback<VersionedSemClassTreeLevelImpl> resultCallback) {
+    public void getSemanticClass(String projectId, String semClassId, AsyncCallback<VersionedSemClassTreeLevelImpl> resultCallback) {
         if (!requestManager.isSignedIn()) {
             return;
         }
@@ -90,7 +90,7 @@ public class TermDataProvider implements TermQueries {
     }
 
     @Override
-    public void ensureSemanticClassVersioned(int projectId, int semClassId, AsyncCallback<VersionedSemClassImpl> resultCallback) {
+    public void ensureSemanticClassVersioned(String projectId, String semClassId, AsyncCallback<VersionedSemClassImpl> resultCallback) {
         if (!requestManager.isSignedIn()) {
             return;
         }
@@ -113,7 +113,7 @@ public class TermDataProvider implements TermQueries {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     @Override
-    public void getSemanticClassNTerms(int projectId, int semClassId, AsyncCallback<SemClassNTermsImpl> resultCallback) {
+    public void getSemanticClassNTerms(String projectId, String semClassId, AsyncCallback<SemClassNTermsImpl> resultCallback) {
         final String locator = requestManager.getServerBaseUrl() + "projects/" + projectId;
         String methodUrl = locator + "/semClassNTerms/" + semClassId;
 
@@ -134,7 +134,7 @@ public class TermDataProvider implements TermQueries {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     @Override
-    public void searchSemanticClassesByPattern(int projectId, String pattern, AsyncCallback<SemClassListImpl> resultCallback) {
+    public void searchSemanticClassesByPattern(String projectId, String pattern, AsyncCallback<SemClassListImpl> resultCallback) {
 
         Entry[] params = new Entry[]{new AbstractRequestManager.Entry("pattern", pattern)};
         String methodUrl = requestManager.getServerBaseUrl() + "projects/" + projectId + "/semClasses?" + AbstractRequestManager.buildQueryString(params);
@@ -151,7 +151,7 @@ public class TermDataProvider implements TermQueries {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     @Override
-    public void getBranchesBetweenClasses(int projectId, int fromSemClassId, int toSemClassId, AsyncCallback<VersionedBranchesImpl> resultCallback) {
+    public void getBranchesBetweenClasses(String projectId, String fromSemClassId, String toSemClassId, AsyncCallback<VersionedBranchesImpl> resultCallback) {
         if (!requestManager.isSignedIn()) {
             return;
         }
@@ -174,12 +174,12 @@ public class TermDataProvider implements TermQueries {
     }
 
     @Override
-    public void replaceHyperonym(int projectId, int semClassId, int semClassVersion, int prevHyperSemClassId, int prevHyperSemClassVersion, int newHyperSemClassId, int newHyperSemClassVersion, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback) {
+    public void replaceHyperonym(String projectId, String semClassId, int semClassVersion, String prevHyperSemClassId, int prevHyperSemClassVersion, String newHyperSemClassId, int newHyperSemClassVersion, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback) {
         Entry[] params = new Entry[]{
             new AbstractRequestManager.Entry("semClassVersion", String.valueOf(semClassVersion)),
-            new AbstractRequestManager.Entry("prevHyperSemClassId", String.valueOf(prevHyperSemClassId)),
+            new AbstractRequestManager.Entry("prevHyperSemClassId", prevHyperSemClassId),
             new AbstractRequestManager.Entry("prevHyperSemClassVersion", String.valueOf(prevHyperSemClassVersion)),
-            new AbstractRequestManager.Entry("newHyperSemClassId", String.valueOf(newHyperSemClassId)),
+            new AbstractRequestManager.Entry("newHyperSemClassId", newHyperSemClassId),
             new AbstractRequestManager.Entry("newHyperSemClassVersion", String.valueOf(newHyperSemClassVersion)),};
 
         String methodUrl = requestManager.getServerBaseUrl() + "projects/" + projectId + "/semClass/" + semClassId + "?" + AbstractRequestManager.buildQueryString(params);
@@ -196,11 +196,11 @@ public class TermDataProvider implements TermQueries {
     }
 
     @Override
-    public void createTermSynonym(int projectId, String surfaceForm, String lemmatizedForm, int newHyperSemClassId, int newHyperSemClassVersion, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback) {
+    public void createTermSynonym(String projectId, String surfaceForm, String lemmatizedForm, String newHyperSemClassId, int newHyperSemClassVersion, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback) {
         Entry[] params = new Entry[]{
             new AbstractRequestManager.Entry("surfaceForm", surfaceForm),
             new AbstractRequestManager.Entry("lemmatizedForm", lemmatizedForm),
-            new AbstractRequestManager.Entry("classId", String.valueOf(newHyperSemClassId)),
+            new AbstractRequestManager.Entry("classId", newHyperSemClassId),
             new AbstractRequestManager.Entry("classVersion", String.valueOf(newHyperSemClassVersion)),};
 
         String methodUrl = requestManager.getServerBaseUrl() + "projects/" + projectId + "/term";
@@ -217,11 +217,11 @@ public class TermDataProvider implements TermQueries {
     }
 
     @Override
-    public void createClassAndRepresentativeTerm(int projectId, String surfaceForm, String lemmatizedForm, int hyperSemClassId, int hyperSemClassVersion, boolean force, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback) {
+    public void createClassAndRepresentativeTerm(String projectId, String surfaceForm, String lemmatizedForm, String hyperSemClassId, int hyperSemClassVersion, boolean force, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback) {
         Entry[] params = new Entry[]{
             new AbstractRequestManager.Entry("surfaceForm", surfaceForm),
             new AbstractRequestManager.Entry("lemmatizedForm", lemmatizedForm),
-            new AbstractRequestManager.Entry("hyperId", String.valueOf(hyperSemClassId)),
+            new AbstractRequestManager.Entry("hyperId", hyperSemClassId),
             new AbstractRequestManager.Entry("hyperVersion", String.valueOf(hyperSemClassVersion)),
             new AbstractRequestManager.Entry("force", String.valueOf(force)),};
 
@@ -239,7 +239,7 @@ public class TermDataProvider implements TermQueries {
     }
 
     @Override
-    public void addSynonymToSemanticClass(int projectId, int termId, int semClassId, int semClassVersion, AsyncCallback<SemClassNTermsImpl> resultCallback) {
+    public void addSynonymToSemanticClass(String projectId, String termId, String semClassId, int semClassVersion, AsyncCallback<SemClassNTermsImpl> resultCallback) {
         Entry[] params = new Entry[]{
             new AbstractRequestManager.Entry("termId", String.valueOf(termId)),
             new AbstractRequestManager.Entry("classVersion", String.valueOf(semClassVersion)),};
@@ -258,11 +258,11 @@ public class TermDataProvider implements TermQueries {
     }
 
     @Override
-    public void mergeClasses(int projectId, int semClassId1, int semClassVersion1, int semClassId2, int semClassVersion2, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback) {
+    public void mergeClasses(String projectId, String semClassId1, int semClassVersion1, String semClassId2, int semClassVersion2, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback) {
         Entry[] params = new Entry[]{
-            new AbstractRequestManager.Entry("semClassId1", String.valueOf(semClassId1)),
+            new AbstractRequestManager.Entry("semClassId1", semClassId1),
             new AbstractRequestManager.Entry("semClassVersion1", String.valueOf(semClassVersion1)),
-            new AbstractRequestManager.Entry("semClassId2", String.valueOf(semClassId2)),
+            new AbstractRequestManager.Entry("semClassId2", semClassId2),
             new AbstractRequestManager.Entry("semClassVersion2", String.valueOf(semClassVersion2)),};
 
         String methodUrl = requestManager.getServerBaseUrl() + "projects/" + projectId + "/semClasses" + "/merge";
@@ -279,7 +279,7 @@ public class TermDataProvider implements TermQueries {
     }
 
     @Override
-    public void getStructTermChanges(int projectId, int fromVersionNum, List<Integer> semClassIds, AsyncCallback<StructTermChangesImpl> resultCallback) {
+    public void getStructTermChanges(String projectId, int fromVersionNum, List<String> semClassIds, AsyncCallback<StructTermChangesImpl> resultCallback) {
         if (!requestManager.isSignedIn()) {
             return;
         }
@@ -299,7 +299,7 @@ public class TermDataProvider implements TermQueries {
     }
 
     @Override
-    public void checkStructTermChanges(int projectId, List<CheckedSemClassImpl> resRefs, AsyncCallback<JsArray<CheckedSemClassImpl>> resultCallback) {
+    public void checkStructTermChanges(String projectId, List<CheckedSemClassImpl> resRefs, AsyncCallback<JsArray<CheckedSemClassImpl>> resultCallback) {
         if (!requestManager.isSignedIn()) {
             return;
         }
@@ -329,11 +329,11 @@ public class TermDataProvider implements TermQueries {
     }
     // =========================================================================
 
-    public String getTermExternalId(int projectId, int termId) {
+    public String getTermExternalId(String projectId, String termId) {
         return TyDITermRefImpl.getTermExternalId(requestManager.getServerBaseUrl(), projectId, termId);
     }
 
-    public String getSemClassExternalId(Integer projectId, int semClassId, int canonicTermId) {
+    public String getSemClassExternalId(String projectId, String semClassId, String canonicTermId) {
         return TyDISemClassRefImpl.getSemClassFullExternalId(requestManager.getServerBaseUrl(), projectId, semClassId, canonicTermId);
     }
 }

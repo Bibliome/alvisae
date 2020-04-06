@@ -544,7 +544,7 @@ public class PropertiesTree extends CellTree {
             if (semClassRefType != null) {
                 String baseUrl = semClassRefType.getSemClassRefBaseURL();
                 if (baseUrl != null && !baseUrl.isEmpty()) {
-                    Integer semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(resourceExternalId);
+                    String semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(resourceExternalId);
                     if (semClassId != null) {
                         tyDIResRef = new TyDISemClassRefImpl(new ResourceLocator(baseUrl), semClassId, null);
                     }
@@ -555,7 +555,7 @@ public class PropertiesTree extends CellTree {
 
                     String baseUrl = conceptRefType.getSemClassRefBaseURL();
                     if (baseUrl != null && !baseUrl.isEmpty()) {
-                        Integer semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(resourceExternalId);
+                        String semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(resourceExternalId);
                         if (semClassId != null) {
                             tyDIResRef = new TyDISemClassRefImpl(new ResourceLocator(baseUrl), semClassId, null);
                         }
@@ -566,7 +566,7 @@ public class PropertiesTree extends CellTree {
 
                         String baseUrl = termRefType.getTermRefBaseURL();
                         if (baseUrl != null && !baseUrl.isEmpty()) {
-                            Integer termId = TyDITermRefImpl.getTermIdFromTermExternalId(resourceExternalId);
+                            String termId = TyDITermRefImpl.getTermIdFromTermExternalId(resourceExternalId);
                             if (termId != null) {
                                 tyDIResRef = new TyDITermRefImpl(new ResourceLocator(baseUrl), termId);
                             }
@@ -882,10 +882,10 @@ public class PropertiesTree extends CellTree {
             }
         }
         //Keep track of Semantic classes labels of the current Terminology project
-        private final Map<Integer, String> semClassLabels = new HashMap<Integer, String>();
-        private final Set<Integer> referencedSemClasses = new HashSet<Integer>();
+        private final Map<String, String> semClassLabels = new HashMap<String, String>();
+        private final Set<String> referencedSemClasses = new HashSet<String>();
         String instBaseUrl;
-        Integer projectId;
+        String projectId;
         private Integer termStructVersionNum;
         private boolean versionObsolete = false;
 
@@ -907,7 +907,7 @@ public class PropertiesTree extends CellTree {
 
                         TyDISemClassRef semClassRef = (TyDISemClassRef) resRef;
                         String currInstBaseUrl = resRef.getTyDIInstanceBaseUrl();
-                        Integer currProjectId = resRef.getTyDIProjectId();
+                        String currProjectId = resRef.getTyDIProjectId();
                         if (!(currProjectId.equals(projectId)) || !currInstBaseUrl.equals(instBaseUrl)) {
                             termStructVersionNum = null;
                             instBaseUrl = currInstBaseUrl;
@@ -924,7 +924,7 @@ public class PropertiesTree extends CellTree {
                         }
 
 
-                        Integer classId = semClassRef.getTyDISemanticClassId();
+                        String classId = semClassRef.getTyDISemanticClassId();
                         semClassLabels.put(classId, semClassRef.getCanonicLabel());
                         if (refreshNeeded || referencedSemClasses.contains(classId)) {
                             //force refresh

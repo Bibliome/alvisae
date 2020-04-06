@@ -12,7 +12,7 @@ package fr.inra.mig_bibliome.alvisae.shared.data3.Extension;
  */
 public interface CheckedSemClass {
     
-    public int getSemClassId();
+    public String getSemClassId();
 
     public int getVersionNum();
 }

@@ -2437,7 +2437,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
 
             //update version number of the Semantic classes that were unchanged since the version stored in the URL
             //Note : these changes are not undoable.
-            Map<Integer, Integer> newVersionBySemClassId = new HashMap<Integer, Integer>();
+            Map<String, Integer> newVersionBySemClassId = new HashMap<String, Integer>();
             for (CheckedSemClassImpl r : unaffectedSemClass) {
                 newVersionBySemClassId.put(r.getSemClassId(), r.getVersionNum());
             }
@@ -2456,7 +2456,7 @@ public class DocumentUi extends ResizeComposite implements DocumentView, Annotat
                         for (String semClassReference : values) {
                             TyDIResRefPropValImpl resRefPropVal = TyDIResRefPropValImpl.createFromUrlWithFragment(semClassReference);
                             if (resRefPropVal != null) {
-                                int semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(resRefPropVal.getResourceRef());
+                                String semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(resRefPropVal.getResourceRef());
                                 if (newVersionBySemClassId.containsKey(semClassId)) {
                                     int newVersion = newVersionBySemClassId.get(semClassId);
                                     TyDIResRefPropValImpl updatedReference = TyDIResRefPropValImpl.create(resRefPropVal.getResourceRef(), resRefPropVal.getLabel(), newVersion);

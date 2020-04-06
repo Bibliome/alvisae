@@ -34,7 +34,7 @@ public class TermInfo implements Comparable<TermInfo> {
         this.termImpl = classImpl;
     }
 
-    public int getId() {
+    public String getId() {
         return getTerm().getTermId();
     }
 
@@ -44,6 +44,6 @@ public class TermInfo implements Comparable<TermInfo> {
 
     @Override
     public final int compareTo(TermInfo o) {
-        return new Integer(this.getId()).compareTo(o.getId());
+        return this.getId().compareTo(o.getId());
     }
 }

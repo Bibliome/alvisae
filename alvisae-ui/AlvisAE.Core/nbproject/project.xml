@@ -8,6 +8,11 @@
             <properties/>
             <folders>
                 <source-folder>
+                    <label>src</label>
+                    <type>java</type>
+                    <location>src</location>
+                </source-folder>
+                <source-folder>
                     <label>war</label>
                     <type>doc_root</type>
                     <location>war</location>
@@ -16,11 +21,6 @@
                     <label>WEB-INF</label>
                     <type>web_inf</type>
                     <location>war/WEB-INF</location>
-                </source-folder>
-                <source-folder>
-                    <label>src</label>
-                    <type>java</type>
-                    <location>src</location>
                 </source-folder>
             </folders>
             <ide-actions>
@@ -88,6 +88,7 @@
         <web-data xmlns="http://www.netbeans.org/ns/freeform-project-web/1">
             <web-module>
                 <doc-root>war</doc-root>
+                <classpath/>
                 <context-path/>
                 <j2ee-spec-level>1.5</j2ee-spec-level>
             </web-module>

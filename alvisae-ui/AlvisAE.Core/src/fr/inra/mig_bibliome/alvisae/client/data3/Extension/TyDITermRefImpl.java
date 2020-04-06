@@ -18,33 +18,33 @@ import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TyDITermRef;
  */
 public class TyDITermRefImpl implements TyDITermRef {
 
-    private static RegExp TermExternalIdregex = RegExp.compile("^https?:/(?:/[^/]+)+/+(?:projects/+){1}(\\d+)/term/(\\d+)/?$");
+    private static RegExp TermExternalIdregex = RegExp.compile("^https?:/(?:/[^/]+)+/+(?:projects/+){1}([^/]+)/term/([^/]+)/?$");
 
-    public static String getTermExternalId(String baseUrl, int projectId, int termId) {
+    public static String getTermExternalId(String baseUrl, String projectId, String termId) {
         return ResourceLocator.getResourceExternalId(baseUrl, projectId) + "/term/" + termId;
     }
 
-    public static Integer getTermIdFromTermExternalId(String termExternalId) {
-        Integer termId = null;
+    public static String getTermIdFromTermExternalId(String termExternalId) {
+        String termId = null;
         MatchResult result = TermExternalIdregex.exec(ResourceLocator.stripUrlFragment(termExternalId));
         if (result != null && result.getGroupCount() == 3) {
-            Integer projectId = Integer.valueOf(result.getGroup(1));
-            termId = Integer.valueOf(result.getGroup(2));
+            String projectId = result.getGroup(1);
+            termId = result.getGroup(2);
         }
         return termId;
     }
     //
     private final TyDIResourceRef resRef;
-    private final int termId;
+    private final String termId;
 
-    public TyDITermRefImpl(TyDIResourceRef resRef, int termId) {
+    public TyDITermRefImpl(TyDIResourceRef resRef, String termId) {
         this.resRef = resRef;
         this.termId = termId;
 
     }
 
     @Override
-    public Integer getTyDITermId() {
+    public String getTyDITermId() {
         return termId;
     }
 
@@ -54,7 +54,7 @@ public class TyDITermRefImpl implements TyDITermRef {
     }
 
     @Override
-    public Integer getTyDIProjectId() {
+    public String getTyDIProjectId() {
         return resRef.getTyDIProjectId();
     }
     

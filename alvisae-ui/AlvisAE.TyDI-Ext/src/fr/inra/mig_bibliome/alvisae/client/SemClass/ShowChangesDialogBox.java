@@ -25,6 +25,7 @@ import fr.inra.mig_bibliome.alvisae.client.StructTermResources;
 import fr.inra.mig_bibliome.alvisae.client.data3.Extension.SemClassChangeType;
 import static fr.inra.mig_bibliome.alvisae.client.data3.Extension.SemClassChangeType.ChangedAncestor;
 import fr.inra.mig_bibliome.alvisae.client.data3.StructTermChangesImpl;
+import fr.inra.mig_bibliome.alvisae.shared.data3.SemClass;
 import fr.inra.mig_bibliome.alvisae.shared.data3.SemClassChange;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,16 +47,16 @@ public class ShowChangesDialogBox {
         public SafeHtml item(SafeHtml itemContent);
 
         @SafeHtmlTemplates.Template("class <span title='{0}'><b>{1}</b> ")
-        public SafeHtml semClassChangesHeader(int semClassId, String canonicLabel);
+        public SafeHtml semClassChangesHeader(String semClassId, String canonicLabel);
 
         @SafeHtmlTemplates.Template(" {0} <br>")
         public SafeHtml noOperandExplanation(String message);
 
         @SafeHtmlTemplates.Template(" {0} <span title='{1}'><b> {2} </b> {3}<br>")
-        public SafeHtml oneOperandExplanation(String startMessage, int id, String label, String endMessage);
+        public SafeHtml oneOperandExplanation(String startMessage, String id, String label, String endMessage);
 
         @SafeHtmlTemplates.Template(" {0} <span title='{1}'><b> {2} </b> {3} <span title='{4}'><b>{5}</b> {6}<br>")
-        public SafeHtml twoOperandsExplanation(String startMessage, int id1, String label1, String middleMessage, int id2, String label2, String endMessage);
+        public SafeHtml twoOperandsExplanation(String startMessage, String id1, String label1, String middleMessage, String id2, String label2, String endMessage);
     }
     static final ShowChangesDialogBoxTemplates TEMPLATES = GWT.create(ShowChangesDialogBoxTemplates.class);
 
@@ -106,19 +107,19 @@ public class ShowChangesDialogBox {
                         msg = "had an ancestor changed";
                     }
                     if (c.getOtherSemClass1() != null || c.getOtherSemClass2() != null) {
-                        int fromId;
+                        String fromId;
                         String fromLabel;
                         if (c.getOtherSemClass2() == null) {
-                            fromId = 0;
+                            fromId = SemClass.ROOT_ID;
                             fromLabel = "[ Root ]";
                         } else {
                             fromId = c.getOtherSemClass2().getId();
                             fromLabel = c.getOtherSemClass2().getCanonicLabel();
                         }
-                        int toId;
+                        String toId;
                         String toLabel;
                         if (c.getOtherSemClass1() == null) {
-                            toId = 0;
+                            toId = SemClass.ROOT_ID;
                             toLabel = "[ Root ]";
                         } else {
                             toId = c.getOtherSemClass1().getId();
@@ -138,8 +139,8 @@ public class ShowChangesDialogBox {
         return gsb.toSafeHtml();
     }
 
-    static void show(Integer projectId, int fromVersion, final SemClassInfo selectedClass) {
-        List<Integer> semClassIds = new ArrayList<Integer>();
+    static void show(String projectId, int fromVersion, final SemClassInfo selectedClass) {
+        List<String> semClassIds = new ArrayList<String>();
         if (selectedClass != null) {
             semClassIds.add(selectedClass.getId());
         }

@@ -20,10 +20,10 @@ public class SemClassBasicImpl extends JavaScriptObject implements SemClassBasic
     }
 
     @Override
-    public final native int getId() /*-{ return this.groupId; }-*/;
+    public final native String getId() /*-{ return this.groupId.toString(); }-*/;
 
     @Override
-    public final native int getCanonicId() /*-{ return this.canonicId; }-*/;
+    public final native String getCanonicId() /*-{ return this.canonicId.toString(); }-*/;
 
     @Override
     public final native String getCanonicLabel() /*-{ return this.canonicLabel; }-*/;

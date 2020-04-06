@@ -11,7 +11,7 @@ import com.google.gwt.cell.client.AbstractCell;
 import com.google.gwt.cell.client.Cell.Context;
 import com.google.gwt.cell.client.ValueUpdater;
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.core.client.JsArrayInteger;
+import com.google.gwt.core.client.JsArrayString;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.EventTarget;
 import com.google.gwt.dom.client.NativeEvent;
@@ -104,20 +104,20 @@ public class CellFactory {
     static interface SemClassNodeTemplates extends SafeHtmlTemplates {
 
         @Template("<span title='{1} {0}'>{2}&nbsp;&nbsp;{0}</span>")
-        public SafeHtml regularNode(String label, int classId, SafeHtml icon);
+        public SafeHtml regularNode(String label, String classId, SafeHtml icon);
 
         @Template("<span title='{1} {0}'>{3}&nbsp;&nbsp;<b>{0}</b>&nbsp;({2})</span>")
-        public SafeHtml multiHyperNode(String label, int classId, int nbHyper, SafeHtml icon);
+        public SafeHtml multiHyperNode(String label, String classId, int nbHyper, SafeHtml icon);
 
         //@Template("<span id='{1}' title='{2} {0}'><span class='" + SEMCLASSDRAGHND_CLASSNAME + "'>{3}</span>&nbsp;&nbsp;<span class='" + SEMCLASSMARKER_CLASSNAME + "'>{4}</span>&nbsp; {0}</span>")
-        //public SafeHtml regularExtendedNode(String label, String extendedSemClassId, int classId, SafeHtml icon, SafeHtml dragIcon);
+        //public SafeHtml regularExtendedNode(String label, String extendedSemClassId, String classId, SafeHtml icon, SafeHtml dragIcon);
         @Template("<span id='{1}' title='{2} {0}'><span class='" + SEMCLASSDRAGHND_CLASSNAME + "'>{3}</span>&nbsp;&nbsp;{0}</span>")
-        public SafeHtml regularExtendedNode(String label, String extendedSemClassId, int classId, SafeHtml icon);
+        public SafeHtml regularExtendedNode(String label, String extendedSemClassId, String classId, SafeHtml icon);
 
         //@Template("<span id='{1}' title='{2} {0}'><span class='" + SEMCLASSDRAGHND_CLASSNAME + "'>{5}</span>&nbsp;&nbsp;<span class='" + SEMCLASSMARKER_CLASSNAME + "'>{6}</span>&nbsp;<b>{0}</b>&nbsp;<span class='" + SEMCLASSMULTIHYPER_CLASSNAME + " {4}'>({3})</span></span>")
         //public SafeHtml multiHyperExtendedNode(String label, String extendedSemClassId, int classId, int nbHyper, String flatButtonClassName, SafeHtml icon, SafeHtml dragIcon);
         @Template("<span id='{1}' title='{2} {0}'><span class='" + SEMCLASSDRAGHND_CLASSNAME + "'>{5}</span>&nbsp;&nbsp;<b>{0}</b>&nbsp;<span class='" + SEMCLASSMULTIHYPER_CLASSNAME + " {4}'>({3})</span></span>")
-        public SafeHtml multiHyperExtendedNode(String label, String extendedSemClassId, int classId, int nbHyper, String flatButtonClassName, SafeHtml icon);
+        public SafeHtml multiHyperExtendedNode(String label, String extendedSemClassId, String classId, int nbHyper, String flatButtonClassName, SafeHtml icon);
 
         @Template("<div id='semClassDragHelper' class='{0}'></div>")
         public SafeHtml outerHelper(String cssClassName);
@@ -244,13 +244,13 @@ public class CellFactory {
 
                             others.clearItems();
 
-                            JsArrayInteger hyperIds = semClass.getHyperGroupIds();
+                            JsArrayString hyperIds = semClass.getHyperGroupIds();
                             for (int i = 0; i < hyperIds.length(); i++) {
-                                final int hyperId = hyperIds.get(i);
+                                final String hyperId = hyperIds.get(i);
                                 SemClass hyperClass = ProviderStore.forProject(value.getProjectId()).getCacheSemClass(hyperId);
                                 String label = hyperClass == null ? null : hyperClass.getCanonicLabel();
                                 if (label == null) {
-                                    label = "「" + String.valueOf(hyperId) + "」";
+                                    label = "「" + hyperId + "」";
                                 }
                                 MenuItem menuItem = new MenuItem(label, new Command() {
 
@@ -260,7 +260,7 @@ public class CellFactory {
                                         treeEventCallback.expandTo(hyperId, value.getId());
                                     }
                                 });
-                                if (extValue.getParentClassId().intValue() == hyperId) {
+                                if (extValue.getParentClassId().equals(hyperId)) {
                                     menuItem.setEnabled(false);
                                 }
                                 others.addItem(menuItem);
@@ -282,7 +282,7 @@ public class CellFactory {
         static interface TermNodeTemplates extends SafeHtmlTemplates {
 
             @Template("{2}&nbsp;&nbsp;<span title='{1} {0}'>{0}</span>")
-            public SafeHtml regularNode(String label, int classId, SafeHtml safeHtml);
+            public SafeHtml regularNode(String label, String classId, SafeHtml safeHtml);
         }
         protected static final TermNodeTemplates TEMPLATES = GWT.create(TermNodeTemplates.class);
     }

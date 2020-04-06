@@ -43,31 +43,31 @@ public interface TermQueries {
      * @throws IllegalArgumentException if the specified projectId or semClassId does not exist (400 Bad Request)
      * @throws SecurityException if the current user is not authenticated (401 Unauthorized) or has no authorization to perform the operation (403 Forbidden)
      */
-    void getSemanticClass(int projectId, int semClassId, final AsyncCallback<VersionedSemClassTreeLevelImpl> resultCallback);
+    void getSemanticClass(String projectId, String semClassId, final AsyncCallback<VersionedSemClassTreeLevelImpl> resultCallback);
     
     /**
      * Ensure that the specified Semantic Class is stored in a snapshot of the Structured Terminology, and return the corresponding  Structured Terminology version number.
      */
-    void ensureSemanticClassVersioned(int projectId, int semClassId, AsyncCallback<VersionedSemClassImpl> resultCallback);
+    void ensureSemanticClassVersioned(String projectId, String semClassId, AsyncCallback<VersionedSemClassImpl> resultCallback);
     
-    void getSemanticClassNTerms(int projectId, int semClassId, AsyncCallback<SemClassNTermsImpl> resultCallback);
+    void getSemanticClassNTerms(String projectId, String semClassId, AsyncCallback<SemClassNTermsImpl> resultCallback);
 
-    void searchSemanticClassesByPattern(int projectId, String pattern, AsyncCallback<SemClassListImpl> resultCallback);
+    void searchSemanticClassesByPattern(String projectId, String pattern, AsyncCallback<SemClassListImpl> resultCallback);
 
-    void getBranchesBetweenClasses(int projectId, int fromSemClassId, int toSemClassId, AsyncCallback<VersionedBranchesImpl> resultCallback);
+    void getBranchesBetweenClasses(String projectId, String fromSemClassId, String toSemClassId, AsyncCallback<VersionedBranchesImpl> resultCallback);
 
-    void replaceHyperonym(int projectId, int semClassId, int semClassVersion, int prevHyperSemClassId, int prevHyperSemClassVersion, int newHyperSemClassId, int newHyperSemClassVersion, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback);
+    void replaceHyperonym(String projectId, String semClassId, int semClassVersion, String prevHyperSemClassId, int prevHyperSemClassVersion, String newHyperSemClassId, int newHyperSemClassVersion, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback);
 
-    void createClassAndRepresentativeTerm(int projectId, String surfaceForm, String lemmatizedForm, int newHyperSemClassId, int newHyperSemClassVersion, boolean force, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback);
+    void createClassAndRepresentativeTerm(String projectId, String surfaceForm, String lemmatizedForm, String newHyperSemClassId, int newHyperSemClassVersion, boolean force, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback);
 
-    void createTermSynonym(int projectId, String surfaceForm, String lemmatizedForm, int hyperSemClassId, int hyperSemClassVersion, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback);
+    void createTermSynonym(String projectId, String surfaceForm, String lemmatizedForm, String hyperSemClassId, int hyperSemClassVersion, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback);
 
-    void addSynonymToSemanticClass(int projectId, int termId, int semClassId, int semClassVersion, AsyncCallback<SemClassNTermsImpl> resultCallback);
+    void addSynonymToSemanticClass(String projectId, String termId, String semClassId, int semClassVersion, AsyncCallback<SemClassNTermsImpl> resultCallback);
 
-    void mergeClasses(int projectId, int semClassId1, int semClassVersion1, int semClassId2, int semClassVersion2, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback);
+    void mergeClasses(String projectId, String semClassId1, int semClassVersion1, String semClassId2, int semClassVersion2, DetailedAsyncCallback<SemClassTreeLevelImpl> resultCallback);
     
-    void getStructTermChanges(int projectId, int fromVersionNum, List<Integer> semClassIds, AsyncCallback<StructTermChangesImpl> resultCallback);
+    void getStructTermChanges(String projectId, int fromVersionNum, List<String> semClassIds, AsyncCallback<StructTermChangesImpl> resultCallback);
     
-    void checkStructTermChanges(int projectId, List<CheckedSemClassImpl> resRefs, AsyncCallback<JsArray<CheckedSemClassImpl>> resultCallback);
+    void checkStructTermChanges(String projectId, List<CheckedSemClassImpl> resRefs, AsyncCallback<JsArray<CheckedSemClassImpl>> resultCallback);
     
 }

@@ -13,9 +13,9 @@ package fr.inra.mig_bibliome.alvisae.shared.data3.Extension;
  */
 public interface TyDISemClassRef extends TyDIResourceRef {
 
-    public Integer getTyDISemanticClassId();
+    public String getTyDISemanticClassId();
 
-    public Integer getTyDICanonicTermId();
+    public String getTyDICanonicTermId();
     
     public String getCanonicLabel();
     
