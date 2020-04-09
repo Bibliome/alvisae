@@ -30,12 +30,12 @@ users:
 
   - id: 1
     name: "foo"
-    password: "#!@>$$"
+    password: "37B51D194A7513E45B56F6524F2D51F2"
     ontologies: ["Ontbtp2019", "animal"]
 
   - id: 2
     name: "robert"
-    password: "#!@>$$"
+    password: "FE01CE2A7FBAC8FAFAED7C982A04E229"
     ontologies: ["Ontbtp2019"]
 ```
 
@@ -58,7 +58,7 @@ curl -i --user foo:bar  http://glassfishserver:8080/ontolrws/training/user/me
 e.g.  `http://glassfishserver:8080/ontolrws/training/projects/` `[ontologies.id]` `/`...
 
 ---
-## Build the war package from sources
+## Build the packages from sources
 
 ### What you'll need
 
@@ -70,4 +70,19 @@ cd ontol-rws
 mvn clean package
 ```
 
-The deployable package is generated in `target/ontolrws.war`
+Two packages are generated in `target/` sub-folder:
+
+1. the deployable package, providing web services, is `ontolrws.war`
+
+2. the jar package, providing cli services, is `ontolrws-classes.jar`
+ 
+
+**Note**: currently, the cli only generates the hashed password that must be copied-pasted in the configuration file described above. 
+
+```sh
+$ java  -jar target/ontolrws-classes.jar aTrivialPassword anotherPass '!more$#Complicated1'
+"C528B8E28222377010259DAEE9AD8C2F" <== aTrivialPassword
+"8EC122935C70740FBD40DC538FEBDB93" <== anotherPass
+"BF5E43B2263CC373B601893689EDC986" <== !more$#Complicated1
+
+```
