@@ -4,9 +4,12 @@ import fr.inrae.bibliome.ontolrws.JAXRSConfig;
 import fr.inrae.bibliome.ontolrws.Settings.Ontology;
 import fr.inrae.bibliome.ontolrws.Settings.Settings;
 import fr.inrae.bibliome.ontolrws.Settings.User;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -47,7 +50,8 @@ public class Resources {
     @GET
     @Path("user/me")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getMyProjectList(@Context ContainerRequestContext requestContext) {
+    public Response getMyProjectList(@Context ContainerRequestContext requestContext
+    ) {
         User authUser = (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
 
         JsonObject result = Json.createObjectBuilder()
@@ -65,7 +69,8 @@ public class Resources {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getUserProjectList(
             @Context ContainerRequestContext requestContext,
-            @PathParam("userid") int userId) {
+            @PathParam("userid") int userId
+    ) {
 
         User authUser = (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
 
@@ -93,7 +98,8 @@ public class Resources {
     public Response getSemanticClass(
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
-            @PathParam("semclassid") String semclassid) {
+            @PathParam("semclassid") String semclassid
+    ) {
 
         return serveSemanticClass(requestContext, projectid, semclassid, false);
     }
@@ -105,7 +111,8 @@ public class Resources {
     public Response getSemanticClassEnsureVersion(
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
-            @PathParam("semclassid") String semclassid) {
+            @PathParam("semclassid") String semclassid
+    ) {
 
         return Response.status(Response.Status.NOT_IMPLEMENTED).build();
     }
@@ -117,7 +124,8 @@ public class Resources {
     public Response getSemanticClassAndTerms(
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
-            @PathParam("semclassid") String semclassid) {
+            @PathParam("semclassid") String semclassid
+    ) {
 
         return serveSemanticClass(requestContext, projectid, semclassid, true);
     }
@@ -144,7 +152,8 @@ public class Resources {
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
             @PathParam("fromclassid") String fromclassid,
-            @PathParam("toclassid") String toclassid) {
+            @PathParam("toclassid") String toclassid
+    ) {
 
         return serveSemanticClass(requestContext, projectid, fromclassid, true);
     }
@@ -236,7 +245,8 @@ public class Resources {
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
             @PathParam("fromversionnum") long fromversionnum,
-            @QueryParam("semclassids") List<String> semclassids) {
+            @QueryParam("semclassids") List<String> semclassids
+    ) {
 
         return Response.status(Response.Status.NOT_IMPLEMENTED).build();
     }
@@ -270,17 +280,20 @@ public class Resources {
 
     private JsonObjectBuilder getSemanticClassResult(OboOntoHandler ontoHnd, String semclassid, boolean withHypoDetails, boolean withTerms) {
 
+        Structs.DetailSemClassNTerms classStruct;
+
         JsonObjectBuilder semClassResult = Json.createObjectBuilder();
-        JsonArrayBuilder hyperIds = Json.createArrayBuilder();
+
         List<OWLClass> hypoClasses;
 
         if (OboOntoHandler.isRootId(semclassid)) {
+            classStruct = new Structs.DetailSemClassNTerms();
             //virtual root class
-            semClassResult.add("groupId", OboOntoHandler.ROOT_ID);
-            semClassResult.add("canonicId", OboOntoHandler.ROOT_ID);
-            semClassResult.add("canonicLabel", "");
+            classStruct.groupId = OboOntoHandler.ROOT_ID;
+            classStruct.canonicId = OboOntoHandler.ROOT_ID;
+            classStruct.canonicLabel = "";
             //FIXME
-            semClassResult.add("version", 1);
+            classStruct.version = 1;
 
             //actual root classes presented as hyponyms of the virtual root
             hypoClasses = ontoHnd.getRootSemanticClasses().collect(Collectors.toList());
@@ -290,51 +303,41 @@ public class Resources {
             //only 1 single class expected to match 1 Id!
             OWLClass semClass = ontoHnd.getSemanticClassesForId(semclassid).findFirst().get();
 
-            JsonArrayBuilder terms = Json.createArrayBuilder();
-
-            ontoHnd.classProps(semClass).forEach(pkv -> {
-                if ("id".equals(pkv.getKey())) {
-                    semClassResult.add("groupId", pkv.getValue());
-                    semClassResult.add("canonicId", pkv.getValue());
-                    //FIXME
-                    semClassResult.add("version", 1);
-
-                } else if ("label".equals(pkv.getKey())) {
-                    semClassResult.add("canonicLabel", pkv.getValue());
-
-                } else if (withTerms) {
-                    if ("relsyn".equals(pkv.getKey())) {
-                        JsonObjectBuilder term = Json.createObjectBuilder();
-                        term.add("termId", 99999)
-                                .add("form", pkv.getValue())
-                                //FIXME ??
-                                .add("memberType", 15)
-                                //FIXME ??
-                                .add("linkedTerms", Json.createArrayBuilder())
-                                //FIXME ??
-                                .add("englobingGroups", Json.createArrayBuilder().add(semclassid));
-                        terms.add(term);
-                    }
-                }
-            });
+            //fill up Semantic class structure from OwlClass properties
+            classStruct = ontoHnd.initSemClassStruct(semClass);
+            //virtual canonic id
+            classStruct.canonicId = classStruct.groupId + "-C";
 
             if (withTerms) {
-                semClassResult.add("termMembers", terms);
+                //produce virtual term ids
+                IntStream.range(0, classStruct.termMembers.size()).forEach(
+                        i -> classStruct.termMembers.get(i).id = semclassid + "-" + i
+                );
+                //add virtual canonic term
+                Structs.Term canonic = Structs.Term.createCanonic(classStruct.canonicLabel);
+                canonic.id = classStruct.canonicId;
+                classStruct.termMembers.add(0, canonic);
             }
 
-            List<String> hyperIdList = ontoHnd.getHyperonymsOf(semClass)
+            classStruct.hypoGroupIds = ontoHnd.getHyperonymsOf(semClass)
                     .map(hyper -> OboOntoHandler.getSemClassIdOf(hyper))
                     .collect(Collectors.toList());
-
-            if (hyperIdList.isEmpty()) {
+            if (classStruct.hypoGroupIds.isEmpty()) {
                 //actual root classes are presented as hyperonym of the virtual root 
-                hyperIds.add(OboOntoHandler.ROOT_ID);
-            } else {
-                hyperIdList.stream().forEach(hyperid -> hyperIds.add(hyperid));
+                classStruct.hypoGroupIds.add(OboOntoHandler.ROOT_ID);
             }
 
             hypoClasses = ontoHnd.getHyponymsOf(semClass).collect(Collectors.toList());
         }
+
+        //Json serialization 
+        semClassResult.add("groupId", classStruct.groupId);
+        semClassResult.add("canonicId", classStruct.canonicId);
+        semClassResult.add("canonicLabel", classStruct.canonicLabel);
+        semClassResult.add("version", classStruct.version);
+
+        JsonArrayBuilder hyperIds = Json.createArrayBuilder();
+        classStruct.hypoGroupIds.forEach(hyperid -> hyperIds.add(hyperid));
         semClassResult.add("hyperGroupIds", hyperIds);
 
         JsonArrayBuilder hypoIds = Json.createArrayBuilder();
@@ -355,6 +358,22 @@ public class Resources {
             hypoClasses.forEach(hypo -> hypoIds.add(OboOntoHandler.getSemClassIdOf(hypo)));
         }
         semClassResult.add("hypoGroupIds", hypoIds);
+
+        if (withTerms && !OboOntoHandler.isRootId(classStruct.groupId)) {
+            JsonArrayBuilder termMembers = Json.createArrayBuilder();
+            classStruct.termMembers.forEach(term -> {
+                termMembers.add(Json.createObjectBuilder()
+                        .add("termId", term.id)
+                        .add("form", term.form)
+                        .add("memberType", term.memberType)
+                        .add("linkedTerms", Json.createArrayBuilder())
+                        //FIXME
+                        .add("englobingGroups", Json.createArrayBuilder().add(semclassid))
+                );
+            });
+
+            semClassResult.add("termMembers", termMembers);
+        }
 
         return semClassResult;
     }

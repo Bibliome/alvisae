@@ -31,7 +31,7 @@ public class PreMatchRequestFilter implements ContainerRequestFilter {
 
         if (authorization == null || authorization.isEmpty() || !authorization.startsWith("Basic ")) {
 
-            //if no credential or some of another type is provided, eed to challenge again the  caller with Basic authentication scheme 
+            //if no credential or some of another type is provided, need to challenge again the caller with Basic authentication scheme 
             requestContext.abortWith(Response.status(
                     Response.Status.UNAUTHORIZED)
                     .header("WWW-Authenticate", "Basic realm=\"Access to OntoLR Web Services\"")

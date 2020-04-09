@@ -64,7 +64,7 @@ public class OboOntoHandler implements AutoCloseable {
     }
 
     @Override
-    public void close()  {
+    public void close() {
         manager.clearOntologies();
         onto = null;
         df = null;
@@ -82,7 +82,7 @@ public class OboOntoHandler implements AutoCloseable {
     public Stream<OWLClass> getRootSemanticClasses() {
         OWLClass thing = df.getOWLThing();
 
-        //amongst all classes in ontology, find those who have only OWLThing has superclass
+        //amongst all classes in ontology, find those who have only OWLThing as superclass
         return onto.classesInSignature()
                 .filter(c -> onto.subClassAxiomsForSubClass(c)
                 .filter(s -> !thing.equals(s.getSuperClass()))
@@ -118,45 +118,46 @@ public class OboOntoHandler implements AutoCloseable {
         return new AbstractMap.SimpleEntry<>(k, v);
     }
 
-    public Stream<Map.Entry<String, String>> classProps(OWLClass semClass) {
+    Structs.DetailSemClassNTerms initSemClassStruct(OWLClass semClass) {
+        final Structs.DetailSemClassNTerms srStruct = new Structs.DetailSemClassNTerms();
 
         //retrieve and filter class properties
-        return onto.annotationAssertionAxioms(semClass.getIRI())
-                .map(aaa -> {
-                    String propName;
-                    IRI propNameIRI = aaa.getProperty().getIRI();
+        onto.annotationAssertionAxioms(semClass.getIRI())
+                .forEach(aaa -> {
+                    String value = null;
 
-                    //keep only a subset of props
-                    if (OBOID_URI.equals(propNameIRI)) {
-                        propName = "id";
-                    } else if (RDFLABEL_URI.equals(propNameIRI)) {
-                        propName = "label";
-                    } else if (OBORELSYN_IRI.equals(propNameIRI)) {
-                        propName = "relsyn";
-                    } else if (OBOEXACTSYN_IRI.equals(propNameIRI)) {
-                        propName = "exactsyn";
-                    } else if (OBODBXREF_IRI.equals(propNameIRI)) {
-                        propName = "dbxref";
-                    } else {
-                        propName = null;
-                    }
-
-                    if (propName != null) {
-                        // every props datatype is string in OBO format used
-                        OWLDatatype dataType = aaa.getValue().datatypesInSignature().findFirst().orElse(null);
-
-                        if (XSDSTR_URI.equals(dataType.getIRI())) {
-                            OWLAnnotationValue propValue = aaa.getValue().annotationValue();
-                            Matcher matcher = StrPropValueExtractor.matcher(propValue.toString());
-                            if (matcher.matches()) {
-                                return newEntry(propName, matcher.group(1));
-                            }
+                    OWLDatatype dataType = aaa.getValue().datatypesInSignature().findFirst().orElse(null);
+                    // every props datatype is string in OBO format used
+                    if (XSDSTR_URI.equals(dataType.getIRI())) {
+                        OWLAnnotationValue propValue = aaa.getValue().annotationValue();
+                        Matcher matcher = StrPropValueExtractor.matcher(propValue.toString());
+                        if (matcher.matches()) {
+                            value = matcher.group(1);
                         }
                     }
-                    return null;
 
-                }).
-                filter(e -> e != null);
+                    if (value != null) {
+                        IRI propNameIRI = aaa.getProperty().getIRI();
+
+                        //keep only a subset of props
+                        if (OBOID_URI.equals(propNameIRI)) {
+                            srStruct.groupId = value;
+                        } else if (RDFLABEL_URI.equals(propNameIRI)) {
+                            srStruct.canonicLabel = value;
+                        } else if (OBORELSYN_IRI.equals(propNameIRI)) {
+                            srStruct.termMembers.add(Structs.Term.createRelatedSynonym(value));
+                        } else if (OBOEXACTSYN_IRI.equals(propNameIRI)) {
+                            srStruct.termMembers.add(Structs.Term.createExactSynonym(value));
+                        } else if (OBODBXREF_IRI.equals(propNameIRI)) {
+
+                        } else {
+
+                        }
+                    }
+
+                });
+
+        return srStruct;
     }
 
 }

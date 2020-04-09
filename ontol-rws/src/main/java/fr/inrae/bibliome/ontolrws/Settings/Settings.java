@@ -60,7 +60,7 @@ public class Settings {
                 .anyMatch(u -> u.getPassword().equals(password));
     }
 
-
+    
     public Optional<User> getAuthenticatedUser(String username, String password) {
         return getUsers().stream()
                 .filter(u -> u.getName().equals(username) && u.getPassword().equals(password))
