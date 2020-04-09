@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.inrae.bibliome</groupId>
     <artifactId>ontol-rws</artifactId>
-    <version>0.1</version>
+    <version>0.2</version>
     <packaging>war</packaging>
     
     <repositories>
@@ -33,11 +33,26 @@
             <artifactId>snakeyaml</artifactId>
             <version>1.26</version>
         </dependency>
-
+  
     </dependencies>
     
     <build>
         <finalName>ontolrws</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <attachClasses>true</attachClasses>
+                    <archive>
+                        <manifest>
+                            <mainClass>fr.inrae.bibliome.ontolrws.CLIHandler</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            
+        </plugins>
     </build>
     
     <properties>
