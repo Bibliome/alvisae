@@ -26,11 +26,11 @@ public class Structs {
         Map<String, SemClass> hypoGroupsDetails = new HashMap<>();
     }
 
-    private final static int SYNONYM = 5;
-    private final static int CANONIC = 13;
-    private final static int QUASISYN = 15;
-
     public static class Term {
+
+        public final static int SYNONYM = 5;
+        public final static int CANONIC = 13;
+        public final static int QUASISYN = 15;
 
         static Term createCanonic(String form) {
             return new Term(form, CANONIC);

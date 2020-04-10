@@ -2,14 +2,16 @@ package fr.inrae.bibliome.ontolrws.Resources;
 
 import fr.inrae.bibliome.ontolrws.Settings.Ontology;
 import java.io.File;
-import java.util.AbstractMap;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.model.AddAxiom;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLAnnotationValue;
+import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLDatatype;
@@ -36,7 +38,7 @@ public class OboOntoHandler implements AutoCloseable {
     private static final IRI OBORELSYN_IRI = IRI.create("http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym");
 
     private static final IRI OBOID_URI = IRI.create("http://www.geneontology.org/formats/oboInOwl#id");
-    private static final IRI RDFLABEL_URI = IRI.create("http://www.w3.org/2000/01/rdf-schema#label");
+    //private static final IRI RDFLABEL_URI = IRI.create("http://www.w3.org/2000/01/rdf-schema#label");
 
     private static final IRI XSDSTR_URI = IRI.create("http://www.w3.org/2001/XMLSchema#string");
 
@@ -90,7 +92,7 @@ public class OboOntoHandler implements AutoCloseable {
     }
 
     public Stream<OWLClass> getSemanticClassesForId(String semClassId) {
-        if (ROOT_ID.equals(semClassId)) {
+        if (isRootId(semClassId)) {
             return getRootSemanticClasses();
         } else {
             String scId = semClassId.replace(":", "_");
@@ -112,10 +114,6 @@ public class OboOntoHandler implements AutoCloseable {
     public Stream<OWLClass> getHyponymsOf(OWLClass semClass) {
         return onto.subClassAxiomsForSuperClass(semClass)
                 .map(sca -> sca.getSubClass().asOWLClass());
-    }
-
-    private Map.Entry<String, String> newEntry(String k, String v) {
-        return new AbstractMap.SimpleEntry<>(k, v);
     }
 
     Structs.DetailSemClassNTerms initSemClassStruct(OWLClass semClass) {
@@ -142,7 +140,7 @@ public class OboOntoHandler implements AutoCloseable {
                         //keep only a subset of props
                         if (OBOID_URI.equals(propNameIRI)) {
                             srStruct.groupId = value;
-                        } else if (RDFLABEL_URI.equals(propNameIRI)) {
+                        } else if (df.getRDFSLabel().getIRI().equals(propNameIRI)) {
                             srStruct.canonicLabel = value;
                         } else if (OBORELSYN_IRI.equals(propNameIRI)) {
                             srStruct.termMembers.add(Structs.Term.createRelatedSynonym(value));
@@ -158,6 +156,30 @@ public class OboOntoHandler implements AutoCloseable {
                 });
 
         return srStruct;
+    }
+
+    private void addTermToClass(OWLClass semClass, String form, int memberType) {
+        IRI synonymTypeIRI;
+        switch (memberType) {
+            case Structs.Term.SYNONYM:
+                synonymTypeIRI = OBOEXACTSYN_IRI;
+                break;
+
+            default:
+            case Structs.Term.QUASISYN:
+                synonymTypeIRI = OBORELSYN_IRI;
+                break;
+
+        }
+        OWLAnnotationProperty synProp = df.getOWLAnnotationProperty(synonymTypeIRI);
+        OWLAnnotation synonymAnno = df.getOWLAnnotation(synProp, df.getOWLLiteral(form));
+        OWLAxiom synAxiom = df.getOWLAnnotationAssertionAxiom(semClass.getIRI(), synonymAnno);
+        manager.applyChange(new AddAxiom(onto, synAxiom));
+    }
+
+    //currently only exact synonyms can be created
+    public void addTermToClass(OWLClass semClass, String form) {
+        addTermToClass(semClass, form, Structs.Term.SYNONYM);
     }
 
 }
