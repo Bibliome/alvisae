@@ -7,6 +7,7 @@ import fr.inrae.bibliome.ontolrws.Settings.User;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -29,6 +30,8 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.jgrapht.GraphPath;
+import org.jgrapht.graph.DefaultEdge;
 import org.semanticweb.owlapi.model.OWLClass;
 
 /**
@@ -154,8 +157,43 @@ public class Resources {
             @PathParam("fromclassid") String fromclassid,
             @PathParam("toclassid") String toclassid
     ) {
+        User authUser = (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
 
-        return serveSemanticClass(requestContext, projectid, fromclassid, true);
+        Optional<Ontology> ontology = app.getSettings().getOntologyForUser(authUser, projectid);
+        if (!ontology.isPresent()) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+
+        try (OboOntoHandler ontoHnd = OboOntoHandler.getHandler(ontology.get())) {
+            List<GraphPath<OWLClass, DefaultEdge>> path = null;
+            try {
+                path = ontoHnd.getHyperonymyPaths(fromclassid, toclassid);
+
+            } catch (NoSuchElementException e) {
+            }
+            if (path == null || path.isEmpty()) {
+                //weird, but it was like that in TyDI RestWS 
+                return Response.status(Response.Status.NOT_FOUND).build();
+            }
+
+            JsonArrayBuilder levels = Json.createArrayBuilder();
+            path.get(0).getVertexList().forEach(v -> {
+                levels.add(getSemanticClassResult(ontoHnd, v, false, false));
+
+            });
+            path.clear();
+
+            JsonObject result = Json.createObjectBuilder()
+                    .add("fromGroup", getSemanticClassResult(ontoHnd, fromclassid, false, false))
+                    .add("toGroup", getSemanticClassResult(ontoHnd, toclassid, false, false))
+                    .add("paths", Json.createArrayBuilder()
+                            .add(Json.createObjectBuilder()
+                                    .add("levels", Json.createArrayBuilder()
+                                            .add(levels))))
+                    .build();
+
+            return Response.ok(result).build();
+        }
     }
 
     // [ H ]
@@ -278,7 +316,7 @@ public class Resources {
         return projects;
     }
 
-    private JsonObjectBuilder getSemanticClassResult(OboOntoHandler ontoHnd, String semclassid, boolean withHypoDetails, boolean withTerms) {
+    private JsonObjectBuilder getSemanticClassResult(OboOntoHandler ontoHnd, OWLClass semClass, boolean withHypoDetails, boolean withTerms) {
 
         Structs.DetailSemClassNTerms classStruct;
 
@@ -286,7 +324,7 @@ public class Resources {
 
         List<OWLClass> hypoClasses;
 
-        if (OboOntoHandler.isRootId(semclassid)) {
+        if (semClass == null) {
             classStruct = new Structs.DetailSemClassNTerms();
             //virtual root class
             classStruct.groupId = OboOntoHandler.ROOT_ID;
@@ -300,9 +338,6 @@ public class Resources {
 
         } else {
 
-            //only 1 single class expected to match 1 Id!
-            OWLClass semClass = ontoHnd.getSemanticClassesForId(semclassid).findFirst().get();
-
             //fill up Semantic class structure from OwlClass properties
             classStruct = ontoHnd.initSemClassStruct(semClass);
             //virtual canonic id
@@ -311,7 +346,7 @@ public class Resources {
             if (withTerms) {
                 //produce virtual term ids
                 IntStream.range(0, classStruct.termMembers.size()).forEach(
-                        i -> classStruct.termMembers.get(i).id = semclassid + "-" + i
+                        i -> classStruct.termMembers.get(i).id = classStruct.groupId + "-" + i
                 );
                 //add virtual canonic term
                 Structs.Term canonic = Structs.Term.createCanonic(classStruct.canonicLabel);
@@ -368,7 +403,7 @@ public class Resources {
                         .add("memberType", term.memberType)
                         .add("linkedTerms", Json.createArrayBuilder())
                         //FIXME
-                        .add("englobingGroups", Json.createArrayBuilder().add(semclassid))
+                        .add("englobingGroups", Json.createArrayBuilder().add(classStruct.groupId))
                 );
             });
 
@@ -376,6 +411,15 @@ public class Resources {
         }
 
         return semClassResult;
+    }
+
+    private JsonObjectBuilder getSemanticClassResult(OboOntoHandler ontoHnd, String semclassid, boolean withHypoDetails, boolean withTerms) {
+        OWLClass semClass = null;
+        if (!OboOntoHandler.isRootId(semclassid)) {
+            //only 1 single class expected to match 1 Id!
+            semClass = ontoHnd.getSemanticClassesForId(semclassid).findFirst().get();
+        }
+        return getSemanticClassResult(ontoHnd, semClass, withHypoDetails, withTerms);
     }
 
     private Response serveSemanticClass(ContainerRequestContext requestContext, String projectid, String semclassid, boolean withTerms) {

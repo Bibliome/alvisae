@@ -2,11 +2,17 @@ package fr.inrae.bibliome.ontolrws.Resources;
 
 import fr.inrae.bibliome.ontolrws.Settings.Ontology;
 import java.io.File;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.jgrapht.GraphPath;
+import org.jgrapht.alg.shortestpath.KShortestSimplePaths;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AddAxiom;
+import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
@@ -156,6 +162,47 @@ public class OboOntoHandler implements AutoCloseable {
                 });
 
         return srStruct;
+    }
+
+    private DefaultDirectedGraph<OWLClass, DefaultEdge> buildHyperonymyGraph() {
+
+        DefaultDirectedGraph<OWLClass, DefaultEdge> g = new DefaultDirectedGraph<>(DefaultEdge.class);
+
+        onto.axioms(AxiomType.SUBCLASS_OF).forEach(
+                ax -> {
+                    OWLClass hyper = ax.getSuperClass().asOWLClass();
+                    OWLClass hypo = ax.getSubClass().asOWLClass();
+                    g.addVertex(hyper);
+                    g.addVertex(hypo);
+                    g.addEdge(hyper, hypo);
+                });
+
+        OWLClass thing = df.getOWLThing();
+        getRootSemanticClasses().forEach(
+                c -> {
+                    g.addVertex(thing);
+                    g.addVertex(c);
+                    g.addEdge(thing, c);
+                });
+
+        return g;
+    }
+
+    private List<GraphPath<OWLClass, DefaultEdge>> getHyperonymyPaths(
+            OWLClass start, OWLClass end
+    ) {
+        DefaultDirectedGraph<OWLClass, DefaultEdge> g = buildHyperonymyGraph();
+        KShortestSimplePaths<OWLClass, DefaultEdge> kshortest = new KShortestSimplePaths<>(g, 100);
+        return kshortest.getPaths(start, end, 1);
+    }
+
+    //throws NoSuchElementException if one of the semantic class doesn't exists in the ontology
+    List<GraphPath<OWLClass, DefaultEdge>> getHyperonymyPaths(String fromclassid, String toclassid) {
+        OWLClass fromClass = getSemanticClassesForId(fromclassid).findFirst().get();
+        OWLClass toClass = getSemanticClassesForId(toclassid).findFirst().get();
+        DefaultDirectedGraph<OWLClass, DefaultEdge> g = buildHyperonymyGraph();
+        KShortestSimplePaths<OWLClass, DefaultEdge> kshortest = new KShortestSimplePaths<>(g, 100);
+        return kshortest.getPaths(fromClass, toClass, 1);
     }
 
     private void addTermToClass(OWLClass semClass, String form, int memberType) {

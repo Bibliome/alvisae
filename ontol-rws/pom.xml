@@ -16,16 +16,17 @@
     
     <dependencies>
         <dependency>
-            <groupId>net.sourceforge.owlapi</groupId>
-            <artifactId>owlapi-distribution</artifactId>
-            <version>5.1.13</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
             <groupId>javax</groupId>
             <artifactId>javaee-api</artifactId>
             <version>8.0</version>
             <scope>provided</scope>
+        </dependency>
+                
+        <dependency>
+            <groupId>net.sourceforge.owlapi</groupId>
+            <artifactId>owlapi-distribution</artifactId>
+            <version>5.1.13</version>
+            <type>jar</type>
         </dependency>
         
         <dependency>
@@ -33,6 +34,12 @@
             <artifactId>snakeyaml</artifactId>
             <version>1.26</version>
         </dependency>
+        
+        <dependency>
+            <groupId>org.jgrapht</groupId>
+            <artifactId>jgrapht-core</artifactId>
+            <version>1.4.0</version>
+        </dependency>    
   
     </dependencies>
     
