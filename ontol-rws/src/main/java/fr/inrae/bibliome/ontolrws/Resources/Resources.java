@@ -4,11 +4,10 @@ import fr.inrae.bibliome.ontolrws.JAXRSConfig;
 import fr.inrae.bibliome.ontolrws.Settings.Ontology;
 import fr.inrae.bibliome.ontolrws.Settings.Settings;
 import fr.inrae.bibliome.ontolrws.Settings.User;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.json.Json;
@@ -55,7 +54,7 @@ public class Resources {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getMyProjectList(@Context ContainerRequestContext requestContext
     ) {
-        User authUser = (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
+        User authUser = getAuthUser(requestContext);
 
         JsonObject result = Json.createObjectBuilder()
                 .add("id", authUser.getId())
@@ -75,7 +74,7 @@ public class Resources {
             @PathParam("userid") int userId
     ) {
 
-        User authUser = (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
+        User authUser = getAuthUser(requestContext);
 
         User subjectUser;
         if (authUser.getId() == userId) {
@@ -143,13 +142,7 @@ public class Resources {
             @QueryParam("pattern") @DefaultValue("") String pattern,
             @QueryParam("exactMatch") @DefaultValue("true") boolean exactmatch
     ) {
-        User authUser = (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
-
-        Optional<Ontology> ontology = app.getSettings().getOntologyForUser(authUser, projectid);
-        if (!ontology.isPresent()) {
-            return Response.status(Response.Status.FORBIDDEN).build();
-        }
-        try (OboOntoHandler ontoHnd = OboOntoHandler.getHandler(ontology.get())) {
+        return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
 
             JsonArrayBuilder result = Json.createArrayBuilder();
             ontoHnd.getClassesIdForMatchingLabelPattern(pattern).forEach(
@@ -158,7 +151,7 @@ public class Resources {
             );
 
             return Response.ok(result.build()).build();
-        }
+        });
     }
 
     // [ G ]
@@ -171,14 +164,8 @@ public class Resources {
             @PathParam("fromclassid") String fromclassid,
             @PathParam("toclassid") String toclassid
     ) {
-        User authUser = (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
+        return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
 
-        Optional<Ontology> ontology = app.getSettings().getOntologyForUser(authUser, projectid);
-        if (!ontology.isPresent()) {
-            return Response.status(Response.Status.FORBIDDEN).build();
-        }
-
-        try (OboOntoHandler ontoHnd = OboOntoHandler.getHandler(ontology.get())) {
             List<GraphPath<OWLClass, DefaultEdge>> path = null;
             try {
                 path = ontoHnd.getHyperonymyPaths(fromclassid, toclassid);
@@ -207,7 +194,7 @@ public class Resources {
                     .build();
 
             return Response.ok(result).build();
-        }
+        });
     }
 
     // [ H ]
@@ -224,19 +211,10 @@ public class Resources {
             @FormParam("newHyperSemClassId") String newhyperid, //?~ "Missing newHyperSemClassId parameter" ~> 400;
             @FormParam("newHyperSemClassVersion") String newhyperversion //?~ "Missing newHyperSemClassVersion parameter" ~> 400);
     ) {
-        User authUser = (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
+        return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
 
-        Optional<Ontology> ontology = app.getSettings().getOntologyForUser(authUser, projectid);
-        if (!ontology.isPresent()) {
-            return Response.status(Response.Status.FORBIDDEN).build();
-        }
-
-        try (OboOntoHandler ontoHnd = OboOntoHandler.getHandler(ontology.get())) {
-            ontoHnd.replaceClassHyperonym(semclassid, version, prevhyperid, prevhyperversion, newhyperid, newhyperversion);
-
-            /////
             return Response.status(Response.Status.NOT_IMPLEMENTED).build();
-        }
+        });
     }
 
     // [ I ]
@@ -330,6 +308,26 @@ public class Resources {
     // -------------------------------------------------------------------------
     @Context
     private JAXRSConfig app;
+
+    private User getAuthUser(ContainerRequestContext requestContext) {
+        return (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
+    }
+
+    private Response checkUserIsAuthForOnto(
+            ContainerRequestContext requestContext,
+            String projectid,
+            BiFunction<User, OboOntoHandler, Response> responseSupplier) {
+
+        User authUser = getAuthUser(requestContext);
+
+        Optional<Ontology> ontology = app.getSettings().getOntologyForUser(authUser, projectid);
+        if (!ontology.isPresent()) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        try (OboOntoHandler ontoHnd = OboOntoHandler.getHandler(ontology.get())) {
+            return responseSupplier.apply(authUser, ontoHnd);
+        }
+    }
 
     private JsonArrayBuilder getUserProjects(User authUser) {
 

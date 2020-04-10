@@ -3,8 +3,6 @@ package fr.inrae.bibliome.ontolrws.Resources;
 import fr.inrae.bibliome.ontolrws.Settings.Ontology;
 import java.io.File;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.shortestpath.KShortestSimplePaths;
@@ -35,7 +33,7 @@ public class OboOntoHandler implements AutoCloseable {
 
     public static final String ROOT_ID = "0";
 
-    private static final String OBOBASE_IRI = "http://purl.obolibrary.org/obo/";
+    private static final String OBOBASE_URI = "http://purl.obolibrary.org/obo/";
 
     private static final IRI OBODBXREF_IRI = IRI.create("http://www.geneontology.org/formats/oboInOwl#hasDbXref");
     private static final IRI OBONAMESPACE_IRI = IRI.create("http://www.geneontology.org/formats/oboInOwl#hasOBONamespace");
@@ -44,7 +42,6 @@ public class OboOntoHandler implements AutoCloseable {
     private static final IRI OBORELSYN_IRI = IRI.create("http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym");
 
     private static final IRI OBOID_URI = IRI.create("http://www.geneontology.org/formats/oboInOwl#id");
-    //private static final IRI RDFLABEL_URI = IRI.create("http://www.w3.org/2000/01/rdf-schema#label");
 
     private static final IRI XSDSTR_URI = IRI.create("http://www.w3.org/2001/XMLSchema#string");
 
@@ -52,12 +49,13 @@ public class OboOntoHandler implements AutoCloseable {
         return new OboOntoHandler(ontoConfig);
     }
 
-    private static final OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+    private OWLOntologyManager manager;
     private OWLOntology onto;
     private OWLDataFactory df;
     private PrefixManager pm;
 
     protected OboOntoHandler(Ontology ontoConfig) {
+        manager = OWLManager.createOWLOntologyManager();
         File file = new File(ontoConfig.getFilePath());
         try {
             onto = manager.loadOntologyFromOntologyDocument(file);
@@ -65,13 +63,14 @@ public class OboOntoHandler implements AutoCloseable {
             throw new IllegalArgumentException("Could not load ontology file: " + ontoConfig.getFilePath(), ex);
         }
         df = manager.getOWLDataFactory();
-        pm = new DefaultPrefixManager(OBOBASE_IRI);
+        pm = new DefaultPrefixManager(OBOBASE_URI);
 
     }
 
     @Override
     public void close() {
         manager.clearOntologies();
+        manager = null;
         onto = null;
         df = null;
         pm = null;
@@ -111,7 +110,7 @@ public class OboOntoHandler implements AutoCloseable {
         if (isRootId(semClassId)) {
             return getRootSemanticClasses();
         } else {
-            String scId = semClassId.replace(":", "_");
+            String scId = oboClassIdtoOwlClassId(semClassId);
             //representation of the looked up class
             OWLClass semClassRepre = df.getOWLClass(":" + scId, pm);
 
@@ -182,7 +181,7 @@ public class OboOntoHandler implements AutoCloseable {
                                 )
                 .filter(
                         //subject is an Obo semantic class
-                        ax -> ax.getSubject().asIRI().get().getNamespace().equals(OBOBASE_IRI)
+                        ax -> ax.getSubject().asIRI().get().getNamespace().equals(OBOBASE_URI)
                 )
                 .filter(
                         //label value contains searched pattern
