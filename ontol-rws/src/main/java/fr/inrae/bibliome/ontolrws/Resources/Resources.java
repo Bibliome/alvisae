@@ -191,7 +191,8 @@ public class Resources {
             }
 
             JsonArrayBuilder levels = Json.createArrayBuilder();
-            path.get(0).getVertexList().forEach(v -> {
+            List<OWLClass> vertexes = path.get(0).getVertexList();
+            vertexes.subList(0, vertexes.size() - 1).forEach(v -> {
                 levels.add(getSemanticClassResult(ontoHnd, v, false, false));
 
             });
@@ -202,8 +203,7 @@ public class Resources {
                     .add("toGroup", getSemanticClassResult(ontoHnd, toclassid, false, false))
                     .add("paths", Json.createArrayBuilder()
                             .add(Json.createObjectBuilder()
-                                    .add("levels", Json.createArrayBuilder()
-                                            .add(levels))))
+                                    .add("levels", levels)))
                     .build();
 
             return Response.ok(result).build();
