@@ -81,8 +81,20 @@ public class OboOntoHandler implements AutoCloseable {
         return ROOT_ID.equals(semClassId);
     }
 
+    private static String oboClassIdtoOwlClassId(String oboClassId) {
+        return oboClassId.replace(":", "_");
+    }
+
+    private static String owlClassIdtoOboClassId(String owlClassId) {
+        return owlClassId.replace("_", ":");
+    }
+
+    public static String getSemClassIdOf(IRI semClassIri) {
+        return owlClassIdtoOboClassId(semClassIri.getShortForm());
+    }
+
     public static String getSemClassIdOf(OWLClass semClass) {
-        return semClass.getIRI().getShortForm().replace("_", ":");
+        return getSemClassIdOf(semClass.getIRI());
     }
 
     public Stream<OWLClass> getRootSemanticClasses() {
@@ -161,6 +173,24 @@ public class OboOntoHandler implements AutoCloseable {
         return srStruct;
     }
 
+    public Stream<String> getClassesIdForMatchingLabelPattern(String pattern) {
+        IRI rdfLabelIri = df.getRDFSLabel().getIRI();
+        return onto.axioms(AxiomType.ANNOTATION_ASSERTION)
+                .filter(
+                        //RDF labels
+                        ax -> rdfLabelIri.equals(ax.getAnnotation().getProperty().getIRI())
+                                )
+                .filter(
+                        //subject is an Obo semantic class
+                        ax -> ax.getSubject().asIRI().get().getNamespace().equals(OBOBASE_IRI)
+                )
+                .filter(
+                        //label value contains searched pattern
+                        ax -> ax.getAnnotation().getValue().annotationValue().asLiteral().get().getLiteral().contains(pattern)
+                )
+                .map(ax -> getSemClassIdOf(ax.getSubject().asIRI().get()));
+    }
+
     private DefaultDirectedGraph<OWLClass, DefaultEdge> buildHyperonymyGraph() {
 
         DefaultDirectedGraph<OWLClass, DefaultEdge> g = new DefaultDirectedGraph<>(DefaultEdge.class);
@@ -200,6 +230,10 @@ public class OboOntoHandler implements AutoCloseable {
         DefaultDirectedGraph<OWLClass, DefaultEdge> g = buildHyperonymyGraph();
         KShortestSimplePaths<OWLClass, DefaultEdge> kshortest = new KShortestSimplePaths<>(g, 100);
         return kshortest.getPaths(fromClass, toClass, 1);
+    }
+
+    public void replaceClassHyperonym(String semclassid, long version, String prevhyperid, String prevhyperversion, String newhyperid, String newhyperversion) {
+
     }
 
     private void addTermToClass(OWLClass semClass, String form, int memberType) {

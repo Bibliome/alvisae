@@ -140,11 +140,25 @@ public class Resources {
     public Response getSemanticClassFromPattern(
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
-            @QueryParam("pattern") @DefaultValue("*") String pattern,
+            @QueryParam("pattern") @DefaultValue("") String pattern,
             @QueryParam("exactMatch") @DefaultValue("true") boolean exactmatch
     ) {
+        User authUser = (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
 
-        return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        Optional<Ontology> ontology = app.getSettings().getOntologyForUser(authUser, projectid);
+        if (!ontology.isPresent()) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        try (OboOntoHandler ontoHnd = OboOntoHandler.getHandler(ontology.get())) {
+
+            JsonArrayBuilder result = Json.createArrayBuilder();
+            ontoHnd.getClassesIdForMatchingLabelPattern(pattern).forEach(
+                    semClassId
+                    -> result.add(getSemanticClassResult(ontoHnd, semClassId, false, false))
+            );
+
+            return Response.ok(result.build()).build();
+        }
     }
 
     // [ G ]
@@ -210,7 +224,19 @@ public class Resources {
             @FormParam("newHyperSemClassId") String newhyperid, //?~ "Missing newHyperSemClassId parameter" ~> 400;
             @FormParam("newHyperSemClassVersion") String newhyperversion //?~ "Missing newHyperSemClassVersion parameter" ~> 400);
     ) {
-        return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        User authUser = (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
+
+        Optional<Ontology> ontology = app.getSettings().getOntologyForUser(authUser, projectid);
+        if (!ontology.isPresent()) {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+
+        try (OboOntoHandler ontoHnd = OboOntoHandler.getHandler(ontology.get())) {
+            ontoHnd.replaceClassHyperonym(semclassid, version, prevhyperid, prevhyperversion, newhyperid, newhyperversion);
+
+            /////
+            return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        }
     }
 
     // [ I ]
