@@ -48,8 +48,6 @@ public class OboOntoHandler implements AutoCloseable {
 
     private static final IRI XSDSTR_URI = IRI.create("http://www.w3.org/2001/XMLSchema#string");
 
-    private static final Pattern StrPropValueExtractor = Pattern.compile("\"(.+)\"\\^\\^xsd\\:string");
-
     public static OboOntoHandler getHandler(Ontology ontoConfig) {
         return new OboOntoHandler(ontoConfig);
     }
@@ -134,9 +132,8 @@ public class OboOntoHandler implements AutoCloseable {
                     // every props datatype is string in OBO format used
                     if (XSDSTR_URI.equals(dataType.getIRI())) {
                         OWLAnnotationValue propValue = aaa.getValue().annotationValue();
-                        Matcher matcher = StrPropValueExtractor.matcher(propValue.toString());
-                        if (matcher.matches()) {
-                            value = matcher.group(1);
+                        if (propValue.isLiteral()) {
+                            value = propValue.asLiteral().get().getLiteral();
                         }
                     }
 
