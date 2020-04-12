@@ -2,7 +2,11 @@ package fr.inrae.bibliome.ontolrws.Resources;
 
 import fr.inrae.bibliome.ontolrws.Settings.Ontology;
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.shortestpath.KShortestSimplePaths;
@@ -31,6 +35,8 @@ import org.semanticweb.owlapi.util.DefaultPrefixManager;
  */
 public class OboOntoHandler implements AutoCloseable {
 
+    private static final Logger logger = Logger.getLogger(OboOntoHandler.class.getName());
+
     public static final String ROOT_ID = "0";
 
     private static final String OBOBASE_URI = "http://purl.obolibrary.org/obo/";
@@ -49,31 +55,32 @@ public class OboOntoHandler implements AutoCloseable {
         return new OboOntoHandler(ontoConfig);
     }
 
-    private OWLOntologyManager manager;
+    private static final OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+    private static final Map<Ontology, OWLOntology> loadedOntologies = new HashMap<>();
+    private static final OWLDataFactory df = manager.getOWLDataFactory();
+    private static final PrefixManager pm = new DefaultPrefixManager(OBOBASE_URI);
+
     private OWLOntology onto;
-    private OWLDataFactory df;
-    private PrefixManager pm;
 
     protected OboOntoHandler(Ontology ontoConfig) {
-        manager = OWLManager.createOWLOntologyManager();
-        File file = new File(ontoConfig.getFilePath());
-        try {
-            onto = manager.loadOntologyFromOntologyDocument(file);
-        } catch (OWLOntologyCreationException ex) {
-            throw new IllegalArgumentException("Could not load ontology file: " + ontoConfig.getFilePath(), ex);
+        //avoid reloading same ontology again and again, especially because Owl-Api is aggressively caching them anyway
+        if (loadedOntologies.containsKey(ontoConfig)) {
+            logger.log(Level.INFO, "Reusing already loaded ontology : {0}", ontoConfig.getLongName());
+            onto = loadedOntologies.get(ontoConfig);
+        } else {
+            File file = new File(ontoConfig.getFilePath());
+            try {
+                logger.log(Level.INFO, "Loading new ontology : {0} - {1}", ontoConfig.getFilePath());
+                onto = manager.loadOntologyFromOntologyDocument(file);
+                loadedOntologies.put(ontoConfig, onto);
+            } catch (OWLOntologyCreationException ex) {
+                throw new IllegalArgumentException("Could not load ontology file: " + ontoConfig.getFilePath(), ex);
+            }
         }
-        df = manager.getOWLDataFactory();
-        pm = new DefaultPrefixManager(OBOBASE_URI);
-
     }
 
     @Override
     public void close() {
-        manager.clearOntologies();
-        manager = null;
-        onto = null;
-        df = null;
-        pm = null;
     }
 
     public static boolean isRootId(String semClassId) {
@@ -178,7 +185,7 @@ public class OboOntoHandler implements AutoCloseable {
                 .filter(
                         //RDF labels
                         ax -> rdfLabelIri.equals(ax.getAnnotation().getProperty().getIRI())
-                                )
+                )
                 .filter(
                         //subject is an Obo semantic class
                         ax -> ax.getSubject().asIRI().get().getNamespace().equals(OBOBASE_URI)

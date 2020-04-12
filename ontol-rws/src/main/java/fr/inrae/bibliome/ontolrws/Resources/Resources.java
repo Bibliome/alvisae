@@ -447,17 +447,11 @@ public class Resources {
     }
 
     private Response serveSemanticClass(ContainerRequestContext requestContext, String projectid, String semclassid, boolean withTerms) {
-        User authUser = (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
+        return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
 
-        Optional<Ontology> ontology = app.getSettings().getOntologyForUser(authUser, projectid);
-        if (!ontology.isPresent()) {
-            return Response.status(Response.Status.FORBIDDEN).build();
-        }
-
-        try (OboOntoHandler ontoHnd = OboOntoHandler.getHandler(ontology.get())) {
             JsonObjectBuilder result = getSemanticClassResult(ontoHnd, semclassid, true, withTerms);
             return Response.ok(result.build()).build();
-        }
+        });
     }
 
 }
