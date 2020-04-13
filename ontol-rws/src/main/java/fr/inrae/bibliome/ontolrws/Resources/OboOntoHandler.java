@@ -183,18 +183,25 @@ public class OboOntoHandler implements AutoCloseable {
         IRI rdfLabelIri = df.getRDFSLabel().getIRI();
         return onto.axioms(AxiomType.ANNOTATION_ASSERTION)
                 .filter(
-                        //RDF labels
-                        ax -> rdfLabelIri.equals(ax.getAnnotation().getProperty().getIRI())
-                )
-                .filter(
                         //subject is an Obo semantic class
                         ax -> ax.getSubject().asIRI().get().getNamespace().equals(OBOBASE_URI)
+                )
+                .filter(
+                        //search within RDF labels (=canonic label) and every synonyms of the class
+                        ax -> {
+                            IRI propIri = ax.getAnnotation().getProperty().getIRI();
+                            return rdfLabelIri.equals(propIri)
+                            || OBOEXACTSYN_IRI.equals(propIri)
+                            || OBORELSYN_IRI.equals(propIri);
+                        }
                 )
                 .filter(
                         //label value contains searched pattern
                         ax -> ax.getAnnotation().getValue().annotationValue().asLiteral().get().getLiteral().contains(pattern)
                 )
-                .map(ax -> getSemClassIdOf(ax.getSubject().asIRI().get()));
+                .map(ax -> getSemClassIdOf(ax.getSubject().asIRI().get()))
+                //remove duplicate class id (happens when pattern matches same class multiple times, e.g on its label and synonyms)
+                .distinct();
     }
 
     private DefaultDirectedGraph<OWLClass, DefaultEdge> buildHyperonymyGraph() {
