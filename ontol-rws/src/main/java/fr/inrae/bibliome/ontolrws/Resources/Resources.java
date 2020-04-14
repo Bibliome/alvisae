@@ -341,10 +341,14 @@ public class Resources {
     }
 
     private JsonObjectBuilder getSemanticClassResult(OboOntoHandler ontoHnd, OWLClass semClass, boolean withHypoDetails, boolean withTerms) {
+        return getSemanticClassResult(ontoHnd,
+                getSemanticClassData(ontoHnd, semClass, withTerms),
+                withHypoDetails, withTerms);
+    }
+
+    private Structs.DetailSemClassNTerms getSemanticClassData(OboOntoHandler ontoHnd, OWLClass semClass, boolean withTerms) {
 
         Structs.DetailSemClassNTerms classStruct;
-
-        JsonObjectBuilder semClassResult = Json.createObjectBuilder();
 
         List<OWLClass> hypoClasses;
 
@@ -389,6 +393,19 @@ public class Resources {
             hypoClasses = ontoHnd.getHyponymsOf(semClass).collect(Collectors.toList());
         }
 
+        hypoClasses.forEach(hypoClass -> classStruct.hypoClasses
+                .add(getSemanticClassData(ontoHnd, hypoClass, false))
+        );
+        classStruct.hypoClasses.sort(
+                (Structs.SemClass c1, Structs.SemClass c2) -> c1.canonicLabel.compareTo(c2.canonicLabel)
+        );
+
+        return classStruct;
+    }
+
+    private JsonObjectBuilder getSemanticClassResult(OboOntoHandler ontoHnd, Structs.DetailSemClassNTerms classStruct, boolean withHypoDetails, boolean withTerms) {
+        JsonObjectBuilder semClassResult = Json.createObjectBuilder();
+
         //Json serialization 
         semClassResult.add("groupId", classStruct.groupId);
         semClassResult.add("canonicId", classStruct.canonicId);
@@ -403,18 +420,17 @@ public class Resources {
 
         if (withHypoDetails) {
             JsonObjectBuilder hypoDetails = Json.createObjectBuilder();
-            hypoClasses.forEach(hypo -> {
-                String hypoid = OboOntoHandler.getSemClassIdOf(hypo);
-                hypoIds.add(hypoid);
+            classStruct.hypoClasses.forEach(hypo -> {
+                hypoIds.add(hypo.canonicId);
 
-                JsonObjectBuilder hypoResult = getSemanticClassResult(ontoHnd, hypoid, false, false);
-                hypoDetails.add(hypoid, hypoResult);
+                JsonObjectBuilder hypoResult = getSemanticClassResult(ontoHnd, hypo, false, false);
+                hypoDetails.add(hypo.canonicId, hypoResult);
             });
 
             semClassResult.add("hypoGroupsDetails", hypoDetails);
 
         } else {
-            hypoClasses.forEach(hypo -> hypoIds.add(OboOntoHandler.getSemClassIdOf(hypo)));
+            classStruct.hypoClasses.forEach(hypo -> hypoIds.add(hypo.canonicId));
         }
         semClassResult.add("hypoGroupIds", hypoIds);
 

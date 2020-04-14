@@ -1,9 +1,7 @@
 package fr.inrae.bibliome.ontolrws.Resources;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  *
@@ -23,7 +21,7 @@ public class Structs {
 
     public static class DetailedSemClass extends SemClass {
 
-        Map<String, SemClass> hypoGroupsDetails = new HashMap<>();
+        List<DetailSemClassNTerms> hypoClasses = new ArrayList<>();
     }
 
     public static class Term {
