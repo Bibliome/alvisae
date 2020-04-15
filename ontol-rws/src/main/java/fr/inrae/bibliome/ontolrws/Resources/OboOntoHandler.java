@@ -2,9 +2,13 @@ package fr.inrae.bibliome.ontolrws.Resources;
 
 import fr.inrae.bibliome.ontolrws.Settings.Ontology;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -13,10 +17,13 @@ import org.jgrapht.alg.shortestpath.KShortestSimplePaths;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.formats.OBODocumentFormat;
 import org.semanticweb.owlapi.model.AddAxiom;
+import org.semanticweb.owlapi.model.AddOntologyAnnotation;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLAnnotationValue;
 import org.semanticweb.owlapi.model.OWLAxiom;
@@ -24,9 +31,13 @@ import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLDatatype;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.PrefixManager;
+import org.semanticweb.owlapi.model.SetOntologyID;
 import org.semanticweb.owlapi.util.DefaultPrefixManager;
 
 /**
@@ -41,6 +52,12 @@ public class OboOntoHandler implements AutoCloseable {
 
     private static final String OBOBASE_URI = "http://purl.obolibrary.org/obo/";
 
+    private static final IRI OBODEFAULTONTOID_IRI = IRI.create("http://purl.obolibrary.org/obo/TEMP");
+    private static final String MANAGEDONTOID_URI = "http://maiage.inrae.fr/alvisae/ONTOL";
+    private static final IRI MANAGEDONTOID_IRI = IRI.create(MANAGEDONTOID_URI);
+    private static final IRI MANAGEDONTOVERSION_IRI = IRI.create(MANAGEDONTOID_URI, "/version");
+    private static final IRI MANAGEDCLASSVERSION_IRI = IRI.create(MANAGEDONTOID_URI, "#semclass-version");
+
     private static final IRI OBODBXREF_IRI = IRI.create("http://www.geneontology.org/formats/oboInOwl#hasDbXref");
     private static final IRI OBONAMESPACE_IRI = IRI.create("http://www.geneontology.org/formats/oboInOwl#hasOBONamespace");
 
@@ -50,6 +67,7 @@ public class OboOntoHandler implements AutoCloseable {
     private static final IRI OBOID_URI = IRI.create("http://www.geneontology.org/formats/oboInOwl#id");
 
     private static final IRI XSDSTR_URI = IRI.create("http://www.w3.org/2001/XMLSchema#string");
+    private static final IRI XSDINT_URI = IRI.create("http://www.w3.org/2001/XMLSchema#integer");
 
     public static OboOntoHandler getHandler(Ontology ontoConfig) {
         return new OboOntoHandler(ontoConfig);
@@ -60,9 +78,12 @@ public class OboOntoHandler implements AutoCloseable {
     private static final OWLDataFactory df = manager.getOWLDataFactory();
     private static final PrefixManager pm = new DefaultPrefixManager(OBOBASE_URI);
 
-    private OWLOntology onto;
+    private final OWLOntology onto;
+    private final Ontology config;
 
     protected OboOntoHandler(Ontology ontoConfig) {
+        config = ontoConfig;
+
         //avoid reloading same ontology again and again, especially because Owl-Api is aggressively caching them anyway
         if (loadedOntologies.containsKey(ontoConfig)) {
             logger.log(Level.INFO, "Reusing already loaded ontology : {0}", ontoConfig.getLongName());
@@ -72,6 +93,7 @@ public class OboOntoHandler implements AutoCloseable {
             try {
                 logger.log(Level.INFO, "Loading new ontology : {0} - {1}", ontoConfig.getFilePath());
                 onto = manager.loadOntologyFromOntologyDocument(file);
+                checkAndSetVersionning();
                 loadedOntologies.put(ontoConfig, onto);
             } catch (OWLOntologyCreationException ex) {
                 throw new IllegalArgumentException("Could not load ontology file: " + ontoConfig.getFilePath(), ex);
@@ -147,12 +169,9 @@ public class OboOntoHandler implements AutoCloseable {
                     String value = null;
 
                     OWLDatatype dataType = aaa.getValue().datatypesInSignature().findFirst().orElse(null);
-                    // every props datatype is string in OBO format used
-                    if (XSDSTR_URI.equals(dataType.getIRI())) {
-                        OWLAnnotationValue propValue = aaa.getValue().annotationValue();
-                        if (propValue.isLiteral()) {
-                            value = propValue.asLiteral().get().getLiteral();
-                        }
+                    OWLAnnotationValue propValue = aaa.getValue().annotationValue();
+                    if (propValue.isLiteral()) {
+                        value = propValue.asLiteral().get().getLiteral();
                     }
 
                     if (value != null) {
@@ -168,7 +187,12 @@ public class OboOntoHandler implements AutoCloseable {
                         } else if (OBOEXACTSYN_IRI.equals(propNameIRI)) {
                             srStruct.termMembers.add(Structs.Term.createExactSynonym(value));
                         } else if (OBODBXREF_IRI.equals(propNameIRI)) {
-
+                        } else if (MANAGEDCLASSVERSION_IRI.equals(propNameIRI)) {
+                            if (XSDINT_URI.equals(dataType.getIRI())) {
+                                srStruct.version = Integer.valueOf(value);
+                            } else {
+                                srStruct.version = 0;
+                            }
                         } else {
 
                         }
@@ -271,6 +295,60 @@ public class OboOntoHandler implements AutoCloseable {
     //currently only exact synonyms can be created
     public void addTermToClass(OWLClass semClass, String form) {
         addTermToClass(semClass, form, Structs.Term.SYNONYM);
+    }
+
+    //check that specified ontology includes elements to track updates, and if not add them
+    private int checkAndSetVersionning() {
+        int version;
+
+        Optional<IRI> currOntoIdIRI = onto.getOntologyID().getOntologyIRI();
+
+        if (!currOntoIdIRI.isPresent() || currOntoIdIRI.get().asIRI().get().getNamespace().equals(OBODEFAULTONTOID_IRI.getNamespace())) {
+            version = 1;
+
+            List<OWLOntologyChange> changes = new ArrayList<>();
+
+            IRI ontoIdIRI = IRI.create(MANAGEDONTOID_URI, "/" + config.getId());
+            IRI versionIRI = IRI.create(MANAGEDONTOVERSION_IRI + "#" + String.valueOf(version));
+            OWLOntologyID newOntologyID = new OWLOntologyID(ontoIdIRI, versionIRI);
+            SetOntologyID setOntologyID = new SetOntologyID(onto, newOntologyID);
+            changes.add(setOntologyID);
+
+            //add new property to record semantic class version
+            OWLAnnotationProperty classVersAnnotProp = df.getOWLAnnotationProperty(MANAGEDCLASSVERSION_IRI);
+            OWLAnnotation classVersionAnnot = df.getOWLAnnotation(classVersAnnotProp, df.getOWLLiteral(1));
+            AddOntologyAnnotation addClassVersionAnnot = new AddOntologyAnnotation(onto, classVersionAnnot);
+            changes.add(addClassVersionAnnot);
+
+            OWLAnnotation versiond1Annot = df.getOWLAnnotation(classVersAnnotProp, df.getOWLLiteral(1));
+
+            //add set initial version to all semantic classes
+            onto.classesInSignature().forEach(c -> {
+                OWLAnnotationAssertionAxiom aaa = df.getOWLAnnotationAssertionAxiom(c.getIRI(), versiond1Annot);
+                changes.add(new AddAxiom(onto, aaa));
+            });
+
+            manager.applyChanges(changes);
+            logger.log(Level.INFO, "Ontology versioning starting at version #{0} [{1}]", new Object[]{version, config.getId()});
+            saveOnto();
+
+        } else {
+            version = Integer.valueOf(onto.getOntologyID().getVersionIRI().get().getFragment());
+            logger.log(Level.INFO, "Ontology already at version #{0}", version);
+
+        }
+        return version;
+    }
+
+    private void saveOnto() {
+        File fileout = new File(config.getFilePath());
+        try {
+            manager.saveOntology(onto, new OBODocumentFormat(), new FileOutputStream(fileout));
+        } catch (FileNotFoundException ex) {
+            logger.log(Level.SEVERE, null, ex);
+        } catch (OWLOntologyStorageException ex) {
+            logger.log(Level.SEVERE, null, ex);
+        }
     }
 
 }

@@ -358,7 +358,6 @@ public class Resources {
             classStruct.groupId = OboOntoHandler.ROOT_ID;
             classStruct.canonicId = OboOntoHandler.ROOT_ID;
             classStruct.canonicLabel = "";
-            //FIXME
             classStruct.version = 1;
 
             //actual root classes presented as hyponyms of the virtual root
