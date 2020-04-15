@@ -4,7 +4,15 @@ import fr.inrae.bibliome.ontolrws.Settings.Ontology;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.text.Format;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +45,9 @@ import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.PrefixManager;
+import org.semanticweb.owlapi.model.RemoveAxiom;
 import org.semanticweb.owlapi.model.SetOntologyID;
+import org.semanticweb.owlapi.model.parameters.ChangeApplied;
 import org.semanticweb.owlapi.util.DefaultPrefixManager;
 
 /**
@@ -314,7 +324,7 @@ public class OboOntoHandler implements AutoCloseable {
             SetOntologyID setOntologyID = new SetOntologyID(onto, newOntologyID);
             changes.add(setOntologyID);
 
-            //add new property to record semantic class version
+            //declare new property in ontology to record semantic class version
             OWLAnnotationProperty classVersAnnotProp = df.getOWLAnnotationProperty(MANAGEDCLASSVERSION_IRI);
             OWLAnnotation classVersionAnnot = df.getOWLAnnotation(classVersAnnotProp, df.getOWLLiteral(1));
             AddOntologyAnnotation addClassVersionAnnot = new AddOntologyAnnotation(onto, classVersionAnnot);
@@ -322,15 +332,17 @@ public class OboOntoHandler implements AutoCloseable {
 
             OWLAnnotation versiond1Annot = df.getOWLAnnotation(classVersAnnotProp, df.getOWLLiteral(1));
 
-            //add set initial version to all semantic classes
+            //set initial version number to all semantic classes
             onto.classesInSignature().forEach(c -> {
                 OWLAnnotationAssertionAxiom aaa = df.getOWLAnnotationAssertionAxiom(c.getIRI(), versiond1Annot);
                 changes.add(new AddAxiom(onto, aaa));
             });
 
-            manager.applyChanges(changes);
-            logger.log(Level.INFO, "Ontology versioning starting at version #{0} [{1}]", new Object[]{version, config.getId()});
-            saveOnto();
+            if (applyChangesAndSaveOnto(changes, true)) {
+                logger.log(Level.INFO, "Ontology versioning starting at version #{0} [{1}]", new Object[]{version, config.getId()});
+            } else {
+                logger.log(Level.SEVERE, "Error while trying to track Ontology versioning [{0}]", config.getId());
+            }
 
         } else {
             version = Integer.valueOf(onto.getOntologyID().getVersionIRI().get().getFragment());
@@ -340,15 +352,59 @@ public class OboOntoHandler implements AutoCloseable {
         return version;
     }
 
-    private void saveOnto() {
-        File fileout = new File(config.getFilePath());
-        try {
-            manager.saveOntology(onto, new OBODocumentFormat(), new FileOutputStream(fileout));
-        } catch (FileNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        } catch (OWLOntologyStorageException ex) {
-            logger.log(Level.SEVERE, null, ex);
+    public List<OWLOntologyChange> createIncVersionChange(OWLClass semClass) {
+        List<OWLOntologyChange> changes = new ArrayList<>();
+
+        //get semantic class current version number
+        OWLAnnotationAssertionAxiom versionAAA = onto.annotationAssertionAxioms(semClass.getIRI())
+                .filter(aaa -> MANAGEDCLASSVERSION_IRI.equals(aaa.getProperty().getIRI()))
+                .findFirst().get();
+
+        int versionNumber = Integer.valueOf(versionAAA.getValue().annotationValue().asLiteral().get().getLiteral());
+
+        changes.add(new RemoveAxiom(onto, versionAAA));
+
+        //increment version number
+        versionNumber++;
+
+        //set new version number to semantic class
+        OWLAnnotationProperty classVersAnnotProp = df.getOWLAnnotationProperty(MANAGEDCLASSVERSION_IRI);
+        OWLAnnotation versiond1Annot = df.getOWLAnnotation(classVersAnnotProp, df.getOWLLiteral(versionNumber));
+        OWLAnnotationAssertionAxiom aaa = df.getOWLAnnotationAssertionAxiom(semClass.getIRI(), versiond1Annot);
+
+        changes.add(new AddAxiom(onto, aaa));
+
+        return changes;
+    }
+
+    public boolean applyChangesAndSaveOnto(List<OWLOntologyChange> changes, boolean createBackup) {
+
+        ChangeApplied result = onto.getOWLOntologyManager().applyChanges(changes);
+
+        if (ChangeApplied.SUCCESSFULLY.equals(result)) {
+            Path source = Paths.get(config.getFilePath());
+            if (createBackup) {
+                Format formatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
+                Path backup = Paths.get(source.toString() + formatter.format(new Date() + ".obo"));
+                try {
+                    Files.copy(source, backup, StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException ex) {
+                    logger.log(Level.SEVERE, "Could not create ontology backup!", ex);
+                }
+            }
+            try {
+                manager.saveOntology(onto, new OBODocumentFormat(), new FileOutputStream(source.toFile()));
+                return true;
+
+            } catch (FileNotFoundException | OWLOntologyStorageException ex) {
+                logger.log(Level.SEVERE, null, ex);
+            }
         }
+        return false;
+    }
+
+    public boolean applyChangesAndSaveOnto(List<OWLOntologyChange> changes) {
+        return applyChangesAndSaveOnto(changes, false);
     }
 
 }
