@@ -16,7 +16,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -27,7 +26,6 @@ import org.jgrapht.graph.DefaultEdge;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.OBODocumentFormat;
 import org.semanticweb.owlapi.model.AddAxiom;
-import org.semanticweb.owlapi.model.AddOntologyAnnotation;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
@@ -35,18 +33,18 @@ import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLAnnotationValue;
 import org.semanticweb.owlapi.model.OWLAxiom;
+import org.semanticweb.owlapi.model.OWLAxiomChange;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLDatatype;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 import org.semanticweb.owlapi.model.PrefixManager;
 import org.semanticweb.owlapi.model.RemoveAxiom;
-import org.semanticweb.owlapi.model.SetOntologyID;
 import org.semanticweb.owlapi.model.parameters.ChangeApplied;
 import org.semanticweb.owlapi.util.DefaultPrefixManager;
 
@@ -62,11 +60,7 @@ public class OboOntoHandler implements AutoCloseable {
 
     private static final String OBOBASE_URI = "http://purl.obolibrary.org/obo/";
 
-    private static final IRI OBODEFAULTONTOID_IRI = IRI.create("http://purl.obolibrary.org/obo/TEMP");
-    private static final String MANAGEDONTOID_URI = "http://maiage.inrae.fr/alvisae/ONTOL";
-    private static final IRI MANAGEDONTOID_IRI = IRI.create(MANAGEDONTOID_URI);
-    private static final IRI MANAGEDONTOVERSION_IRI = IRI.create(MANAGEDONTOID_URI, "/version");
-    private static final IRI MANAGEDCLASSVERSION_IRI = IRI.create(MANAGEDONTOID_URI, "#semclass-version");
+    private static final String SEMCLASSVERSION_PROPNAME = "#semclass-version";
 
     private static final IRI OBODBXREF_IRI = IRI.create("http://www.geneontology.org/formats/oboInOwl#hasDbXref");
     private static final IRI OBONAMESPACE_IRI = IRI.create("http://www.geneontology.org/formats/oboInOwl#hasOBONamespace");
@@ -90,6 +84,7 @@ public class OboOntoHandler implements AutoCloseable {
 
     private final OWLOntology onto;
     private final Ontology config;
+    private final IRI SEMCLASSVERSPROP_IRI;
 
     protected OboOntoHandler(Ontology ontoConfig) {
         config = ontoConfig;
@@ -98,11 +93,13 @@ public class OboOntoHandler implements AutoCloseable {
         if (loadedOntologies.containsKey(ontoConfig)) {
             logger.log(Level.INFO, "Reusing already loaded ontology : {0}", ontoConfig.getLongName());
             onto = loadedOntologies.get(ontoConfig);
+            SEMCLASSVERSPROP_IRI = getSemClassVersionIri(onto);
         } else {
             File file = new File(ontoConfig.getFilePath());
             try {
-                logger.log(Level.INFO, "Loading new ontology : {0} - {1}", ontoConfig.getFilePath());
+                logger.log(Level.INFO, "Loading ontology from file : {0}", ontoConfig.getFilePath());
                 onto = manager.loadOntologyFromOntologyDocument(file);
+                SEMCLASSVERSPROP_IRI = getSemClassVersionIri(onto);
                 checkAndSetVersionning();
                 loadedOntologies.put(ontoConfig, onto);
             } catch (OWLOntologyCreationException ex) {
@@ -170,6 +167,34 @@ public class OboOntoHandler implements AutoCloseable {
                 .map(sca -> sca.getSubClass().asOWLClass());
     }
 
+    private boolean isHyponymsOf(OWLClass hyper, OWLClass finalHypo) {
+        return getHyponymsOf(hyper).map(
+                hypo -> {
+                    if (finalHypo.getIRI().equals(hypo.getIRI())) {
+                        //found looked-up hyponym!
+                        return true;
+                    } else {
+                        //carry on walking DAG until reaching leaves
+                        return isHyponymsOf(hypo, finalHypo);
+                    }
+                }
+        ).anyMatch(e -> e);
+    }
+
+    public boolean isHyponymsOf(String semClassId, String hyponymId) {
+        //root class can not be hyponym of any class, neither any class of itself
+        if (isRootId(hyponymId) || semClassId.equals(hyponymId)) {
+            return false;
+        } else {
+            OWLClass finalHypo = getSemanticClassesForId(hyponymId).findFirst().get();
+            return getSemanticClassesForId(semClassId).map(
+                    c -> isHyponymsOf(c, finalHypo)
+            )
+                    //allow short-circuiting whenever final hyponym is found
+                    .anyMatch(e -> e);
+        }
+    }
+
     Structs.DetailSemClassNTerms initSemClassStruct(OWLClass semClass) {
         final Structs.DetailSemClassNTerms srStruct = new Structs.DetailSemClassNTerms();
 
@@ -197,7 +222,7 @@ public class OboOntoHandler implements AutoCloseable {
                         } else if (OBOEXACTSYN_IRI.equals(propNameIRI)) {
                             srStruct.termMembers.add(Structs.Term.createExactSynonym(value));
                         } else if (OBODBXREF_IRI.equals(propNameIRI)) {
-                        } else if (MANAGEDCLASSVERSION_IRI.equals(propNameIRI)) {
+                        } else if (SEMCLASSVERSPROP_IRI.equals(propNameIRI)) {
                             if (XSDINT_URI.equals(dataType.getIRI())) {
                                 srStruct.version = Integer.valueOf(value);
                             } else {
@@ -279,8 +304,17 @@ public class OboOntoHandler implements AutoCloseable {
         return kshortest.getPaths(fromClass, toClass, 1);
     }
 
-    public void replaceClassHyperonym(String semclassid, long version, String prevhyperid, String prevhyperversion, String newhyperid, String newhyperversion) {
+    public OWLAxiomChange createRemoveHyponymyChange(OWLClass semclass, OWLClass hypo) {
+        OWLSubClassOfAxiom subClassAx = onto.subClassAxiomsForSuperClass(semclass)
+                .filter(
+                        ax -> ax.getSubClass().asOWLClass().getIRI().equals(hypo.getIRI())
+                ).findFirst().get();
+        return new RemoveAxiom(onto, subClassAx);
+    }
 
+    public OWLAxiomChange createAddHyponymyChange(OWLClass semclass, OWLClass hypo) {
+        OWLSubClassOfAxiom subClassAx = df.getOWLSubClassOfAxiom(hypo, semclass);
+        return new AddAxiom(onto, subClassAx);
     }
 
     private void addTermToClass(OWLClass semClass, String form, int memberType) {
@@ -307,60 +341,63 @@ public class OboOntoHandler implements AutoCloseable {
         addTermToClass(semClass, form, Structs.Term.SYNONYM);
     }
 
+    private IRI getSemClassVersionIri(OWLOntology onto) {
+        //property name use current ontology IRI as prefix, without spurious ".owl" suffix that's sometimes added by loader
+        String currOntoIri = onto.getOntologyID().getOntologyIRI().get().toString();
+        if (currOntoIri.endsWith(".owl")) {
+            currOntoIri = currOntoIri.substring(0, currOntoIri.length() - 4);
+        }
+        return IRI.create(currOntoIri, SEMCLASSVERSION_PROPNAME);
+    }
+
     //check that specified ontology includes elements to track updates, and if not add them
-    private int checkAndSetVersionning() {
-        int version;
+    private void checkAndSetVersionning() {
 
-        Optional<IRI> currOntoIdIRI = onto.getOntologyID().getOntologyIRI();
+        OWLClass anySemClass = onto.classesInSignature().findAny().get();
 
-        if (!currOntoIdIRI.isPresent() || currOntoIdIRI.get().asIRI().get().getNamespace().equals(OBODEFAULTONTOID_IRI.getNamespace())) {
-            version = 1;
+        boolean hasVersioningProp = onto.annotationAssertionAxioms(anySemClass.getIRI())
+                .filter(
+                        aaa -> SEMCLASSVERSPROP_IRI.equals(aaa.getProperty().getIRI())
+                ).count() > 0;
 
+        if (!hasVersioningProp) {
             List<OWLOntologyChange> changes = new ArrayList<>();
 
-            IRI ontoIdIRI = IRI.create(MANAGEDONTOID_URI, "/" + config.getId());
-            IRI versionIRI = IRI.create(MANAGEDONTOVERSION_IRI + "#" + String.valueOf(version));
-            OWLOntologyID newOntologyID = new OWLOntologyID(ontoIdIRI, versionIRI);
-            SetOntologyID setOntologyID = new SetOntologyID(onto, newOntologyID);
-            changes.add(setOntologyID);
-
-            //declare new property in ontology to record semantic class version
-            OWLAnnotationProperty classVersAnnotProp = df.getOWLAnnotationProperty(MANAGEDCLASSVERSION_IRI);
-            OWLAnnotation classVersionAnnot = df.getOWLAnnotation(classVersAnnotProp, df.getOWLLiteral(1));
-            AddOntologyAnnotation addClassVersionAnnot = new AddOntologyAnnotation(onto, classVersionAnnot);
-            changes.add(addClassVersionAnnot);
-
+            //set initial version number to all semantic classes
+            OWLAnnotationProperty classVersAnnotProp = df.getOWLAnnotationProperty(SEMCLASSVERSPROP_IRI);
             OWLAnnotation versiond1Annot = df.getOWLAnnotation(classVersAnnotProp, df.getOWLLiteral(1));
 
-            //set initial version number to all semantic classes
             onto.classesInSignature().forEach(c -> {
                 OWLAnnotationAssertionAxiom aaa = df.getOWLAnnotationAssertionAxiom(c.getIRI(), versiond1Annot);
                 changes.add(new AddAxiom(onto, aaa));
             });
 
             if (applyChangesAndSaveOnto(changes, true)) {
-                logger.log(Level.INFO, "Ontology versioning starting at version #{0} [{1}]", new Object[]{version, config.getId()});
+                logger.log(Level.INFO, "Ontology versioning has been set-up [{0}]", config.getId());
             } else {
                 logger.log(Level.SEVERE, "Error while trying to track Ontology versioning [{0}]", config.getId());
             }
 
         } else {
-            version = Integer.valueOf(onto.getOntologyID().getVersionIRI().get().getFragment());
-            logger.log(Level.INFO, "Ontology already at version #{0}", version);
-
+            logger.log(Level.INFO, "Ontology already versioned");
         }
-        return version;
+
     }
 
-    public List<OWLOntologyChange> createIncVersionChange(OWLClass semClass) {
+    public List<OWLOntologyChange> testAndSetSemClassVersion(OWLClass semClass, int knowVersion) throws StaleVersionException {
         List<OWLOntologyChange> changes = new ArrayList<>();
 
         //get semantic class current version number
         OWLAnnotationAssertionAxiom versionAAA = onto.annotationAssertionAxioms(semClass.getIRI())
-                .filter(aaa -> MANAGEDCLASSVERSION_IRI.equals(aaa.getProperty().getIRI()))
+                .filter(aaa -> SEMCLASSVERSPROP_IRI.equals(aaa.getProperty().getIRI()))
                 .findFirst().get();
 
         int versionNumber = Integer.valueOf(versionAAA.getValue().annotationValue().asLiteral().get().getLiteral());
+        //if version numbers don't match, it means the specified semantic class has been changed since it was loaded on the client,
+        //therefore requested modification must be canceled
+        if (versionNumber != knowVersion) {
+            throw new StaleVersionException(semClass.getIRI());
+        }
 
         changes.add(new RemoveAxiom(onto, versionAAA));
 
@@ -368,7 +405,7 @@ public class OboOntoHandler implements AutoCloseable {
         versionNumber++;
 
         //set new version number to semantic class
-        OWLAnnotationProperty classVersAnnotProp = df.getOWLAnnotationProperty(MANAGEDCLASSVERSION_IRI);
+        OWLAnnotationProperty classVersAnnotProp = df.getOWLAnnotationProperty(SEMCLASSVERSPROP_IRI);
         OWLAnnotation versiond1Annot = df.getOWLAnnotation(classVersAnnotProp, df.getOWLLiteral(versionNumber));
         OWLAnnotationAssertionAxiom aaa = df.getOWLAnnotationAssertionAxiom(semClass.getIRI(), versiond1Annot);
 
@@ -385,7 +422,7 @@ public class OboOntoHandler implements AutoCloseable {
             Path source = Paths.get(config.getFilePath());
             if (createBackup) {
                 Format formatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
-                Path backup = Paths.get(source.toString() + formatter.format(new Date() + ".obo"));
+                Path backup = Paths.get(source.toString() + formatter.format(new Date()) + ".obo");
                 try {
                     Files.copy(source, backup, StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException ex) {
@@ -405,6 +442,13 @@ public class OboOntoHandler implements AutoCloseable {
 
     public boolean applyChangesAndSaveOnto(List<OWLOntologyChange> changes) {
         return applyChangesAndSaveOnto(changes, false);
+    }
+
+    public static class StaleVersionException extends Exception {
+
+        public StaleVersionException(IRI semClassIri) {
+            super("Semantic Class '" + getSemClassIdOf(semClassIri) + "' state has changed. Requested modification cannot be performed");
+        }
     }
 
 }

@@ -4,6 +4,7 @@ import fr.inrae.bibliome.ontolrws.JAXRSConfig;
 import fr.inrae.bibliome.ontolrws.Settings.Ontology;
 import fr.inrae.bibliome.ontolrws.Settings.Settings;
 import fr.inrae.bibliome.ontolrws.Settings.User;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -32,6 +33,7 @@ import javax.ws.rs.core.Response;
 import org.jgrapht.GraphPath;
 import org.jgrapht.graph.DefaultEdge;
 import org.semanticweb.owlapi.model.OWLClass;
+import org.semanticweb.owlapi.model.OWLOntologyChange;
 
 /**
  *
@@ -205,15 +207,74 @@ public class Resources {
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
             @PathParam("semclassid") String semclassid,
-            @FormParam("semClassVersion") long version, //?~ "Missing semClassVersion parameter" ~> 400 ;
-            @FormParam("prevHyperSemClassId") String prevhyperid, //?~ "Missing prevHyperSemClassId parameter" ~> 400 ;
-            @FormParam("prevHyperSemClassVersion") String prevhyperversion, //?~ "missing prevHyperSemClassVersion parameter" ~> 400;
-            @FormParam("newHyperSemClassId") String newhyperid, //?~ "Missing newHyperSemClassId parameter" ~> 400;
-            @FormParam("newHyperSemClassVersion") String newhyperversion //?~ "Missing newHyperSemClassVersion parameter" ~> 400);
+            @FormParam("semClassVersion") int version, //?~ "Missing semClassVersion parameter" ~> 400 ;
+            @FormParam("prevHyperSemClassId") String prevhyperid,
+            @FormParam("prevHyperSemClassVersion") int prevhyperversion, //?~ "missing prevHyperSemClassVersion parameter" ~> 400;
+            @FormParam("newHyperSemClassId") String newhyperid,
+            @FormParam("newHyperSemClassVersion") int newhyperversion //?~ "Missing newHyperSemClassVersion parameter" ~> 400);
     ) {
         return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
 
-            return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+            Optional<OWLClass> semClassOpt = ontoHnd.getSemanticClassesForId(semclassid).findFirst();
+            if (!semClassOpt.isPresent()) {
+                return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Semantic class not found (" + semclassid + ")").build();
+            }
+
+            List<OWLOntologyChange> changes = new ArrayList<>();
+
+            try {
+                changes.addAll(ontoHnd.testAndSetSemClassVersion(semClassOpt.get(), version));
+
+                if (!OboOntoHandler.isRootId(prevhyperid)) {
+                    Optional<OWLClass> prevHyperOpt = ontoHnd.getSemanticClassesForId(prevhyperid).findFirst();
+                    if (!prevHyperOpt.isPresent()) {
+                        return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Missing or invalid prevHyperSemClassId parameter").build();
+                    }
+
+                    changes.addAll(ontoHnd.testAndSetSemClassVersion(prevHyperOpt.get(), prevhyperversion));
+                    try {
+                        changes.add(ontoHnd.createRemoveHyponymyChange(prevHyperOpt.get(), semClassOpt.get()));
+
+                    } catch (NoSuchElementException e) {
+                        return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Previous nyperonymy link not found!").build();
+                    }
+
+                }
+                if (!OboOntoHandler.isRootId(newhyperid)) {
+                    //Cycles may appear when creating a new hyponymy link : check that it won't, or report the error 
+
+                    //Do NOT link a class to itself!
+                    if (newhyperid.equals(semclassid)) {
+                        return Response.status(UNPROCESSABLE).entity("Cannot link a class to itself!").build();
+                    } else {
+
+                        Optional<OWLClass> newHyperOpt = ontoHnd.getSemanticClassesForId(newhyperid).findFirst();
+                        if (!newHyperOpt.isPresent()) {
+                            return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Missing or invalid newHyperSemClassId parameter").build();
+                        }
+
+                        //if the specified new direct Hyperonym has already the specified semantic class for hyperonym (direct or not) then adding this link will create a cycle in the graph
+                        if (ontoHnd.isHyponymsOf(semclassid, newhyperid)) {
+                            return Response.status(UNPROCESSABLE).entity("Linking these classes would create a cycle!").build();
+                        }
+
+                        changes.addAll(ontoHnd.testAndSetSemClassVersion(newHyperOpt.get(), newhyperversion));
+                        changes.add(ontoHnd.createAddHyponymyChange(newHyperOpt.get(), semClassOpt.get()));
+                    }
+                }
+
+                if (ontoHnd.applyChangesAndSaveOnto(changes)) {
+
+                    JsonObjectBuilder result = getSemanticClassResult(ontoHnd, semclassid, true, false);
+                    return Response.ok(result.build()).build();
+
+                } else {
+                    return Response.status(UNPROCESSABLE).entity("Could not perform modification").build();
+                }
+            } catch (OboOntoHandler.StaleVersionException ex) {
+                return Response.status(UNPROCESSABLE).entity(ex.getMessage()).build();
+            }
+
         });
     }
 
@@ -226,12 +287,15 @@ public class Resources {
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
             @FormParam("classId") String semclassid, //?~ "missing classID parameter" ~> 400;
-            @FormParam("classVersion") long version, //?~ "missing classVersion parameter" ~> 400;
+            @FormParam("classVersion") int version, //?~ "missing classVersion parameter" ~> 400;
             @FormParam("surfaceForm") String surfForm, //?~ "missing surfaceForm parameter" ~> 400)
             @FormParam("lemmatizedForm") String lemma //Option
 
     ) {
-        return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
+
+            return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        });
     }
 
     // [ J ]
@@ -242,12 +306,15 @@ public class Resources {
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
             @FormParam("hyperId") String semclassid, //?~ "missing hyperId parameter" ~> 400;
-            @FormParam("classVersion") long version, //?~ "missing classVersion parameter" ~> 400;
+            @FormParam("classVersion") int version, //?~ "missing classVersion parameter" ~> 400;
             @FormParam("surfaceForm") String surfForm, //?~ "missing surfaceForm parameter" ~> 400)
             @FormParam("lemmatizedForm") String lemma, //Option
             @QueryParam("force") @DefaultValue("true") boolean force
     ) {
-        return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
+
+            return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        });
     }
 
     // [ K ]
@@ -259,9 +326,12 @@ public class Resources {
             @PathParam("projectid") String projectid,
             @PathParam("semclassid") String semclassid,
             @FormParam("termId") String termid, // ?~ "missing termId parameter" ~> 400;
-            @FormParam("classVersion") long version //?~ "missing classVersion parameter" ~> 400
+            @FormParam("classVersion") int version //?~ "missing classVersion parameter" ~> 400
     ) {
-        return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
+
+            return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        });
     }
 
     // [ L ]
@@ -272,11 +342,14 @@ public class Resources {
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
             @FormParam("semClassId1") String semclassid1, //?~ "Missing semClassId1 parameter" ~> 400 ;
-            @FormParam("semClassVersion1") long version1, //?~ "Missing semClassVersion1 parameter" ~> 400 ;
+            @FormParam("semClassVersion1") int version1, //?~ "Missing semClassVersion1 parameter" ~> 400 ;
             @FormParam("semClassId2") String semclassid2, //?~ "missing semClassId2 parameter" ~> 400;
-            @FormParam("semClassVersion2") long version2 //?~ "Missing semClassVersion2 parameter" ~> 400)
+            @FormParam("semClassVersion2") int version2 //?~ "Missing semClassVersion2 parameter" ~> 400)
     ) {
-        return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
+
+            return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        });
     }
 
     // [ M ]
@@ -286,11 +359,13 @@ public class Resources {
     public Response getChangesBetweenOntoVersions(
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
-            @PathParam("fromversionnum") long fromversionnum,
+            @PathParam("fromversionnum") int fromversionnum,
             @QueryParam("semclassids") List<String> semclassids
     ) {
+        return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
 
-        return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+            return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        });
     }
 
     // [ N ]
@@ -302,10 +377,15 @@ public class Resources {
             @PathParam("projectid") String projectid,
             String entityParam
     ) {
-        return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
+
+            return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+        });
     }
 
     // -------------------------------------------------------------------------
+    private static final int UNPROCESSABLE = 422;
+
     @Context
     private JAXRSConfig app;
 
