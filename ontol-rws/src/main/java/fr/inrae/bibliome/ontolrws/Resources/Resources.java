@@ -4,6 +4,7 @@ import fr.inrae.bibliome.ontolrws.JAXRSConfig;
 import fr.inrae.bibliome.ontolrws.Settings.Ontology;
 import fr.inrae.bibliome.ontolrws.Settings.Settings;
 import fr.inrae.bibliome.ontolrws.Settings.User;
+import java.text.Collator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -32,6 +33,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.jgrapht.GraphPath;
 import org.jgrapht.graph.DefaultEdge;
+import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 
@@ -147,11 +149,20 @@ public class Resources {
         return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
 
             JsonArrayBuilder result = Json.createArrayBuilder();
-            ontoHnd.getClassesIdForMatchingLabelPattern(pattern).forEach(
-                    semClassId
-                    -> result.add(getSemanticClassResult(ontoHnd, semClassId, false, false))
-            );
+            Collator currlocCollator = Collator.getInstance();
 
+            ontoHnd.getClassesIdForMatchingLabelPattern(pattern)
+                    .map(semClassId -> {
+                        OWLClass semClass = ontoHnd.getSemanticClassesForId(semClassId).findFirst().get();
+                        return getSemanticClassData(ontoHnd, semClass, false);
+                    })
+                    .sorted(
+                            (Structs.DetailSemClassNTerms sc1, Structs.DetailSemClassNTerms sc2)
+                            -> currlocCollator.compare(sc1.canonicLabel, sc2.canonicLabel)
+                    )
+                    .forEach(sc -> result.add(getSemanticClassResult(ontoHnd, sc, false, false))
+                    );
+            
             return Response.ok(result.build()).build();
         });
     }
