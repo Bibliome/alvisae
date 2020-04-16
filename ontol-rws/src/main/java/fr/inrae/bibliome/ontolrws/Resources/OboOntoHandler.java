@@ -317,7 +317,7 @@ public class OboOntoHandler implements AutoCloseable {
         return new AddAxiom(onto, subClassAx);
     }
 
-    private void addTermToClass(OWLClass semClass, String form, int memberType) {
+    private AddAxiom createAddTermToClassChange(OWLClass semClass, String form, int memberType) {
         IRI synonymTypeIRI;
         switch (memberType) {
             case Structs.Term.SYNONYM:
@@ -333,12 +333,12 @@ public class OboOntoHandler implements AutoCloseable {
         OWLAnnotationProperty synProp = df.getOWLAnnotationProperty(synonymTypeIRI);
         OWLAnnotation synonymAnno = df.getOWLAnnotation(synProp, df.getOWLLiteral(form));
         OWLAxiom synAxiom = df.getOWLAnnotationAssertionAxiom(semClass.getIRI(), synonymAnno);
-        manager.applyChange(new AddAxiom(onto, synAxiom));
+        return new AddAxiom(onto, synAxiom);
     }
 
     //currently only exact synonyms can be created
-    public void addTermToClass(OWLClass semClass, String form) {
-        addTermToClass(semClass, form, Structs.Term.SYNONYM);
+    public AddAxiom createAddTermToClassChange(OWLClass semClass, String form) {
+        return createAddTermToClassChange(semClass, form, Structs.Term.SYNONYM);
     }
 
     private IRI getSemClassVersionIri(OWLOntology onto) {

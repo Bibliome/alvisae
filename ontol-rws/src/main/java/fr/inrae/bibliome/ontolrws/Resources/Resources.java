@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.json.Json;
@@ -33,7 +34,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.jgrapht.GraphPath;
 import org.jgrapht.graph.DefaultEdge;
-import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 
@@ -162,7 +162,7 @@ public class Resources {
                     )
                     .forEach(sc -> result.add(getSemanticClassResult(ontoHnd, sc, false, false))
                     );
-            
+
             return Response.ok(result.build()).build();
         });
     }
@@ -226,66 +226,58 @@ public class Resources {
     ) {
         return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
 
-            Optional<OWLClass> semClassOpt = ontoHnd.getSemanticClassesForId(semclassid).findFirst();
-            if (!semClassOpt.isPresent()) {
-                return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Semantic class not found (" + semclassid + ")").build();
-            }
+            return checkSemClassExists(ontoHnd, semclassid, semClass -> {
 
-            List<OWLOntologyChange> changes = new ArrayList<>();
+                List<OWLOntologyChange> changes = new ArrayList<>();
 
-            try {
-                changes.addAll(ontoHnd.testAndSetSemClassVersion(semClassOpt.get(), version));
+                try {
+                    changes.addAll(ontoHnd.testAndSetSemClassVersion(semClass, version));
 
-                if (!OboOntoHandler.isRootId(prevhyperid)) {
-                    Optional<OWLClass> prevHyperOpt = ontoHnd.getSemanticClassesForId(prevhyperid).findFirst();
-                    if (!prevHyperOpt.isPresent()) {
-                        return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Missing or invalid prevHyperSemClassId parameter").build();
-                    }
-
-                    changes.addAll(ontoHnd.testAndSetSemClassVersion(prevHyperOpt.get(), prevhyperversion));
-                    try {
-                        changes.add(ontoHnd.createRemoveHyponymyChange(prevHyperOpt.get(), semClassOpt.get()));
-
-                    } catch (NoSuchElementException e) {
-                        return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Previous nyperonymy link not found!").build();
-                    }
-
-                }
-                if (!OboOntoHandler.isRootId(newhyperid)) {
-                    //Cycles may appear when creating a new hyponymy link : check that it won't, or report the error 
-
-                    //Do NOT link a class to itself!
-                    if (newhyperid.equals(semclassid)) {
-                        return Response.status(UNPROCESSABLE).entity("Cannot link a class to itself!").build();
-                    } else {
-
-                        Optional<OWLClass> newHyperOpt = ontoHnd.getSemanticClassesForId(newhyperid).findFirst();
-                        if (!newHyperOpt.isPresent()) {
-                            return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Missing or invalid newHyperSemClassId parameter").build();
+                    if (!OboOntoHandler.isRootId(prevhyperid)) {
+                        Optional<OWLClass> prevHyperOpt = ontoHnd.getSemanticClassesForId(prevhyperid).findFirst();
+                        if (!prevHyperOpt.isPresent()) {
+                            return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Missing or invalid prevHyperSemClassId parameter").build();
                         }
 
-                        //if the specified new direct Hyperonym has already the specified semantic class for hyperonym (direct or not) then adding this link will create a cycle in the graph
-                        if (ontoHnd.isHyponymsOf(semclassid, newhyperid)) {
-                            return Response.status(UNPROCESSABLE).entity("Linking these classes would create a cycle!").build();
+                        changes.addAll(ontoHnd.testAndSetSemClassVersion(prevHyperOpt.get(), prevhyperversion));
+                        try {
+                            changes.add(ontoHnd.createRemoveHyponymyChange(prevHyperOpt.get(), semClass));
+
+                        } catch (NoSuchElementException e) {
+                            return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Previous nyperonymy link not found!").build();
                         }
 
-                        changes.addAll(ontoHnd.testAndSetSemClassVersion(newHyperOpt.get(), newhyperversion));
-                        changes.add(ontoHnd.createAddHyponymyChange(newHyperOpt.get(), semClassOpt.get()));
                     }
+                    if (!OboOntoHandler.isRootId(newhyperid)) {
+                        //Cycles may appear when creating a new hyponymy link : check that it won't, or report the error 
+
+                        //Do NOT link a class to itself!
+                        if (newhyperid.equals(semclassid)) {
+                            return Response.status(UNPROCESSABLE).entity("Cannot link a class to itself!").build();
+                        } else {
+
+                            Optional<OWLClass> newHyperOpt = ontoHnd.getSemanticClassesForId(newhyperid).findFirst();
+                            if (!newHyperOpt.isPresent()) {
+                                return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Missing or invalid newHyperSemClassId parameter").build();
+                            }
+
+                            //if the specified new direct Hyperonym has already the specified semantic class for hyperonym (direct or not) then adding this link will create a cycle in the graph
+                            if (ontoHnd.isHyponymsOf(semclassid, newhyperid)) {
+                                return Response.status(UNPROCESSABLE).entity("Linking these classes would create a cycle!").build();
+                            }
+
+                            changes.addAll(ontoHnd.testAndSetSemClassVersion(newHyperOpt.get(), newhyperversion));
+                            changes.add(ontoHnd.createAddHyponymyChange(newHyperOpt.get(), semClass));
+                        }
+                    }
+
+                    return applyChangesAndSaveOnto(ontoHnd, changes, semclassid);
+
+                } catch (OboOntoHandler.StaleVersionException ex) {
+                    return Response.status(UNPROCESSABLE).entity(ex.getMessage()).build();
                 }
 
-                if (ontoHnd.applyChangesAndSaveOnto(changes)) {
-
-                    JsonObjectBuilder result = getSemanticClassResult(ontoHnd, semclassid, true, false);
-                    return Response.ok(result.build()).build();
-
-                } else {
-                    return Response.status(UNPROCESSABLE).entity("Could not perform modification").build();
-                }
-            } catch (OboOntoHandler.StaleVersionException ex) {
-                return Response.status(UNPROCESSABLE).entity(ex.getMessage()).build();
-            }
-
+            });
         });
     }
 
@@ -304,8 +296,20 @@ public class Resources {
 
     ) {
         return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
+            
+            return checkSemClassExists(ontoHnd, semclassid, semClass -> {
 
-            return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+                List<OWLOntologyChange> changes = new ArrayList<>();
+                try {
+                    changes.addAll(ontoHnd.testAndSetSemClassVersion(semClass, version));
+                    //only surface form is stored in Obo ontology
+                    changes.add(ontoHnd.createAddTermToClassChange(semClass, surfForm));
+
+                    return applyChangesAndSaveOnto(ontoHnd, changes, semclassid);
+                } catch (OboOntoHandler.StaleVersionException ex) {
+                    return Response.status(UNPROCESSABLE).entity(ex.getMessage()).build();
+                }
+            });
         });
     }
 
@@ -407,7 +411,8 @@ public class Resources {
     private Response checkUserIsAuthForOnto(
             ContainerRequestContext requestContext,
             String projectid,
-            BiFunction<User, OboOntoHandler, Response> responseSupplier) {
+            BiFunction<User, OboOntoHandler, Response> responseSupplier
+    ) {
 
         User authUser = getAuthUser(requestContext);
 
@@ -417,6 +422,30 @@ public class Resources {
         }
         try (OboOntoHandler ontoHnd = OboOntoHandler.getHandler(ontology.get())) {
             return responseSupplier.apply(authUser, ontoHnd);
+        }
+    }
+
+    private Response checkSemClassExists(
+            OboOntoHandler ontoHnd,
+            String semclassid,
+            Function<OWLClass, Response> responseSupplier
+    ) {
+        Optional<OWLClass> semClassOpt = ontoHnd.getSemanticClassesForId(semclassid).findFirst();
+
+        if (semClassOpt.isPresent()) {
+            return responseSupplier.apply(semClassOpt.get());
+        } else {
+            return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Semantic class not found (" + semclassid + ")").build();
+        }
+    }
+
+    private Response applyChangesAndSaveOnto(OboOntoHandler ontoHnd, List<OWLOntologyChange> changes, String semclassid) {
+        if (ontoHnd.applyChangesAndSaveOnto(changes)) {
+            JsonObjectBuilder result = getSemanticClassResult(ontoHnd, semclassid, true, false);
+            return Response.ok(result.build()).build();
+
+        } else {
+            return Response.status(UNPROCESSABLE).entity("Could not perform modification").build();
         }
     }
 
