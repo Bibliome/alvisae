@@ -34,7 +34,7 @@ import fr.inra.mig_bibliome.alvisae.client.data.Retrieve.RequestManager;
  */
 public class AlvisaeGenericUI implements EntryPoint {
 
-    private static final String VERSION_LABEL = "v0.6 (build~20200310)";
+    private static final String VERSION_LABEL = "v0.6 (build~20200403)";
     private Place defaultPlace = new DefaultPlace("start");
     private SimplePanel appWidget;
     private ApplicationStatusChangedEventHandler applicationStatusDisplayer;

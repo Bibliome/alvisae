@@ -29,27 +29,27 @@ public class ProviderStore {
      */
     public static class ByProject {
 
-        private final int projectId;
-        private final HashMap<Integer, HashSet<SemClassDataProvider>> parentProvidersBySemClass = new HashMap<Integer, HashSet<SemClassDataProvider>>();
-        private final HashMap<Integer, SemClassDataProvider> providerBySemClass = new HashMap<Integer, SemClassDataProvider>();
-        private final HashMap<Integer, ClassDetailMembersDataProvider> detailsProviderBySemClass = new HashMap<Integer, ClassDetailMembersDataProvider>();
-        private int marked = -1;
+        private final String projectId;
+        private final HashMap<String, HashSet<SemClassDataProvider>> parentProvidersBySemClass = new HashMap<String, HashSet<SemClassDataProvider>>();
+        private final HashMap<String, SemClassDataProvider> providerBySemClass = new HashMap<String, SemClassDataProvider>();
+        private final HashMap<String, ClassDetailMembersDataProvider> detailsProviderBySemClass = new HashMap<String, ClassDetailMembersDataProvider>();
+        private String marked = "";
         private final SemClass root = SemClassImpl.createRoot();
-        private final HashMap<Integer, SemClass> semClasses = new HashMap<Integer, SemClass>();
-        private final HashMap<Integer, SemClassNTerms> semClassNTerms = new HashMap<Integer, SemClassNTerms>();
-        private final HashMap<Integer, SemClassTreeLevel> treeLevel = new HashMap<Integer, SemClassTreeLevel>();
+        private final HashMap<String, SemClass> semClasses = new HashMap<String, SemClass>();
+        private final HashMap<String, SemClassNTerms> semClassNTerms = new HashMap<String, SemClassNTerms>();
+        private final HashMap<String, SemClassTreeLevel> treeLevel = new HashMap<String, SemClassTreeLevel>();
 
-        public ByProject(int projectId) {
+        public ByProject(String projectId) {
             this.projectId = projectId;
         }
 
-        public boolean isMarked(int semmClassId) {
-            return marked == semmClassId;
+        public boolean isMarked(String semmClassId) {
+            return marked.equals(semmClassId);
         }
 
-        public void toggleMarked(int semmClassId) {
-            if (marked == semmClassId) {
-                marked = -1;
+        public void toggleMarked(String semmClassId) {
+            if (marked.equals(semmClassId)) {
+                marked = "";
             } else {
                 SemClassDataProvider.refreshSemClassNodes(projectId, marked);
                 marked = semmClassId;
@@ -61,7 +61,7 @@ public class ProviderStore {
          * Retrieve the unique DataProvider that can generate the children
          * NodeInfo of the specified Semantic Class Id
          */
-        public SemClassDataProvider getProvider(int semmClassId) {
+        public SemClassDataProvider getProvider(String semmClassId) {
             return providerBySemClass.get(semmClassId);
         }
 
@@ -69,14 +69,14 @@ public class ProviderStore {
          * Retrieve the list of all DataProviders that generated NodeInfos
          * corresponding to the specified Semantic Class Id
          */
-        public HashSet<SemClassDataProvider> getParentProviders(int semmClassId) {
+        public HashSet<SemClassDataProvider> getParentProviders(String semmClassId) {
             return parentProvidersBySemClass.get(semmClassId);
         }
 
         /*
          *
          */
-        public ClassDetailMembersDataProvider getDetailsProvider(int semmClassId) {
+        public ClassDetailMembersDataProvider getDetailsProvider(String semmClassId) {
             return detailsProviderBySemClass.get(semmClassId);
         }
 
@@ -84,7 +84,7 @@ public class ProviderStore {
          * Remember that the specified DataProvider has generated a NodeInfo
          * corresponding to the specified Semantic Class Id
          */
-        public void setParentProvider(int semmClassId, SemClassDataProvider provider) {
+        public void setParentProvider(String semmClassId, SemClassDataProvider provider) {
             HashSet<SemClassDataProvider> parentProviders = parentProvidersBySemClass.get(semmClassId);
             if (parentProviders == null) {
                 parentProviders = new HashSet<SemClassDataProvider>();
@@ -97,7 +97,7 @@ public class ProviderStore {
          * Forget that the specified DataProvider has generated a NodeInfo
          * corresponding to the specified Semantic Class Id
          */
-        public void unsetParentProvider(int semmClassId, SemClassDataProvider provider) {
+        public void unsetParentProvider(String semmClassId, SemClassDataProvider provider) {
             HashSet<SemClassDataProvider> parentProviders = parentProvidersBySemClass.get(semmClassId);
             if (parentProviders != null) {
                 parentProviders.remove(provider);
@@ -114,7 +114,7 @@ public class ProviderStore {
             treeLevel.clear();
         }
 
-        private void disposeOutdatedTreeLevel(int semClassId, int semClassVersion) {
+        private void disposeOutdatedTreeLevel(String semClassId, int semClassVersion) {
             SemClassTreeLevel level = treeLevel.get(semClassId);
             if (level != null) {
                 if (level.getVersion() < semClassVersion) {
@@ -125,7 +125,7 @@ public class ProviderStore {
 
         public void cacheSemClass(SemClass semClass) {
             if (semClass != null) {
-                int semClassId = semClass.getId();
+                String semClassId = semClass.getId();
                 disposeOutdatedTreeLevel(semClassId, semClass.getVersion());
                 //GWT.log("Caching class:" + semClass.getId() + "@" + semClass.getVersion() + " " + semClass.getCanonicLabel());
                 SemClass previous = semClasses.put(semClassId, semClass);
@@ -133,7 +133,7 @@ public class ProviderStore {
         }
 
         public void cacheSemClassTreeLevel(SemClassTreeLevel semClassTreeLevel) {
-            int semClassId = semClassTreeLevel.getId();
+            String semClassId = semClassTreeLevel.getId();
             //GWT.log("Caching level:" + semClassTreeLevel.getId() + "@" + semClassTreeLevel.getVersion() + " " + semClassTreeLevel.getCanonicLabel());
             SemClassTreeLevel previous = treeLevel.put(semClassId, semClassTreeLevel);
             if (semClasses.containsKey(semClassId)) {
@@ -144,8 +144,8 @@ public class ProviderStore {
             }
         }
 
-        public SemClass getCacheSemClass(int semClassId) {
-            if (semClassId == SemClass.ROOT_ID) {
+        public SemClass getCacheSemClass(String semClassId) {
+            if (SemClass.ROOT_ID.equals(semClassId)) {
                 return root;
             } else {
                 SemClass semClass = treeLevel!=null ? treeLevel.get(semClassId) : null;
@@ -156,13 +156,13 @@ public class ProviderStore {
             }
         }
 
-        public void unloadSemClassTreeLevel(int semClassId) {
+        public void unloadSemClassTreeLevel(String semClassId) {
             treeLevel.remove(semClassId);
             semClasses.remove(semClassId);
             semClassNTerms.remove(semClassId);
         }
 
-        public SemClassTreeLevel getCacheSemClassTreeLevel(int semClassId) {
+        public SemClassTreeLevel getCacheSemClassTreeLevel(String semClassId) {
             SemClass semClass = getCacheSemClass(semClassId);
             if (semClass instanceof SemClassTreeLevel) {
                 return (SemClassTreeLevel) semClass;
@@ -172,19 +172,19 @@ public class ProviderStore {
         }
 
         public void cacheSemClassNTerms(SemClassNTerms semClass) {
-            int semClassId = semClass.getId();
+            String semClassId = semClass.getId();
             int semClassVersion = semClass.getVersion();
             //GWT.log("Caching details:" + semClass.getId() + "@" + semClass.getVersion() + "  " + semClass.getCanonicLabel());
             SemClassNTerms previous = semClassNTerms.put(semClassId, semClass);
         }
 
-        public SemClassNTerms getCacheSemClassNTerms(int semClassId) {
+        public SemClassNTerms getCacheSemClassNTerms(String semClassId) {
             return semClassNTerms.get(semClassId);
         }
     }
-    private final HashMap<Integer, ByProject> providersByProject = new HashMap<Integer, ByProject>();
+    private final HashMap<String, ByProject> providersByProject = new HashMap<String, ByProject>();
 
-    private ByProject _forProject(int projectId) {
+    private ByProject _forProject(String projectId) {
         return providersByProject.get(projectId);
     }
 
@@ -199,13 +199,13 @@ public class ProviderStore {
      * Retrieve, or create if necessary, the DataProvider that can generate the
      * children NodeInfo of the specified Semantic Class.
      */
-    private SemClassDataProvider _getOrCreateSemClassProvider(int projectId, SemClassInfo parentClassInfo) {
+    private SemClassDataProvider _getOrCreateSemClassProvider(String projectId, SemClassInfo parentClassInfo) {
         ByProject forProject = providersByProject.get(projectId);
         if (forProject == null) {
             forProject = new ByProject(projectId);
             providersByProject.put(projectId, forProject);
         }
-        Integer parentSemClassId = parentClassInfo != null ? parentClassInfo.getId() : null;
+        String parentSemClassId = parentClassInfo != null ? parentClassInfo.getId() : null;
         SemClassDataProvider forSemclass = forProject.providerBySemClass.get(parentSemClassId);
         if (forSemclass == null) {
             forSemclass = new SemClassDataProvider(SemClassInfo.KEY_PROVIDER, projectId, parentClassInfo);
@@ -214,13 +214,13 @@ public class ProviderStore {
         return forSemclass;
     }
 
-    private ClassDetailMembersDataProvider _getOrCreateDetailSemClassProvider(int projectId, SemClassInfo semClassInfo) {
+    private ClassDetailMembersDataProvider _getOrCreateDetailSemClassProvider(String projectId, SemClassInfo semClassInfo) {
         ByProject forProject = providersByProject.get(projectId);
         if (forProject == null) {
             forProject = new ByProject(projectId);
             providersByProject.put(projectId, forProject);
         }
-        Integer semClassId = semClassInfo.getId();
+        String semClassId = semClassInfo.getId();
         ClassDetailMembersDataProvider forSemclass = forProject.detailsProviderBySemClass.get(semClassId);
         if (forSemclass == null) {
             forSemclass = new ClassDetailMembersDataProvider(TermInfo.KEY_PROVIDER, projectId, semClassInfo);
@@ -235,15 +235,15 @@ public class ProviderStore {
      * @return the part of the repository specific to the specified terminology
      * project
      */
-    public static ByProject forProject(int projectId) {
+    public static ByProject forProject(String projectId) {
         return providerStore._forProject(projectId);
     }
 
-    public static SemClassDataProvider getOrCreateSemClassProvider(int projectId, SemClassInfo parentClassInfo) {
+    public static SemClassDataProvider getOrCreateSemClassProvider(String projectId, SemClassInfo parentClassInfo) {
         return providerStore._getOrCreateSemClassProvider(projectId, parentClassInfo);
     }
 
-    public static ClassDetailMembersDataProvider getOrCreateSemClassDetailProvider(int projectId, SemClassInfo classInfo) {
+    public static ClassDetailMembersDataProvider getOrCreateSemClassDetailProvider(String projectId, SemClassInfo classInfo) {
         return providerStore._getOrCreateDetailSemClassProvider(projectId, classInfo);
     }
 

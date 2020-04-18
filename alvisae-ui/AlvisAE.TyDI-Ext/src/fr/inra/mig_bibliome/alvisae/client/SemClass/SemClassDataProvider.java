@@ -32,7 +32,7 @@ public class SemClassDataProvider extends AsyncDataProvider<SemClassInfo> {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     // Refresh every nodes corresponding to the specified Semantic Class id (without reloading data from DB)
-    public static void refreshSemClassNodes(int projectId, int semClassId) {
+    public static void refreshSemClassNodes(String projectId, String semClassId) {
         //GWT.log("Refreshing (nodes of) " + semClassId);
         HashSet<SemClassDataProvider> parentProviders = ProviderStore.forProject(projectId).getParentProviders(semClassId);
         if (parentProviders != null) {
@@ -44,7 +44,7 @@ public class SemClassDataProvider extends AsyncDataProvider<SemClassInfo> {
     }
 
     // Reload from DB the details of every Hyperonym Class of the specified Semantic Class id
-    public static void reloadSemClassParents(int projectId, int semClassId) {
+    public static void reloadSemClassParents(String projectId, String semClassId) {
         //GWT.log("Reloading (parents of) " + semClassId);
         HashSet<SemClassDataProvider> parentProviders = ProviderStore.forProject(projectId).getParentProviders(semClassId);
         if (parentProviders != null) {
@@ -57,7 +57,7 @@ public class SemClassDataProvider extends AsyncDataProvider<SemClassInfo> {
     }
 
     // Reload from DB the details of the specified Semantic Class id
-    public static void reloadSemClass(int projectId, int semClassId) {
+    public static void reloadSemClass(String projectId, String semClassId) {
         //GWT.log("Reloading (class) " + semClassId);
         SemClassDataProvider parentProvider = ProviderStore.forProject(projectId).getProvider(semClassId);
         if (parentProvider != null) {
@@ -67,13 +67,13 @@ public class SemClassDataProvider extends AsyncDataProvider<SemClassInfo> {
     }
     // =========================================================================
     private final SemClassInfo parentClassInfo;
-    private final Integer projectId;
-    private final Integer parentId;
+    private final String projectId;
+    private final String parentId;
     private boolean loaded = false;
     private boolean loading = false;
     private ArrayList<SemClassExtendedInfo> data = new ArrayList<SemClassExtendedInfo>();
 
-    protected SemClassDataProvider(ProvidesKey<SemClassInfo> KEY_PROVIDER, int projectId, SemClassInfo parentClassInfo) {
+    protected SemClassDataProvider(ProvidesKey<SemClassInfo> KEY_PROVIDER, String projectId, SemClassInfo parentClassInfo) {
         super(KEY_PROVIDER);
         this.projectId = projectId;
         this.parentClassInfo = parentClassInfo;
@@ -84,17 +84,17 @@ public class SemClassDataProvider extends AsyncDataProvider<SemClassInfo> {
         }
     }
 
-    public Integer getParentId() {
+    public String getParentId() {
         return parentId;
     }
 
-    public void refreshRowData(int semClassId) {
+    public void refreshRowData(String semClassId) {
         //FIXME should refresh only the specified row 
         /*
          ArrayList<SemClassInfo> dataInRange = new ArrayList<SemClassInfo>();
          int rowIndex = 0;
          for (SemClassExtendedInfo info : data) {
-         if (semClassId == info.getId()) {
+         if (semClassId.equals(info.getId())) {
          dataInRange.add(info);
          updateRowData(rowIndex, dataInRange);
          break;
@@ -104,7 +104,7 @@ public class SemClassDataProvider extends AsyncDataProvider<SemClassInfo> {
          * 
          */
         ArrayList<SemClassInfo> loadedData = new ArrayList<SemClassInfo>();
-        for (Entry<Integer, SemClass> e : ProviderStore.forProject(projectId).getCacheSemClassTreeLevel(semClassId).getHypoGroupsDetails().entrySet()) {
+        for (Entry<String, SemClass> e : ProviderStore.forProject(projectId).getCacheSemClassTreeLevel(semClassId).getHypoGroupsDetails().entrySet()) {
             loadedData.add(new SemClassExtendedInfo(projectId, e.getValue().getId(), parentId));
         }
 
@@ -136,7 +136,7 @@ public class SemClassDataProvider extends AsyncDataProvider<SemClassInfo> {
         });
     }
 
-    public static void ensureSemanticClassLoaded(final Integer projectId, Integer semClassId, final Command executeWhenLoaded) {
+    public static void ensureSemanticClassLoaded(final String projectId, String semClassId, final Command executeWhenLoaded) {
         if ((ProviderStore.forProject(projectId) == null || ProviderStore.forProject(projectId).getCacheSemClass(semClassId) == null) && termInjector.getTermDataProvider().getRequestManager().isSignedIn()) {
             termInjector.getTermDataProvider().getSemanticClass(projectId, semClassId, new AsyncResponseHandler<VersionedSemClassTreeLevelImpl>() {
                 @Override
@@ -160,7 +160,7 @@ public class SemClassDataProvider extends AsyncDataProvider<SemClassInfo> {
                 ProviderStore.forProject(projectId).cacheSemClassTreeLevel(result);
                 data.clear();
                 ArrayList<SemClassExtendedInfo> loadedData = new ArrayList<SemClassExtendedInfo>();
-                for (Entry<Integer, SemClass> e : result.getHypoGroupsDetails().entrySet()) {
+                for (Entry<String, SemClass> e : result.getHypoGroupsDetails().entrySet()) {
                     loadedData.add(new SemClassExtendedInfo(projectId, e.getValue().getId(), parentId));
                     ProviderStore.forProject(projectId).setParentProvider(e.getValue().getId(), SemClassDataProvider.this);
                 }
@@ -204,7 +204,7 @@ public class SemClassDataProvider extends AsyncDataProvider<SemClassInfo> {
         } else {
 
             //Asynch retreival of the hyponyms affected to 
-            if (parentId != 0 && !parentClassInfo.hasChild()) {
+            if (!SemClass.ROOT_ID.equals(parentId) && !parentClassInfo.hasChild()) {
                 Scheduler.get().scheduleFinally(new Command() {
                     @Override
                     public void execute() {

@@ -12,17 +12,17 @@ package fr.inra.mig_bibliome.alvisae.shared.data3;
  */
 public interface SemClassBasic {
 
-    public static final int ROOT_ID = 0;
+    public static final String ROOT_ID = "0";
     
     /**
      * @return the Id of this Semantic class
      */
-    public int getId();
+    public String getId();
 
     /**
      * @return the Term Id of the Canonic representative of this Semantic class
      */
-    public int getCanonicId();
+    public String getCanonicId();
 
     /**
      * @return the surface form of the Canonic representative of this Semantic class

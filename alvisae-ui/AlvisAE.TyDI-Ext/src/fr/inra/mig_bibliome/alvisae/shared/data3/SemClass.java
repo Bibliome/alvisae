@@ -7,7 +7,7 @@
  */
 package fr.inra.mig_bibliome.alvisae.shared.data3;
 
-import com.google.gwt.core.client.JsArrayInteger;
+import com.google.gwt.core.client.JsArrayString;
 
 /**
  * @author fpapazian
@@ -17,12 +17,12 @@ public interface SemClass extends SemClassBasic {
     /**
      * @return the group Ids of the direct hyperonyms of this Semantic class
      */
-    public JsArrayInteger getHyperGroupIds();
+    public JsArrayString getHyperGroupIds();
 
     /**
      * @return the group Ids of the direct hyponyms of this Semantic class
      */
-    public JsArrayInteger getHypoGroupIds();
+    public JsArrayString getHypoGroupIds();
 
     /**
      * @return  true if this Semantic class has no Hyperonyms

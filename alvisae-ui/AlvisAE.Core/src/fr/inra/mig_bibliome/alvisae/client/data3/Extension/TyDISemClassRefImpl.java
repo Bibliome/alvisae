@@ -18,57 +18,57 @@ import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TyDISemClassRef;
  */
 public class TyDISemClassRefImpl implements TyDISemClassRef {
 
-    private static RegExp SemClassExternalIdregex = RegExp.compile("^https?:/(?:/[^/]+)+/+(?:projects/+){1}(\\d+)/semClass/(\\d+)(?:/canonic/(\\d+)/?)?$");
+    private static RegExp SemClassExternalIdregex = RegExp.compile("^https?:/(?:/[^/]+)+/+(?:projects/+){1}([^/]+)/semClass/([^/]+)(?:/canonic/([^/]+)/?)?$");
 
-    public static String getSemClassShortExternalId(String baseUrl, Integer projectId, int semClassId) {
+    public static String getSemClassShortExternalId(String baseUrl, String projectId, String semClassId) {
         return ResourceLocator.getResourceExternalId(baseUrl, projectId) + "/semClass/" + semClassId;
     }
 
-    public static String getSemClassFullExternalId(String baseUrl, Integer projectId, int semClassId, Integer canonicTermId) {
+    public static String getSemClassFullExternalId(String baseUrl, String projectId, String semClassId, String canonicTermId) {
         String result = getSemClassShortExternalId(baseUrl, projectId, semClassId);
         if (canonicTermId != null) {
             result += "/canonic/" + canonicTermId;
         }
         return result;
     }
-   
-    public static Integer getSemClassIdFromSemClassExternalId(String semClassExternalId) {
-        Integer semClassId = null;
+
+    public static String getSemClassIdFromSemClassExternalId(String semClassExternalId) {
+        String semClassId = null;
         
         MatchResult result = SemClassExternalIdregex.exec(ResourceLocator.stripUrlFragment(semClassExternalId));
         if (result != null && (result.getGroupCount() == 3 || result.getGroupCount() == 4)) {
-            Integer projectId = Integer.valueOf(result.getGroup(1));
-            semClassId = Integer.valueOf(result.getGroup(2));
+            String projectId = result.getGroup(1);
+            semClassId = result.getGroup(2);
             if (result.getGroupCount() == 4) {
-                //    Integer canonicTermId = Integer.valueOf(result.getGroup(3));
+                //    String canonicTermId = result.getGroup(3);
             }
         }
         return semClassId;
     }
     //
     private final TyDIResourceRef resRef;
-    private final int semClassId;
-    private final Integer canonicId;
+    private final String semClassId;
+    private final String canonicId;
     private final String canonicLabel;
 
-    public TyDISemClassRefImpl(TyDIResourceRef resRef, int semClassId, Integer canonicId, String canonicLabel) {
+    public TyDISemClassRefImpl(TyDIResourceRef resRef, String semClassId, String canonicId, String canonicLabel) {
         this.resRef = resRef;
         this.semClassId = semClassId;
         this.canonicId = canonicId;
         this.canonicLabel = canonicLabel;
     }
     
-    public TyDISemClassRefImpl(TyDIResourceRef resRef, int semClassId, Integer canonicId) {
+    public TyDISemClassRefImpl(TyDIResourceRef resRef, String semClassId, String canonicId) {
         this(resRef, semClassId, canonicId, null);
     }
 
     @Override
-    public Integer getTyDISemanticClassId() {
+    public String getTyDISemanticClassId() {
         return semClassId;
     }
 
     @Override
-    public Integer getTyDICanonicTermId() {
+    public String getTyDICanonicTermId() {
         return canonicId;
     }
 
@@ -83,7 +83,7 @@ public class TyDISemClassRefImpl implements TyDISemClassRef {
     }
 
     @Override
-    public Integer getTyDIProjectId() {
+    public String getTyDIProjectId() {
         return resRef.getTyDIProjectId();
     }
 

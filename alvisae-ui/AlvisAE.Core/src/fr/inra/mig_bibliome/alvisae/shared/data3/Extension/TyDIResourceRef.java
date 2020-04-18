@@ -15,5 +15,5 @@ public interface TyDIResourceRef {
 
     public String getTyDIInstanceBaseUrl();
 
-    public Integer getTyDIProjectId();
+    public String getTyDIProjectId();
 }

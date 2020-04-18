@@ -13,18 +13,18 @@ package fr.inra.mig_bibliome.alvisae.client.SemClass;
  */
 public class SemClassExtendedInfo extends SemClassInfo {
 
-    private final Integer parentClassId;
+    private final String parentClassId;
 
-    public SemClassExtendedInfo(int projectId, int classId, Integer parentClassId) {
+    public SemClassExtendedInfo(String projectId, String classId, String parentClassId) {
         super(projectId, classId);
         this.parentClassId = parentClassId;
     }
 
-    public Integer getParentClassId() {
+    public String getParentClassId() {
         return parentClassId;
     }
 
     public String getExtendedSemClassId() {
-        return (getParentClassId() == null ? "" : getParentClassId().toString()) + "_" + getId();
+        return (getParentClassId() == null ? "" : getParentClassId()) + "_" + getId();
     }
 }

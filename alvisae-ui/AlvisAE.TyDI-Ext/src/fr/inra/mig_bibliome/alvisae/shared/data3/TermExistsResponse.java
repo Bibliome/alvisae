@@ -15,13 +15,13 @@ import com.google.gwt.core.client.JsArray;
  */
 public interface TermExistsResponse extends DetailedResponse {
 
-    public int getTermId();
+    public String getTermId();
 
     public String getSurfaceForm();
 
     public boolean isClassRepresentative();
 
-    public int getRepresentativeOf();
+    public String getRepresentativeOf();
 
     public JsArray<? extends JavaScriptObject> getTermMemberships();
 }

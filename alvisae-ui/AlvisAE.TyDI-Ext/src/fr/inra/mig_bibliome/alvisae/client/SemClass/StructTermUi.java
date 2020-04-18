@@ -10,7 +10,7 @@ package fr.inra.mig_bibliome.alvisae.client.SemClass;
 import com.google.gwt.cell.client.ValueUpdater;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.JsArray;
-import com.google.gwt.core.client.JsArrayInteger;
+import com.google.gwt.core.client.JsArrayString;
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
@@ -123,7 +123,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 
     public static interface SemClassTreeDnDManager {
 
-        public void expandTo(int HyperClassId, int semClassId);
+        public void expandTo(String HyperClassId, String semClassId);
 
         public DroppableFunction getSemClassDropHandler();
 
@@ -549,7 +549,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
         }
 
         @Override
-        public void expandTo(int HyperClassId, int semClassId) {
+        public void expandTo(String HyperClassId, String semClassId) {
             expandAndSelect(HyperClassId, semClassId);
         }
 
@@ -770,7 +770,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
     private Panel[] globalExclusivePanels;
     private Panel[] detailExclusivePanels;
     private TyDIResourceRef tydiResourceRef;
-    private Integer projectId = null;
+    private String projectId = null;
     private String projectName = null;
     private Integer oldestReferencedVersion;
     private final String dragContainerId;
@@ -848,7 +848,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 
                     //inform others components that concept selection changed
                     EventBus eventBus = injector.getMainEventBus();
-                    int canonicId = selectedClass.getFromCache().getCanonicId();
+                    String canonicId = selectedClass.getFromCache().getCanonicId();
                     String canonicLabel = selectedClass.getCanonicLabel();
                     eventBus.fireEvent(new TyDIResourceDirectSelectionChangedEvent(new TyDISemClassRefImpl(tydiResourceRef, selectedClass.getId(), canonicId, canonicLabel)));
                 }
@@ -1012,7 +1012,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
             RequestManager requestMgr = termInjector.getTermDataProvider().getRequestManager();
             requestMgr.setServerBaseUrl(locator.getTyDIInstanceBaseUrl());
             tydiwsurl.setText(termInjector.getTermDataProvider().getRequestManager().getServerBaseUrl());
-            tydiProjectId.setText(String.valueOf(projectId));
+            tydiProjectId.setText(projectId);
 
             tydiTitle.setText(locator.getTyDIInstanceBaseUrl() + "    [" + projectId + "]");
             loginName.setText(requestMgr.getApplicationOptions().getLastLoginName());
@@ -1023,7 +1023,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
         }
     }
 
-    private int getProjectId() {
+    private String getProjectId() {
         return projectId;
     }
 
@@ -1158,15 +1158,15 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
         expandAndSelect(SemClass.ROOT_ID, info.getId());
     }
 
-    private void expandAndSelect(int semClassId) {
+    private void expandAndSelect(String semClassId) {
         SemClassInfo selected = selectionModel.getSelectedObject();
         //launch expand and select process only if it is to show a class distinct from the currently selected
-        if (selected == null || (selected.getId() != semClassId)) {
+        if (selected == null || (!selected.getId().equals(semClassId))) {
             expandAndSelect(SemClass.ROOT_ID, semClassId);
         }
     }
 
-    private void expandAndSelect(final int HyperClassId, int semClassId) {
+    private void expandAndSelect(final String HyperClassId, String semClassId) {
 
         if (classesTree != null) {
 
@@ -1222,15 +1222,15 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 
     //Return false when the drop target is invalid, i.e. when the dropped class can not be an hyperonym of the gragged class
     private boolean isValidTarget(SemClassExtendedInfo draggedSemClass, SemClassExtendedInfo droppedSemClass) {
-        int newHyperSemClassId = droppedSemClass.getId();
-        if (newHyperSemClassId == draggedSemClass.getId()) {
+        String newHyperSemClassId = droppedSemClass.getId();
+        if (newHyperSemClassId.equals(draggedSemClass.getId())) {
             //the class has been droppped on (one of) the node representing itself
             return false;
         }
 
-        JsArrayInteger hyperId = draggedSemClass.getFromCache().getHyperGroupIds();
+        JsArrayString hyperId = draggedSemClass.getFromCache().getHyperGroupIds();
         for (int i = 0; i < hyperId.length(); i++) {
-            if (newHyperSemClassId == hyperId.get(i)) {
+            if (newHyperSemClassId.equals(hyperId.get(i))) {
                 //the class has been droppped on (one of) its current parent(s)
                 return false;
             }
@@ -1249,14 +1249,14 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 
         showGlassPanel(true);
 
-        final int semClassId = draggedSemClass.getId();
+        final String semClassId = draggedSemClass.getId();
         final int semClassVersion = draggedSemClass.getFromCache().getVersion();
-        final int realPrevHyperSemClassId = draggedSemClass.getParentClassId();
+        final String realPrevHyperSemClassId = draggedSemClass.getParentClassId();
 
-        final int newHyperSemClassId = droppedSemClass.getId();
+        final String newHyperSemClassId = droppedSemClass.getId();
         final int newHyperSemClassVersion = droppedSemClass.getFromCache().getVersion();
 
-        final int paramPrevHyperSemClassId;
+        final String paramPrevHyperSemClassId;
         final int paramPrevHyperSemClassVersion;
         if (shiftKeyDown) {
             //Shift key is pressed, then add a new Hyperonym to the class, by specifying ROOT_ID for previous Hyperonym parameter
@@ -1285,7 +1285,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                         boolean result;
 
                         SemClassExtendedInfo childInfo = (SemClassExtendedInfo) parentNode.getChildValue(childNodeIndex);
-                        if (childInfo != null && childInfo.getId() == realPrevHyperSemClassId) {
+                        if (childInfo != null && childInfo.getId().equals(realPrevHyperSemClassId)) {
                             //close the node of the semantic class if it will have no more child after update
                             SemClass semClass = childInfo.getFromCache();
                             if (semClass != null && semClass.getHypoGroupIds().length() == 1) {
@@ -1328,7 +1328,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                                 boolean result;
                                 SemClassExtendedInfo childInfo = (SemClassExtendedInfo) parentNode.getChildValue(childNodeIndex);
 
-                                if (childInfo != null && childInfo.getId() == newHyperSemClassId) {
+                                if (childInfo != null && childInfo.getId().equals(newHyperSemClassId)) {
 
                                     //open the node of the new parent semantic class since it will have at least one child after update
                                     SemClass semClass = childInfo.getFromCache();
@@ -1421,7 +1421,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
     static final TermExistsResponseTemplates TEMPLATES = GWT.create(TermExistsResponseTemplates.class);
 
     //Generate messages and futher possible actions for the user depending on the server response to previous call
-    private ArrayList<SmallDialogs.SmallDialogInfo> computeActionsForTermExistsResponse(TermExistsResponseImpl teResp, final TermAnnotation termAnnot, final Integer semClassId, final Integer semClassVersion, final Integer hyperId, final Integer hyperClassVersion) {
+    private ArrayList<SmallDialogs.SmallDialogInfo> computeActionsForTermExistsResponse(TermExistsResponseImpl teResp, final TermAnnotation termAnnot, final String semClassId, final Integer semClassVersion, final String hyperId, final Integer hyperClassVersion) {
         ArrayList<SmallDialogInfo> result = new ArrayList<SmallDialogs.SmallDialogInfo>();
 
         String termForm = teResp.getSurfaceForm();
@@ -1429,13 +1429,13 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
         boolean isAddedToExistingClass = semClassId != null;
 
         if (isClassRepresentative) {
-            final int otherRepresentedClassId = teResp.getRepresentativeOf();
+            final String otherRepresentedClassId = teResp.getRepresentativeOf();
             SemClass otherRepresentedClass = ProviderStore.forProject(projectId).getCacheSemClass(otherRepresentedClassId);
             String otherRepresentedClassLabel = otherRepresentedClass != null ? otherRepresentedClass.getCanonicLabel() : String.valueOf(otherRepresentedClassId);
 
             if (isAddedToExistingClass) {
                 String targetClass = ProviderStore.forProject(projectId).getCacheSemClass(semClassId).getCanonicLabel();
-                boolean isRepresentativeOfTargetClass = semClassId.intValue() == otherRepresentedClassId;
+                boolean isRepresentativeOfTargetClass = semClassId.equals(otherRepresentedClassId);
 
                 if (isRepresentativeOfTargetClass) {
                     GWT.log("ActionsForTermExistsResp A");
@@ -1453,7 +1453,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                 } else {
                     GWT.log("ActionsForTermExistsResp B");
 
-                    final int termId = teResp.getTermId();
+                    final String termId = teResp.getTermId();
 
                     result.add(
                             new SmallDialogInfo(
@@ -1467,7 +1467,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 
                     for (int i = 0; i < teResp.getTermMemberships().length(); i++) {
                         TermMembershipImpl mbship = teResp.getTermMemberships().get(i);
-                        if (mbship.getId() == semClassId) {
+                        if (mbship.getId().equals(semClassId)) {
                             synonymOfTargetClass = true;
                             break;
                         }
@@ -1563,14 +1563,14 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
             } else if (membershipsNb == 1) {
                 //
 
-                final int otherSynonymClassId = teResp.getTermMemberships().get(0).getId();
+                final String otherSynonymClassId = teResp.getTermMemberships().get(0).getId();
                 final int otherSynonymClassVersion = teResp.getTermMemberships().get(0).getVersion();
                 String otherSynonymClassLabel = teResp.getTermMemberships().get(0).getCanonicLabel();
 
                 if (isAddedToExistingClass) {
                     String targetClass = ProviderStore.forProject(projectId).getCacheSemClass(semClassId).getCanonicLabel();
 
-                    boolean isMemberOfTargetClass = semClassId.intValue() == otherSynonymClassId;
+                    boolean isMemberOfTargetClass = semClassId.equals(otherSynonymClassId);
                     if (isMemberOfTargetClass) {
                         GWT.log("ActionsForTermExistsResp E");
 
@@ -1588,7 +1588,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 
                     } else {
                         GWT.log("ActionsForTermExistsResp F");
-                        final int termId = teResp.getTermId();
+                        final String termId = teResp.getTermId();
 
                         result.add(
                                 new SmallDialogInfo(
@@ -1663,7 +1663,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 
                     for (int i = 0; i < teResp.getTermMemberships().length(); i++) {
                         TermMembershipImpl mbship = teResp.getTermMemberships().get(i);
-                        if (mbship.getId() == semClassId) {
+                        if (mbship.getId().equals(semClassId)) {
                             synonymOfTargetClass = true;
                             break;
                         }
@@ -1689,7 +1689,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                                 TEMPLATES.noModifPerformable(),
                                 SmallDialogs.AllowedAction.Cancel));
                     } else {
-                        final int termId = teResp.getTermId();
+                        final String termId = teResp.getTermId();
 
                         result.add(
                                 new SmallDialogInfo(
@@ -1743,7 +1743,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
     };
 
     // -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
-    private void mergeClasses(final TermAnnotation termAnnot, final int semClassId1, int semClassVersion1, final int semClassId2, int semClassVersion2) {
+    private void mergeClasses(final TermAnnotation termAnnot, final String semClassId1, int semClassVersion1, final String semClassId2, int semClassVersion2) {
         termInjector.getTermDataProvider().mergeClasses(projectId, semClassId1, semClassVersion1, semClassId2, semClassVersion2, new DetailedAsyncResponseHandler<SemClassTreeLevelImpl>() {
             @Override
             public void onSuccess(SemClassTreeLevelImpl result) {
@@ -1774,7 +1774,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
     }
 
     // -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
-    private void createTermSynonym(final int projectId, final TermAnnotation termAnnot, final int semClassId, final int semClassVersion, final int parentClassId) {
+    private void createTermSynonym(final String projectId, final TermAnnotation termAnnot, final String semClassId, final int semClassVersion, final String parentClassId) {
         termInjector.getTermDataProvider().createTermSynonym(projectId, termAnnot.getSurfaceForm(), termAnnot.getLemma(), semClassId, semClassVersion, new DetailedAsyncResponseHandler<SemClassTreeLevelImpl>() {
             @Override
             public void onSuccess(SemClassTreeLevelImpl result) {
@@ -1790,7 +1790,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                 ClassDetailMembersDataProvider.reloadClassDetails(projectId, semClassId);
                 displayClassDetails(new SemClassExtendedInfo(projectId, result.getId(), semClassId));
 
-                Integer addedTermId = result.getAddedTermId();
+                String addedTermId = result.getAddedTermId();
                 termAnnot.setTermExternalId(termInjector.getTermDataProvider().getTermExternalId(projectId, addedTermId));
             }
 
@@ -1811,7 +1811,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
         });
     }
 
-    private void addTermSynonym(final Integer projectId, final TermAnnotation termAnnot, final int termId, final int semClassId, final int semClassVersion, final int parentClassId) {
+    private void addTermSynonym(final String projectId, final TermAnnotation termAnnot, final String termId, final String semClassId, final int semClassVersion, final String parentClassId) {
         termInjector.getTermDataProvider().addSynonymToSemanticClass(projectId, termId, semClassId, semClassVersion, new AsyncResponseHandler<SemClassNTermsImpl>() {
             @Override
             public void onSuccess(SemClassNTermsImpl result) {
@@ -1833,7 +1833,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
         });
     }
 
-    private void createClassAndRepresentativeTerm(final Integer projectId, final TermAnnotation termAnnot, final int newHyperSemClassId, final int newHyperSemClassVersion, boolean force) {
+    private void createClassAndRepresentativeTerm(final String projectId, final TermAnnotation termAnnot, final String newHyperSemClassId, final int newHyperSemClassVersion, boolean force) {
 
         termInjector.getTermDataProvider().createClassAndRepresentativeTerm(projectId, termAnnot.getSurfaceForm(), termAnnot.getLemma(), newHyperSemClassId, newHyperSemClassVersion, force, new DetailedAsyncResponseHandler<SemClassTreeLevelImpl>() {
             @Override
@@ -1847,9 +1847,10 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 
                 //Reload hyperonym class to display newly created class
                 SemClassDataProvider.reloadSemClass(projectId, newHyperSemClassId);
-                displayClassDetails(new SemClassExtendedInfo(projectId, newHyperSemClassId, newHyperSemClassVersion));
+                //TODO check this accidental bug fix!
+                displayClassDetails(new SemClassExtendedInfo(projectId, result.getId(), newHyperSemClassId));
 
-                final Integer addedTermId = result.getAddedTermId();
+                final String addedTermId = result.getAddedTermId();
                 termAnnot.setTermExternalId(termInjector.getTermDataProvider().getTermExternalId(projectId, addedTermId));
 
                 termInjector.getTermDataProvider().ensureSemanticClassVersioned(projectId, result.getId(), new AsyncCallback<VersionedSemClassImpl>() {
@@ -1945,7 +1946,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 
         if (createClass) {
             //Creation of a new Term as Canonic representative of a new Semantic Class
-            final int hyperId = droppedSemClass.getId();
+            final String hyperId = droppedSemClass.getId();
             final int hyperVersion = droppedSemClass.getFromCache().getVersion();
             ChangeFormDialog d = new ChangeFormDialog(termAnnot, new Command() {
                 @Override
@@ -1961,7 +1962,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
             d.center();
         } else {
             //Creation of a new Term as synonym of an existing Semantic Class
-            int semClassId = droppedSemClass.getId();
+            String semClassId = droppedSemClass.getId();
             int semClassVersion = droppedSemClass.getFromCache().getVersion();
             createTermSynonym(projectId, termAnnot, semClassId, semClassVersion, droppedSemClass.getParentClassId());
         }
@@ -2092,7 +2093,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                 initDisplayers();
             } else {
                 //refresh only the selected class
-                final int semClassId = selected.getId();
+                final String semClassId = selected.getId();
 
                 //close the node of the refreshed semantic class
                 nodeTraveller.travelOnOpenedNodes(classesTree.getRootTreeNode(), new TreeNodeTraveller.NodeExpression() {
@@ -2101,7 +2102,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                         boolean result;
 
                         SemClassExtendedInfo childInfo = (SemClassExtendedInfo) parentNode.getChildValue(childNodeIndex);
-                        if (childInfo != null && childInfo.getId() == semClassId) {
+                        if (childInfo != null && childInfo.getId().equals(semClassId)) {
                             SemClass semClass = childInfo.getFromCache();
                             if (semClass != null) {
                                 parentNode.setChildOpen(childNodeIndex, false);
@@ -2151,7 +2152,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                         String semClassUrl = termAnnotation.getSemClassExternalId();
                         if (semClassUrl != null && !semClassUrl.isEmpty()) {
 
-                            Integer semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(semClassUrl);
+                            String semClassId = TyDISemClassRefImpl.getSemClassIdFromSemClassExternalId(semClassUrl);
                             if (semClassId != null) {
                                 expandAndSelect(semClassId);
                             }
@@ -2159,7 +2160,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                         } else {
                             String termRefUrl = termAnnotation.getTermExternalId();
                             if (termRefUrl != null && !termRefUrl.isEmpty()) {
-                                Integer termId = TyDITermRefImpl.getTermIdFromTermExternalId(termRefUrl);
+                                String termId = TyDITermRefImpl.getTermIdFromTermExternalId(termRefUrl);
                                 if (termId != null) {
                                     //FIXME select SemClass associated to this term, if any
                                 }
@@ -2185,13 +2186,13 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 //                    
                 if (resRef instanceof TyDISemClassRef) {
                     TyDISemClassRef semClassRef = (TyDISemClassRef) resRef;
-                    Integer semClassId = semClassRef.getTyDISemanticClassId();
+                    String semClassId = semClassRef.getTyDISemanticClassId();
                     if (semClassId != null) {
                         expandAndSelect(semClassId);
                     }
                 } else if (resRef instanceof TyDITermRef) {
                     TyDITermRef termRef = (TyDITermRef) resRef;
-                    Integer termId = termRef.getTyDITermId();
+                    String termId = termRef.getTyDITermId();
                     if (termId != null) {
                         //FIXME select SemClass associated to this term, if any
                     }
@@ -2211,7 +2212,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
 
                 if (resRef instanceof TyDISemClassRef) {
                     TyDISemClassRef semClassRef = (TyDISemClassRef) resRef;
-                    final Integer semClassId = semClassRef.getTyDISemanticClassId();
+                    final String semClassId = semClassRef.getTyDISemanticClassId();
                     if (semClassId != null) {
                         SemClassDataProvider.ensureSemanticClassLoaded(projectId, semClassId, new Command() {
                             @Override
@@ -2226,7 +2227,7 @@ public class StructTermUi extends Composite implements TermAnnotationsExposition
                     }
                 } else if (resRef instanceof TyDITermRef) {
                     TyDITermRef termRef = (TyDITermRef) resRef;
-                    Integer termId = termRef.getTyDITermId();
+                    String termId = termRef.getTyDITermId();
                     if (termId != null) {
                         //FIXME broadcast term info
                     }

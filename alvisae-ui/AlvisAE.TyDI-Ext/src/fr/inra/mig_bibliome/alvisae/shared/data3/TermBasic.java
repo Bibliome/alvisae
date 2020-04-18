@@ -12,7 +12,7 @@ package fr.inra.mig_bibliome.alvisae.shared.data3;
  */
 public interface TermBasic {
 
-    public int getTermId();
+    public String getTermId();
 
     public String getSurfaceForm();
 }

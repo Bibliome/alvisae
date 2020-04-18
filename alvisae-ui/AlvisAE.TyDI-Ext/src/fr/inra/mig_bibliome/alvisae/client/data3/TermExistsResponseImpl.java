@@ -35,7 +35,7 @@ public class TermExistsResponseImpl extends TermBasicImpl implements TermExistsR
     public final native boolean isClassRepresentative() /*-{ return this.isClassRepresentative; }-*/;    
     
     @Override
-    public final native int getRepresentativeOf() /*-{ return this.representativeOf; }-*/;    
+    public final native String getRepresentativeOf() /*-{ return this.representativeOf.toString(); }-*/;    
             
     @Override
     public final native JsArray<TermMembershipImpl> getTermMemberships() /*-{ return this.inGroups; }-*/;

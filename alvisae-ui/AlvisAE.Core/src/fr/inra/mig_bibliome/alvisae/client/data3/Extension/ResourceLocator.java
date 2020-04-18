@@ -17,7 +17,7 @@ import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.TyDIResourceRef;
  */
 public class ResourceLocator implements TyDIResourceRef {
 
-    private static RegExp regex = RegExp.compile("^(https?:/(?:/[^/]+)+/+)(?:projects/+){1}(\\d+)/?$");
+    private static RegExp regex = RegExp.compile("^(https?:/(?:/[^/]+)+/+)(?:projects/+){1}([^/]+)/?$");
     static final String UrlFragmentSeparator = "#";
 
     public static String stripUrlFragment(String semClassExternalId) {
@@ -45,13 +45,13 @@ public class ResourceLocator implements TyDIResourceRef {
         return cleaned.toString().replaceAll("/+$", "/");
     }
 
-    public static String getResourceExternalId(String baseUrl, Integer projectId) {
+    public static String getResourceExternalId(String baseUrl, String projectId) {
         return cleanUrl(baseUrl) + "projects/" + projectId;
     }
     //
     // always with one single trailing slash
     private final String resourceUrl;
-    private final int projectId;
+    private final String projectId;
 
     public ResourceLocator(String baseResourceUrl) {
         MatchResult result = regex.exec(cleanUrl(baseResourceUrl));
@@ -59,10 +59,10 @@ public class ResourceLocator implements TyDIResourceRef {
             throw new IllegalArgumentException("Not a valid TyDI resource url! " + cleanUrl(baseResourceUrl));
         }
         this.resourceUrl = result.getGroup(1);
-        this.projectId = Integer.valueOf(result.getGroup(2));
+        this.projectId = result.getGroup(2);
     }
 
-    public ResourceLocator(String resourceUrl, int projectId) {
+    public ResourceLocator(String resourceUrl, String projectId) {
         this.resourceUrl = cleanUrl(resourceUrl);
         this.projectId = projectId;
     }
@@ -73,7 +73,7 @@ public class ResourceLocator implements TyDIResourceRef {
     }
 
     @Override
-    public Integer getTyDIProjectId() {
+    public String getTyDIProjectId() {
         return projectId;
     }
 

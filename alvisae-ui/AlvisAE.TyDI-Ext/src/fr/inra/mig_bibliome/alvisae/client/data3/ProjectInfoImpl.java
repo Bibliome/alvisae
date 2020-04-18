@@ -20,7 +20,7 @@ public class ProjectInfoImpl extends JavaScriptObject implements ProjectInfo {
     }
 
     @Override
-    public final native int getProjectId() /*-{ return this.id; }-*/;
+    public final native String getProjectId() /*-{ return this.id.toString(); }-*/;
 
     @Override
     public final native String getName() /*-{ return this.name; }-*/;

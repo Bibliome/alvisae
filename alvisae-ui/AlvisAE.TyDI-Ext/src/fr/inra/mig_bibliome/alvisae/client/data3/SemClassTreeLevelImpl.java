@@ -30,19 +30,19 @@ public class SemClassTreeLevelImpl extends SemClassImpl implements SemClassTreeL
     }
 
     @Override
-    public final native int getAddedTermId() /*-{ if (this.hasOwnProperty('addedTermId')) { return this.addedTermId; } else { return -1; } }-*/;
+    public final native String getAddedTermId() /*-{ if (this.hasOwnProperty('addedTermId')) { return this.addedTermId.toString(); } else { return ''; } }-*/;
     
     private final native JavaScriptObject _getHypoGroupsDetails() /*-{ return this.hypoGroupsDetails; }-*/;
 
     private final native SemClassImpl _getHypoGroupDetail(String hypoId) /*-{ return this.hypoGroupsDetails[hypoId]; }-*/;
     
     @Override
-    public final Map<Integer, SemClass> getHypoGroupsDetails() {
-        Map<Integer, SemClass> result = new HashMap<Integer, SemClass>();
+    public final Map<String, SemClass> getHypoGroupsDetails() {
+        Map<String, SemClass> result = new HashMap<String, SemClass>();
         JSONObject details = new JSONObject(_getHypoGroupsDetails());
 
         for (String hypoId : details.keySet()) {
-            result.put(Integer.valueOf(hypoId), _getHypoGroupDetail(hypoId));
+            result.put(hypoId, _getHypoGroupDetail(hypoId));
         }
         return result;
     }

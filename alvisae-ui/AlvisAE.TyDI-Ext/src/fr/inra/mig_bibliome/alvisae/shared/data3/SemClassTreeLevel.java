@@ -17,12 +17,12 @@ public interface SemClassTreeLevel extends SemClass {
     /**
      * @return 
      */
-    Map<Integer, SemClass> getHypoGroupsDetails();
+    Map<String, SemClass> getHypoGroupsDetails();
     
     
     /**
      * 
      * @return the TermId of the term added to this Semantic Class by the corresponding WS call.
      */    
-    int getAddedTermId();
+    String getAddedTermId();
 }

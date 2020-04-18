@@ -16,7 +16,7 @@ import fr.inra.mig_bibliome.alvisae.shared.data3.Extension.CheckedSemClass;
  */
 public class CheckedSemClassImpl extends JavaScriptObject implements CheckedSemClass {
 
-    public static final native CheckedSemClassImpl create(int semClassId, int versionNum) /*-{
+    public static final native CheckedSemClassImpl create(String semClassId, int versionNum) /*-{
      a = {};
      a.id=semClassId;
      a.vn=versionNum;
@@ -27,7 +27,7 @@ public class CheckedSemClassImpl extends JavaScriptObject implements CheckedSemC
     }
 
     @Override
-    public final native int getSemClassId() /*-{ return this.id; }-*/;
+    public final native String getSemClassId() /*-{ return this.id; }-*/;
 
     @Override
     public final native int getVersionNum() /*-{ return this.vn; }-*/;

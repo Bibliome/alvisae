@@ -23,19 +23,19 @@ public class SemClassInfo implements Comparable<SemClassInfo> {
             return item == null ? null : item.getId();
         }
     };
-    private final int classId;
-    private final int projectId;
+    private final String classId;
+    private final String projectId;
 
-    public SemClassInfo(int projectId, int classId) {
+    public SemClassInfo(String projectId, String classId) {
         this.projectId = projectId;
         this.classId = classId;
     }
 
-    public int getProjectId() {
+    public String getProjectId() {
         return projectId;
     }
 
-    public int getId() {
+    public String getId() {
         return classId;
     }
 
@@ -53,7 +53,7 @@ public class SemClassInfo implements Comparable<SemClassInfo> {
     }
 
     public boolean isRoot() {
-        return getId() == SemClass.ROOT_ID;
+        return SemClass.ROOT_ID.equals(getId());
     }
 
     public boolean hasChild() {
@@ -66,7 +66,7 @@ public class SemClassInfo implements Comparable<SemClassInfo> {
 
     @Override
     public final int compareTo(SemClassInfo o) {
-        return new Integer(this.getId()).compareTo(o.getId());
+        return this.getId().compareTo(o.getId());
     }
 
 }

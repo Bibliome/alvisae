@@ -13,5 +13,5 @@ package fr.inra.mig_bibliome.alvisae.shared.data3.Extension;
  */
 public interface TyDITermRef extends TyDIResourceRef {
 
-    public Integer getTyDITermId();
+    public String getTyDITermId();
 }
