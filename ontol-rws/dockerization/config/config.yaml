@@ -1,0 +1,15 @@
+#
+ontologies:
+
+  - id: "biotope2015"
+    longName: "Ontobiotope_2015"
+    filePath: "/opt/payara/OntoBiotope2015.obo"
+
+users:
+
+  - id: 1
+    name: "demo"
+    password: "FE01CE2A7FBAC8FAFAED7C982A04E229"
+    ontologies: ["biotope2015"]
+
+

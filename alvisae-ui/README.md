@@ -11,22 +11,25 @@ Each Annotations belongs to a Type, and is displayed according to this Type (the
 ## How to build the UI package (`AlvisAEGenericUI.war`) 
 
 ### What you'll need :
+
 * [JDK __6__ ](https://www.oracle.com/java/technologies/javase-java-archive-javase6-downloads.html)
 * [Apache Ant __v1.9.*__ ](https://ant.apache.org/index.html)  (i.e. a version compatible with JDK6, unlike Ant v1.10)
 * [GWT __2.5.1__ ](http://www.gwtproject.org/versions.html)
 
-
 ### Compilation :
+
 1. Retrieve source code ( e.g. `git clone ...`)
 
-2. Create link to GWT in main folder 
-```
+2. Create link to GWT in main folder
+
+```sh
 cd alvisae
 ln -s <path-to-your-gwt-parent-folder>/gwt-2.5.1 GWT2
 ```
 
 3. build
-```
+
+```sh
 ant -f alvisae-ui/AlvisAE.shared clean jar
 
 ant -f alvisae-ui/AlvisAE.Core clean distribute

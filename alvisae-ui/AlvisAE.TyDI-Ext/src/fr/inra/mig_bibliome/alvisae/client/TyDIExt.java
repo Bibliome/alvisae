@@ -9,6 +9,7 @@ package fr.inra.mig_bibliome.alvisae.client;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.user.client.History;
 import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.user.client.ui.RootLayoutPanel;
@@ -41,6 +42,16 @@ public class TyDIExt implements EntryPoint {
 
             //
             GWT.log("Preparing locator");
+            
+            ResourceLocator locator;
+            String initToken = History.getToken();
+            if (initToken==null || "".equals(initToken)) {
+                locator = new ResourceLocator("https://localhost:8181/ontolrws/TEST/projects/TESTONTO/");
+            } else {
+                locator = new ResourceLocator("https://localhost:8181/ontolrws/TEST/projects/"+ initToken + "/");
+            }
+            
+            
             //ResourceLocator locator = new ResourceLocator("http://127.0.0.1:8080/projects/10360305/");
             //ResourceLocator locator = new ResourceLocator("http://bibliome.jouy.inra.fr/test/tydiws/rest/pharmaco/projects/6/");
             //ResourceLocator locator = new ResourceLocator("http://cl30.dbcls.jp:9080/tydiws/rest/training/projects/10360305/");
@@ -49,7 +60,7 @@ public class TyDIExt implements EntryPoint {
  
             //ResourceLocator locator = new ResourceLocator("http://bibliome.jouy.inra.fr/test/tydiws/rest/pharmaco/projects/6/");
             //ResourceLocator locator = new ResourceLocator("https://bibliome.jouy.inra.fr/tydirws/fpa2/projects/2294/");
-            ResourceLocator locator = new ResourceLocator("https://bibliome.jouy.inra.fr/tydirws/gchp2e/projects/4/");
+            //ResourceLocator locator = new ResourceLocator("https://bibliome.jouy.inra.fr/tydirws/gchp2e/projects/4/");
             GWT.log("locator " + locator.getTyDIProjectId() + " " + locator.getTyDIInstanceBaseUrl());
 
             injector.getMainEventBus().fireEvent(new TermAnnotationsExpositionEvent(TermAnnotationsExpositionEvent.ChangeType.Available, locator));

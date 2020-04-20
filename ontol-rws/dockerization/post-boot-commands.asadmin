@@ -1,0 +1,9 @@
+deploy --contextroot /ontolrws/TEST --name ontolrws-TEST /opt/payara/ontolrws.war
+
+set-web-context-param --name=configFilePath --value="/opt/payara/config.yaml" --ignoredescriptoritem=true ontolrws-TEST
+
+deploy --contextroot /alvisae/ontolrws-tester --name OntoLRWS-Tester /opt/payara/alvisaeTyDIExt.war
+
+#second deploy is needed here to ensure web-context-param is available to web app...
+deploy --force --contextroot /ontolrws/TEST --name ontolrws-TEST /opt/payara/ontolrws.war
+

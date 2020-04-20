@@ -86,3 +86,9 @@ $ java  -jar target/ontolrws-classes.jar aTrivialPassword anotherPass '!more$#Co
 "BF5E43B2263CC373B601893689EDC986" <== !more$#Complicated1
 
 ```
+
+---
+
+## Test within a Docker container
+
+see [here](./dockerization/README.md)
