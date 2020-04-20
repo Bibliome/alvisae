@@ -1,6 +1,6 @@
 # ontol-rws - Ontology lite web services tester container
 
-This section describe how to build a docker image that contains `ontol-rws` web services with a minimal configuration and a basic web tester in order to test OntoLRWS basci functionalities.
+This section describe how to build a docker image that contains `ontol-rws` web services with a minimal configuration and a basic web tester in order to test OntoLRWS basic functionalities.
 
 ## Pre-requisites
 
@@ -36,7 +36,7 @@ sudo docker image build -f Dockerfile -t bibliome/ontolrws.tester:1.0.1 .
 **Notes**:
 
 * during first build, image dependencies will be downloaded (e.g. Payara application server, about ~300MB)
-* the built image will be stored locally, hence it doesn't need to be build each time you run it in a container
+* the built image will be stored locally, hence it doesn't need to be built each time you run it in a container
 
 ---
 
