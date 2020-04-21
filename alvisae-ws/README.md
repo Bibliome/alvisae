@@ -17,35 +17,57 @@ This project is the server-side of AlvisAE, and it includes :
 ### How to install
 We assume that the user is familiar with the technologies and has glassfish and postgresql already installed in the server
 
-#### get the source code and package the web service
+#### what you'll need
+
+- `JDK` 7
+- maven
+
+#### get the source code
 
 ```sh
 git clone https://github.com/ ... /alvisae
 cd alvisae/alvisae-ws
+```
+
+#### create the package
+
+**0.** [**Optional**] build AlvisaE shared lib
+
+This project is shipped with a copy of the shared library, but in case that anything has changed within AlvisAE shared lib, you may have to update the local one as follow:
+
+```sh
+ant -f ../alvisae-ui/AlvisAE.shared clean jar
+cp ../alvisae-ui/AlvisAE.shared/dist/AlvisAE.shared-1.0.jar ./lib/fr/inra/mig_bibliome/AlvisAE.shared/1.0/
+```
+
+**1.** Build webservice package
+
+```sh
 mvn compile package
 ```
 
 #### create and initialize the database
 [See here on how to initialize the database using the scala console](documentation/create-database.md)
 
+#### Deploy the war package
 
-#### deploy the war
-copy the generated package to a directory accessible from the GlassFish server
+**Note:** The endpoint `URL` where the web services will be deployed is important for effective pairing with the AlvisAE UI, you might need to check again this [documentation](./documentation/pairing-ui-ws.md) for more details.
 
-```
+1. copy the generated package to a directory accessible from the GlassFish server
+
+```sh
 cp target/cdxws-lift-1.0-SNAPSHOT.war /tmp/
 ```
 
-login as a user that is authorized to deploy packages on the Glassfish server
+2. deploy
 
-```
-su glassfish \
-cd \
-glassfishv3/bin/asadmin  -p 5848 deploy --force  --contextroot <context root of the instance> --name <name of the instance> /tmp/cdxws-lift-1.0-SNAPSHOT.war \
+```sh
+${GLASSFISH_HOME}/bin/asadmin deploy --force  --contextroot <context root of the instance> \
+ --name <name of the instance> /tmp/cdxws-lift-1.0-SNAPSHOT.war
 ```
 
-#### set-up database parameters
-The content of property file look like this. Save the file with name of the following format <user>.<hostname>.props
+#### Set-up database parameters
+The content of property file look like this:
 
 ```
 db.type=postgresql
@@ -59,10 +81,10 @@ db.schema=aae_newinstance
 
 One simplest way to setup the parameters is by using these two glassfish commands :
 
-```
-GLASSFISH_HOME/bin/asadmin set-web-context-param --name configFilePath --value 'path/to/the/config/file' 'the_application_name'
+```sh
+${GLASSFISH_HOME}/bin/asadmin set-web-context-param --name configFilePath --value 'path/to/the/config/file' 'the_application_name'
 
-GLASSFISH_HOME/bin/asadmin restart-domain
+${GLASSFISH_HOME}/bin/asadmin restart-domain
 ```
 
 
