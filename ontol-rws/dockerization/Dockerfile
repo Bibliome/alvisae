@@ -6,14 +6,19 @@ EXPOSE 8080/tcp
 EXPOSE 8181/tcp
 EXPOSE 4848/tcp
 
+ENV ontolbasedir /opt/payara/ontolrws
+ENV ontoldir ${ontolbasedir}/ontologies/
 
-ENV ontoldir /opt/payara/
-WORKDIR ${ontoldir}
+RUN mkdir ${ontolbasedir}; \
+mkdir ${ontoldir}; \
+chown -R payara:payara ${ontolbasedir}
 
-COPY --chown=payara:payara ontolrws.war ${ontoldir}
-COPY --chown=payara:payara alvisaeTyDIExt.war ${ontoldir}
+WORKDIR ${ontolbasedir}
 
-COPY --chown=payara:payara config/config.yaml ${ontoldir}
+COPY --chown=payara:payara ontolrws.war ${ontolbasedir}
+COPY --chown=payara:payara alvisaeTyDIExt.war ${ontolbasedir}
+
+COPY --chown=payara:payara config/config.yaml ${ontolbasedir}
 
 COPY --chown=payara:payara ontologies ${ontoldir}
 

@@ -5,6 +5,8 @@ import fr.inrae.bibliome.ontolrws.Settings.Settings;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,9 +30,8 @@ public class JAXRSConfig extends Application {
     private static final String CONFIGFILE_PARAMNAME = "configFilePath";
     private static final String SETTINGS_PROPNAME = "ONTOLRWS_SETTINGS";
     private static final Logger logger = Logger.getLogger(JAXRSConfig.class.getName());
-    
-    // -------------------------------------------------------------------------
 
+    // -------------------------------------------------------------------------
     public JAXRSConfig() {
         //explicitely list acting classes (resources, providers, etc.) instead of relying on classpath
         actingClassesSet.add(PreMatchRequestFilter.class);
@@ -58,8 +59,7 @@ public class JAXRSConfig extends Application {
         return (Settings) appPropertiesMap.get(SETTINGS_PROPNAME);
     }
 
-    public void ensureConfiguration() {
-//        if (!appPropertiesMap.containsKey(CONFIGFILE_PARAMNAME)) {
+    private File getValidConfigFile() {
 
         String filePath = servletContext.getInitParameter(CONFIGFILE_PARAMNAME);
 
@@ -69,10 +69,18 @@ public class JAXRSConfig extends Application {
         }
         File configFile = new File(filePath);
         if (!configFile.exists() || !configFile.isFile()) {
+            logger.log(Level.SEVERE, "Missing configuration file parameter [{0}]", CONFIGFILE_PARAMNAME);
             throw new IllegalArgumentException("Missing or Invalid configuration file [" + filePath + "], this service won't be able to operate");
         } else {
-
+            return configFile;
         }
+        
+    }
+
+    public void ensureConfiguration() {
+//        if (!appPropertiesMap.containsKey(CONFIGFILE_PARAMNAME)) {
+
+        File configFile = getValidConfigFile();
         InputStream input;
         try {
             input = new FileInputStream(configFile);
@@ -80,15 +88,28 @@ public class JAXRSConfig extends Application {
             Settings data = (Settings) yaml.load(input);
             appPropertiesMap.put(SETTINGS_PROPNAME, data);
 
+            appPropertiesMap.put(CONFIGFILE_PARAMNAME, configFile.toString());
         } catch (FileNotFoundException ex) {
-            logger.log(Level.SEVERE, "Missing or Invalid configuration file [{0}]", filePath);
+            logger.log(Level.SEVERE, "Missing or Invalid configuration file [{0}]", configFile.toString());
+        }
+//        }
+    }
+
+    private void updateConfiguration(Settings settings) {
+        File configFile = getValidConfigFile();
+        Yaml yaml = Settings.getYamlHandler();
+        try {
+            yaml.dump(settings, new FileWriter(configFile));
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Unable to store configuration file : " + configFile.toString(), ex);
         }
 
-        //add application-wide properties
-        appPropertiesMap.put(CONFIGFILE_PARAMNAME, filePath);
+    }
 
-        
-//        }
+    public void registerOntology(String ontoid, String longname, String filepath) {
+        Settings settings = getSettings();
+        settings.addOntologyEntry(ontoid, longname, filepath);
+        updateConfiguration(settings);
     }
 
     // -------------------------------------------------------------------------

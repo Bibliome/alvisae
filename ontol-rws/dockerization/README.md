@@ -59,8 +59,21 @@ Using a web browser, open the web-tester page, https://localhost:8181/alvisae/on
 
 **Notes**:
 
-- The web tester allows to access any ontologies loaded and configured in the tester Docker image by specifying the ontology id in the url fragment (=suffix after the `#` in the url)
+- The web tester provides access to any ontologies loaded and configured in the container by specifying the ontology id in the url fragment (=suffix after the `#` in the url)
+- To add more ontologies to the running tester Docker container, use dedicated web service as described [here](../README.md##management-and-test):
+
+e.g.
+```sh
+curl --insecure --user demo:demo -X PUT --data-binary @/path/to/ontology/onto_002.obo  https://localhost:8181/ontolrws/TEST/projects/Onto002
+```
+
 - To add more ontologies to the tester Docker image,  simply copy the Obo files to `ontologies/` sub-folder, register them in the `config/config.yaml` file, and build again the Docker image.
+
+- This Docker configuration is provided for testing purposes, specifically, **any changes made to the ontologies will be lost as soon as the container is stopped**. If you want to keep the modified ontology, use the dedicated web service to retrieve it before stopping the container :
+
+```sh
+wget --no-check-certificate --user demo --password demo -O /path/to/ontology/onto_002.obo https://localhost:8181/ontolrws/TEST/projects/Onto002/getfile
+```
 
 
 **3.** Stop the container
@@ -72,4 +85,4 @@ sudo docker stop ontolrws_tester
 
 **Note**:
 
-- since the container was started in an auto-clean up mode, it will be removed when stopped, but the corresponding image is still available for subsequent tests 
+- since the container was started in an auto-clean up mode, it will be removed when stopped, but the corresponding image is still available for subsequent tests

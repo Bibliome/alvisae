@@ -4,6 +4,10 @@ import fr.inrae.bibliome.ontolrws.JAXRSConfig;
 import fr.inrae.bibliome.ontolrws.Settings.Ontology;
 import fr.inrae.bibliome.ontolrws.Settings.Settings;
 import fr.inrae.bibliome.ontolrws.Settings.User;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.StandardCopyOption;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +15,8 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.json.Json;
@@ -32,6 +38,7 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import org.jgrapht.GraphPath;
 import org.jgrapht.graph.DefaultEdge;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -296,7 +303,7 @@ public class Resources {
 
     ) {
         return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
-            
+
             return checkSemClassExists(ontoHnd, semclassid, semClass -> {
 
                 List<OWLOntologyChange> changes = new ArrayList<>();
@@ -398,7 +405,84 @@ public class Resources {
         });
     }
 
+    @GET
+    @Path("projects/{projectid}/getfile")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response downloadOntology(
+            @Context ContainerRequestContext requestContext,
+            @PathParam("projectid") String projectid
+    ) {
+        return checkUserIsAdmin(requestContext, projectid, (authUser, ontoHnd) -> {
+
+            File file = ontoHnd.getOntoFilePath();
+            return Response.ok(file, MediaType.APPLICATION_OCTET_STREAM)
+                    .header("Content-Disposition", "attachment; filename=\"" + file.getName() + "\"")
+                    .build();
+        });
+    }
+
+    @PUT
+    @Path("projects/{projectid}")
+    public Response uploadOntology(
+            @Context ContainerRequestContext requestContext,
+            @PathParam("projectid") String projectid,
+            InputStream entityParam
+    ) {
+        User authUser = getAuthUser(requestContext);
+        if (authUser.isIsAdmin()) {
+
+            File targetFile;
+
+            //check if the specified id already exists
+            Optional<Ontology> ontology = app.getSettings().getOntology(projectid);
+            if (ontology.isPresent()) {
+                //replace existing file...
+                targetFile = new File(ontology.get().getFilePath());
+                //... but create backup copy just in case
+                OboOntoHandler.createBackup(targetFile.toPath(), "_BeforeUpload");
+
+            } else {
+                String uploadFolder = app.getSettings().getUploadFolder();
+                File uploadFolderFile = null;
+                if (uploadFolder == null || uploadFolder.isEmpty()) {
+                    logger.log(Level.SEVERE, "uploadFolder parameter not specified !");
+                } else {
+                    uploadFolderFile = new File(uploadFolder);
+                    if (!uploadFolderFile.isDirectory() || !uploadFolderFile.canWrite()) {
+                        logger.log(Level.SEVERE, "uploadFolder parameter is invalid: [{0}] ", uploadFolder);
+                    }
+                }
+                if (uploadFolderFile == null) {
+                    return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
+                } else {
+                    targetFile = new File(uploadFolderFile, projectid + ".obo");
+                }
+            }
+
+            try {
+                //FIXME check file validity before replacing/ registering existing
+                java.nio.file.Files.copy(
+                        entityParam,
+                        targetFile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING);
+
+                if (!ontology.isPresent()) {
+                    app.registerOntology(projectid, projectid, targetFile.toString());
+                }
+                return Response.status(Response.Status.CREATED).entity(projectid).build();
+
+            } catch (IOException ex) {
+                logger.log(Level.SEVERE, null, ex);
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
+            }
+
+        } else {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+    }
     // -------------------------------------------------------------------------
+    private static final Logger logger = Logger.getLogger(Resources.class.getName());
+
     private static final int UNPROCESSABLE = 422;
 
     @Context
@@ -408,20 +492,46 @@ public class Resources {
         return (User) requestContext.getProperty(Settings.AUTHUSER_PROPNAME);
     }
 
+    private Response checkUserIsAdmin(
+            ContainerRequestContext requestContext,
+            String projectid,
+            BiFunction<User, OboOntoHandler, Response> responseSupplier
+    ) {
+        return checkUserIsAuthForOnto(requestContext, projectid, true, responseSupplier);
+    }
+
     private Response checkUserIsAuthForOnto(
             ContainerRequestContext requestContext,
             String projectid,
             BiFunction<User, OboOntoHandler, Response> responseSupplier
     ) {
+        return checkUserIsAuthForOnto(requestContext, projectid, false, responseSupplier);
+    }
 
+    private Response checkUserIsAuthForOnto(
+            ContainerRequestContext requestContext,
+            String projectid, boolean ensureIsAdmin,
+            BiFunction<User, OboOntoHandler, Response> responseSupplier
+    ) {
         User authUser = getAuthUser(requestContext);
 
-        Optional<Ontology> ontology = app.getSettings().getOntologyForUser(authUser, projectid);
-        if (!ontology.isPresent()) {
+        if (ensureIsAdmin && !authUser.isIsAdmin()) {
             return Response.status(Response.Status.FORBIDDEN).build();
-        }
-        try (OboOntoHandler ontoHnd = OboOntoHandler.getHandler(ontology.get())) {
-            return responseSupplier.apply(authUser, ontoHnd);
+        } else {
+            Optional<Ontology> ontology;
+            if (authUser.isIsAdmin()) {
+                //admin users can access any ontology registered in the config file
+                ontology = app.getSettings().getOntology(projectid);
+            } else {
+                ontology = app.getSettings().getOntologyForUser(authUser, projectid);
+            }
+
+            if (!ontology.isPresent()) {
+                return Response.status(Response.Status.NOT_FOUND).build();
+            }
+            try (OboOntoHandler ontoHnd = OboOntoHandler.getHandler(ontology.get())) {
+                return responseSupplier.apply(authUser, ontoHnd);
+            }
         }
     }
 
@@ -452,11 +562,20 @@ public class Resources {
     private JsonArrayBuilder getUserProjects(User authUser) {
 
         JsonArrayBuilder projects = Json.createArrayBuilder();
-        app.getSettings().getOntologiesForUser(authUser)
-                .forEach(o -> projects.add(Json.createObjectBuilder()
-                .add("id", o.getId())
-                .add("name", o.getLongName())
-        ));
+        if (authUser.isIsAdmin()) {
+            //admin users can access any ontology registered in the config file
+            app.getSettings().getOntologies()
+                    .forEach(o -> projects.add(Json.createObjectBuilder()
+                    .add("id", o.getId())
+                    .add("name", o.getLongName())
+            ));
+        } else {
+            app.getSettings().getOntologiesForUser(authUser)
+                    .forEach(o -> projects.add(Json.createObjectBuilder()
+                    .add("id", o.getId())
+                    .add("name", o.getLongName())
+            ));
+        }
         return projects;
     }
 

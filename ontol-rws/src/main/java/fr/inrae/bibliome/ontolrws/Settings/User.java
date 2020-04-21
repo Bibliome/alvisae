@@ -11,6 +11,7 @@ public class User {
     private int id;
     private String name;
     private String password;
+    private boolean isAdmin = false;
     private List<String> ontologies;
 
     public int getId() {
@@ -35,6 +36,14 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public boolean isIsAdmin() {
+        return isAdmin;
+    }
+
+    public void setIsAdmin(boolean isAdmin) {
+        this.isAdmin = isAdmin;
     }
 
     public List<String> getOntologies() {

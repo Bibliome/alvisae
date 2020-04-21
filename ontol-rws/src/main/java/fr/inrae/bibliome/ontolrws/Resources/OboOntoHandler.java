@@ -132,6 +132,10 @@ public class OboOntoHandler implements AutoCloseable {
         return getSemClassIdOf(semClass.getIRI());
     }
 
+    public File getOntoFilePath() {
+        return new File(config.getFilePath());
+    }
+
     public Stream<OWLClass> getRootSemanticClasses() {
         OWLClass thing = df.getOWLThing();
 
@@ -414,6 +418,16 @@ public class OboOntoHandler implements AutoCloseable {
         return changes;
     }
 
+    public static void createBackup(Path source, String suffix) {
+        Format formatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
+        Path backup = Paths.get(source.toString() + formatter.format(new Date()) + ((suffix==null || suffix.isEmpty()) ? "" : suffix) + ".obo");
+        try {
+            Files.copy(source, backup, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Could not create ontology backup!", ex);
+        }
+    }
+
     public boolean applyChangesAndSaveOnto(List<OWLOntologyChange> changes, boolean createBackup) {
 
         ChangeApplied result = onto.getOWLOntologyManager().applyChanges(changes);
@@ -421,13 +435,7 @@ public class OboOntoHandler implements AutoCloseable {
         if (ChangeApplied.SUCCESSFULLY.equals(result)) {
             Path source = Paths.get(config.getFilePath());
             if (createBackup) {
-                Format formatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
-                Path backup = Paths.get(source.toString() + formatter.format(new Date()) + ".obo");
-                try {
-                    Files.copy(source, backup, StandardCopyOption.REPLACE_EXISTING);
-                } catch (IOException ex) {
-                    logger.log(Level.SEVERE, "Could not create ontology backup!", ex);
-                }
+                createBackup(source, null);
             }
             try {
                 manager.saveOntology(onto, new OBODocumentFormat(), new FileOutputStream(source.toFile()));

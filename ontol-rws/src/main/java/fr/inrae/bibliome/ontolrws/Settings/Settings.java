@@ -28,6 +28,14 @@ public class Settings {
     }
 
     // -------------------------------------------------------------------------
+    public String getUploadFolder() {
+        return uploadFolder;
+    }
+
+    public void setUploadFolder(String uploadFolder) {
+        this.uploadFolder = uploadFolder;
+    }
+
     public List<Ontology> getOntologies() {
         return ontologies;
     }
@@ -60,7 +68,6 @@ public class Settings {
                 .anyMatch(u -> u.getPassword().equals(password));
     }
 
-    
     public Optional<User> getAuthenticatedUser(String username, String password) {
         return getUsers().stream()
                 .filter(u -> u.getName().equals(username) && u.getPassword().equals(password))
@@ -83,7 +90,17 @@ public class Settings {
                 .filter(o -> o.getId().equals(ontoid)).findFirst();
     }
 
+    public Optional<Ontology> getOntology(String ontoid) {
+        return getOntologies().stream()
+                .filter(o -> o.getId().equals(ontoid)).findFirst();
+    }
+
+    public void addOntologyEntry(String ontoid, String longname, String filepath) {
+        getOntologies().add(new Ontology(ontoid, longname, filepath));
+    }
+
     // -------------------------------------------------------------------------
+    private String uploadFolder;
     private List<Ontology> ontologies;
     private List<User> users;
 

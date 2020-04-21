@@ -12,6 +12,16 @@ public class Ontology {
     private String longName;
     private String filePath;
 
+    public Ontology() {
+        
+    }
+    
+    public Ontology(String id, String longName, String filePath) {
+        this.id = id;
+        this.longName = longName;
+        this.filePath = filePath;
+    }
+
     public String getId() {
         return id;
     }

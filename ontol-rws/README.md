@@ -16,6 +16,8 @@ ${glassfish.home}/bin/asadmin  deploy --force  --contextroot '/ontolrws/training
 
 e.g.  `/pathto/configFile/ontolrws_settings.yaml` :
 ```yaml
+uploadFolder: "/home/dev/projects/inrae/ontologies/uploaded/"
+
 ontologies:
 
   - id: "Ontbtp2019"
@@ -36,7 +38,8 @@ users:
   - id: 2
     name: "robert"
     password: "FE01CE2A7FBAC8FAFAED7C982A04E229"
-    ontologies: ["Ontbtp2019"]
+    ontologies: []
+    isAdmin: true
 ```
 
 **Note**: yaml file MUST not contain any tab character.
@@ -74,10 +77,15 @@ Two packages are generated in `target/` sub-folder:
 
 1. the deployable package, providing web services, is `ontolrws.war`
 
-2. the jar package, providing cli services, is `ontolrws-classes.jar`
- 
+2. the jar package, providing cli services, is `ontolrws-classes.jar`, see below
 
-**Note**: currently, the cli only generates the hashed password that must be copied-pasted in the configuration file described above. 
+---
+
+## Management and Test
+
+### Create user's password hash using CLI
+
+The command line interface is used to generate the hashed password that must be copy-pasted in the configuration file described above.
 
 ```sh
 $ java  -jar target/ontolrws-classes.jar aTrivialPassword anotherPass '!more$#Complicated1'
@@ -87,8 +95,32 @@ $ java  -jar target/ontolrws-classes.jar aTrivialPassword anotherPass '!more$#Co
 
 ```
 
----
+### Download/Upload ontologies using web services
 
-## Test within a Docker container
+These web services are only authorized to users with `admin` privilege (see configuration file)
+
+#### Download with `GET projects/{OntoId}/getfile`
+
+e.g. to retrieve the obo file of the ontology `Onto001`
+
+```sh
+wget --user foo --password bar -O /path/to/ontology/onto_001.obo http://wshost/ontolrws/instance/projects/Onto001/getfile
+```
+
+#### Upload with `PUT projects/{OntoId}`
+
+e.g. to upload the obo file of the ontology `Onto002`
+
+```sh
+curl --user foo:bar -X PUT --data-binary @/path/to/ontology/onto_002.obo  http://wshost/ontolrws/instance/projects/Onto002
+```
+
+**Note**:
+
+- any pre-existing ontology with the same specified ID will be replaced
+
+- once uploaded, new ontologies are registered in the configuration file, hence they can be queried immediately with other web services.
+
+### Test within a Docker container
 
 see [here](./dockerization/README.md)
