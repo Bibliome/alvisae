@@ -351,7 +351,7 @@ public class Resources {
             @FormParam("classVersion") int version //?~ "missing classVersion parameter" ~> 400
     ) {
         return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
-
+            //This service can not be implemented because there's no termId stored in Ontology file (OBO)
             return Response.status(Response.Status.NOT_IMPLEMENTED).build();
         });
     }
@@ -385,7 +385,7 @@ public class Resources {
             @QueryParam("semclassids") List<String> semclassids
     ) {
         return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
-
+            //This service can not be implemented because there's no tracking of changes in the Ontology file (OBO)
             return Response.status(Response.Status.NOT_IMPLEMENTED).build();
         });
     }
@@ -400,7 +400,7 @@ public class Resources {
             String entityParam
     ) {
         return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
-
+            //This service can not be implemented because there's no tracking of changes in the Ontology file (OBO)
             return Response.status(Response.Status.NOT_IMPLEMENTED).build();
         });
     }
