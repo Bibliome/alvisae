@@ -292,7 +292,7 @@ public class Resources {
     @POST
     @Path("projects/{projectid}/term")
     @Produces(MediaType.APPLICATION_JSON)
-    //Create a new Term and add it as a synonym to an existing Semantic Class
+    //Create a new Term and add it as an exact synonym to an existing Semantic Class
     public Response createTermAsSynonymToClass(
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
@@ -308,11 +308,37 @@ public class Resources {
 
                 List<OWLOntologyChange> changes = new ArrayList<>();
                 try {
-                    changes.addAll(ontoHnd.testAndSetSemClassVersion(semClass, version));
-                    //only surface form is stored in Obo ontology
-                    changes.add(ontoHnd.createAddTermToClassChange(semClass, surfForm));
+                    //deny term creation if the term is already present in another class (as representative or any synonym)
+                    Optional<String> englobingClassId = ontoHnd.getClassIncludingTerm(surfForm).findFirst();
+                    if (englobingClassId.isPresent()) {
 
-                    return applyChangesAndSaveOnto(ontoHnd, changes, semclassid);
+                        Optional<OWLClass> englobingClass = ontoHnd.getSemanticClassesForId(englobingClassId.get()).findFirst();
+                        Structs.DetailSemClassNTerms classDta = getSemanticClassData(ontoHnd, englobingClass.get(), false);
+
+                        JsonObjectBuilder message = Json.createObjectBuilder()
+                                .add("msgNum", 1)
+                                .add("message", "The term already exists!")
+                                //FIXME there's no (reliable) termId stored in Ontology file (OBO), 
+                                //but the returned termId might be used by caller (AlvisAE UI) to request 
+                                //subsequent term creation as related synonym, which cannot be implemented (see [K])
+                                .add("termId", 99999)
+                                .add("form", surfForm)
+                                .add("inGroups", Json.createArrayBuilder()
+                                        .add(
+                                                Json.createObjectBuilder()
+                                                        .add("groupId", classDta.groupId)
+                                                        .add("canonicLabel", classDta.canonicLabel)
+                                                        .add("canonicId", classDta.canonicId)
+                                        )
+                                );
+                        return Response.status(UNPROCESSABLE).entity(message.build()).build();
+                    } else {
+                        changes.addAll(ontoHnd.testAndSetSemClassVersion(semClass, version));
+                        //only surface form is stored in Obo ontology
+                        changes.add(ontoHnd.createAddTermToClassChange(semClass, surfForm));
+                        //groupsOfTerm
+                        return applyChangesAndSaveOnto(ontoHnd, changes, semclassid);
+                    }
                 } catch (OboOntoHandler.StaleVersionException ex) {
                     return Response.status(UNPROCESSABLE).entity(ex.getMessage()).build();
                 }
@@ -351,7 +377,7 @@ public class Resources {
             @FormParam("classVersion") int version //?~ "missing classVersion parameter" ~> 400
     ) {
         return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
-            //This service can not be implemented because there's no termId stored in Ontology file (OBO)
+            //This service can not be implemented because there's no (reliable) termId stored in Ontology file (OBO)
             return Response.status(Response.Status.NOT_IMPLEMENTED).build();
         });
     }

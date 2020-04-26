@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -242,7 +243,22 @@ public class OboOntoHandler implements AutoCloseable {
         return srStruct;
     }
 
+    public Stream<String> getClassIncludingTerm(String form) {
+        return getClassesIdForLabelPredicate(
+                //exact match 
+                ax -> ax.getAnnotation().getValue().annotationValue().asLiteral().get().getLiteral().equals(form)
+        );
+    }
+
     public Stream<String> getClassesIdForMatchingLabelPattern(String pattern) {
+        return getClassesIdForLabelPredicate(
+                //label value contains searched pattern
+                ax -> ax.getAnnotation().getValue().annotationValue().asLiteral().get().getLiteral().contains(pattern)
+        );
+    }
+
+    private Stream<String> getClassesIdForLabelPredicate(Predicate<OWLAnnotationAssertionAxiom> predicate) {
+
         IRI rdfLabelIri = df.getRDFSLabel().getIRI();
         return onto.axioms(AxiomType.ANNOTATION_ASSERTION)
                 .filter(
@@ -258,12 +274,9 @@ public class OboOntoHandler implements AutoCloseable {
                             || OBORELSYN_IRI.equals(propIri);
                         }
                 )
-                .filter(
-                        //label value contains searched pattern
-                        ax -> ax.getAnnotation().getValue().annotationValue().asLiteral().get().getLiteral().contains(pattern)
-                )
+                .filter(predicate)
                 .map(ax -> getSemClassIdOf(ax.getSubject().asIRI().get()))
-                //remove duplicate class id (happens when pattern matches same class multiple times, e.g on its label and synonyms)
+                //remove duplicate class id (happens when predicate matches same class multiple times, e.g on its label and synonyms)
                 .distinct();
     }
 
@@ -420,7 +433,7 @@ public class OboOntoHandler implements AutoCloseable {
 
     public static void createBackup(Path source, String suffix) {
         Format formatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
-        Path backup = Paths.get(source.toString() + formatter.format(new Date()) + ((suffix==null || suffix.isEmpty()) ? "" : suffix) + ".obo");
+        Path backup = Paths.get(source.toString() + formatter.format(new Date()) + ((suffix == null || suffix.isEmpty()) ? "" : suffix) + ".obo");
         try {
             Files.copy(source, backup, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ex) {
