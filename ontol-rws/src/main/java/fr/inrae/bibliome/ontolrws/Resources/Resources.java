@@ -355,15 +355,37 @@ public class Resources {
     public Response createTermAsCanonicToNewClass(
             @Context ContainerRequestContext requestContext,
             @PathParam("projectid") String projectid,
-            @FormParam("hyperId") String semclassid, //?~ "missing hyperId parameter" ~> 400;
-            @FormParam("classVersion") int version, //?~ "missing classVersion parameter" ~> 400;
+            @FormParam("hyperId") String hyperid, //?~ "missing hyperId parameter" ~> 400;
+            @FormParam("hyperVersion") int version, //?~ "missing classVersion parameter" ~> 400;
             @FormParam("surfaceForm") String surfForm, //?~ "missing surfaceForm parameter" ~> 400)
             @FormParam("lemmatizedForm") String lemma, //Option
             @QueryParam("force") @DefaultValue("true") boolean force
     ) {
         return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
+            Optional<OWLClass> hyperSemClass;
+            if (OboOntoHandler.isRootId(hyperid)) {
+                hyperSemClass = Optional.empty();
+            } else {
+                hyperSemClass = ontoHnd.getSemanticClassesForId(hyperid).findFirst();
+                if (!hyperSemClass.isPresent()) {
+                    return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Semantic class not found (" + hyperid + ")").build();
+                }
+            }
 
-            return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+            List<OWLOntologyChange> changes = new ArrayList<>();
+            try {
+                if (hyperSemClass.isPresent()) {
+                    changes.addAll(ontoHnd.testAndSetSemClassVersion(hyperSemClass.get(), version));
+                }
+
+                String semClassId = ontoHnd.getNextSemClassId();
+                changes.addAll(ontoHnd.createAddSubClassChanges(hyperSemClass, semClassId, surfForm));
+
+                return applyChangesAndSaveOnto(ontoHnd, changes, semClassId);
+            } catch (OboOntoHandler.StaleVersionException ex) {
+                return Response.status(UNPROCESSABLE).entity(ex.getMessage()).build();
+            }
+
         });
     }
 

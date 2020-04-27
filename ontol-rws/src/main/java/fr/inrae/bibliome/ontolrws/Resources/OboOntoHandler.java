@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -42,6 +44,7 @@ import org.semanticweb.owlapi.model.OWLAxiomChange;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLDatatype;
+import org.semanticweb.owlapi.model.OWLDeclarationAxiom;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
@@ -66,6 +69,7 @@ public class OboOntoHandler implements AutoCloseable {
 
     private static final String OBOBASE_URI = "http://purl.obolibrary.org/obo/";
 
+    private static final String SEMCLASSID_PREFIX = "AE";
     private static final String SEMCLASSVERSION_PROPNAME = "#semclass-version";
 
     private static final IRI OBODBXREF_IRI = IRI.create("http://www.geneontology.org/formats/oboInOwl#hasDbXref");
@@ -511,6 +515,42 @@ public class OboOntoHandler implements AutoCloseable {
 
         //delete the second class itself
         changes.addAll(createRemoveClassChanges(semClass2));
+        
+        return changes;
+    }
+    
+    public String getNextSemClassId() {
+        OptionalInt maxId = onto.classesInSignature()
+                .filter(c -> c.getIRI().getRemainder().get().startsWith(SEMCLASSID_PREFIX))
+                .mapToInt(c -> {
+                    try {
+                        return Integer.valueOf(c.getIRI().getRemainder().get().substring(SEMCLASSID_PREFIX.length()));
+                    } catch (NumberFormatException ex) {
+                        return 0;
+                    }
+                })
+                .max();
+        int newClassId = 1 + (maxId.isPresent() ? maxId.getAsInt() : 0);
+        return SEMCLASSID_PREFIX + ":" + String.format("%07d", newClassId);
+    }
+
+    public List<OWLOntologyChange> createAddSubClassChanges(Optional<OWLClass> hyperSemClass, String semClassId, String surfForm) {
+        List<OWLOntologyChange> changes = new ArrayList<>();
+
+        //OWLClass semClass = df.getOWLClass(IRI.create(SEMCLASSVERSPROP_IRI.getNamespace(), oboClassIdtoOwlClassId(semClassId)));
+        OWLClass semClass = df.getOWLClass(IRI.create(SEMCLASSVERSPROP_IRI.getNamespace(), semClassId));
+        OWLDeclarationAxiom scDeclAx = df.getOWLDeclarationAxiom(semClass);
+        changes.add(new AddAxiom(onto, scDeclAx));
+
+        OWLAnnotation scNameAnnot = df.getOWLAnnotation(df.getRDFSLabel(), df.getOWLLiteral(surfForm));
+        OWLAnnotationAssertionAxiom scNameAx = df.getOWLAnnotationAssertionAxiom(semClass.getIRI(), scNameAnnot);
+        changes.add(new AddAxiom(onto, scNameAx));
+        
+        changes.add(getInitClassVersionPropChange(semClass));
+
+        if (hyperSemClass.isPresent()) {
+            changes.add(createAddHyponymyChange(hyperSemClass.get(), semClass));
+        }
 
         return changes;
     }
@@ -522,6 +562,14 @@ public class OboOntoHandler implements AutoCloseable {
             currOntoIri = currOntoIri.substring(0, currOntoIri.length() - 4);
         }
         return IRI.create(currOntoIri, SEMCLASSVERSION_PROPNAME);
+    }
+
+    private OWLAxiomChange getInitClassVersionPropChange(OWLClass semClass) {
+        OWLAnnotationProperty classVersAnnotProp = df.getOWLAnnotationProperty(SEMCLASSVERSPROP_IRI);
+        OWLAnnotation versiond1Annot = df.getOWLAnnotation(classVersAnnotProp, df.getOWLLiteral(1));
+
+        OWLAnnotationAssertionAxiom aaa = df.getOWLAnnotationAssertionAxiom(semClass.getIRI(), versiond1Annot);
+        return new AddAxiom(onto, aaa);
     }
 
     //check that specified ontology includes elements to track updates, and if not add them
@@ -538,12 +586,8 @@ public class OboOntoHandler implements AutoCloseable {
             List<OWLOntologyChange> changes = new ArrayList<>();
 
             //set initial version number to all semantic classes
-            OWLAnnotationProperty classVersAnnotProp = df.getOWLAnnotationProperty(SEMCLASSVERSPROP_IRI);
-            OWLAnnotation versiond1Annot = df.getOWLAnnotation(classVersAnnotProp, df.getOWLLiteral(1));
-
             onto.classesInSignature().forEach(c -> {
-                OWLAnnotationAssertionAxiom aaa = df.getOWLAnnotationAssertionAxiom(c.getIRI(), versiond1Annot);
-                changes.add(new AddAxiom(onto, aaa));
+                changes.add( getInitClassVersionPropChange(c) );
             });
 
             if (applyChangesAndSaveOnto(changes, true)) {
