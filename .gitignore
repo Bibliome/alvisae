@@ -1,0 +1,8 @@
+alvisae-ui/AlvisAE.shared/build
+alvisae-ui/AlvisAE.shared/dist
+alvisae-ws/target/classes
+ontol-rws/target
+*~
+.classpath
+.project
+.settings
