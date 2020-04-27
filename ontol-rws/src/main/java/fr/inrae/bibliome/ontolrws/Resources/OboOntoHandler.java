@@ -12,13 +12,17 @@ import java.nio.file.StandardCopyOption;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.shortestpath.KShortestSimplePaths;
@@ -48,6 +52,7 @@ import org.semanticweb.owlapi.model.PrefixManager;
 import org.semanticweb.owlapi.model.RemoveAxiom;
 import org.semanticweb.owlapi.model.parameters.ChangeApplied;
 import org.semanticweb.owlapi.util.DefaultPrefixManager;
+import org.semanticweb.owlapi.util.OWLEntityRemover;
 
 /**
  *
@@ -200,7 +205,7 @@ public class OboOntoHandler implements AutoCloseable {
         }
     }
 
-    Structs.DetailSemClassNTerms initSemClassStruct(OWLClass semClass) {
+    private Structs.DetailSemClassNTerms initSemClassStruct(OWLClass semClass) {
         final Structs.DetailSemClassNTerms srStruct = new Structs.DetailSemClassNTerms();
 
         //retrieve and filter class properties
@@ -243,6 +248,62 @@ public class OboOntoHandler implements AutoCloseable {
         return srStruct;
     }
 
+    public Structs.DetailSemClassNTerms getSemanticClassData(OWLClass semClass, boolean withTerms) {
+
+        Structs.DetailSemClassNTerms classStruct;
+
+        List<OWLClass> hypoClasses;
+
+        if (semClass == null) {
+            classStruct = new Structs.DetailSemClassNTerms();
+            //virtual root class
+            classStruct.groupId = ROOT_ID;
+            classStruct.canonicId = ROOT_ID;
+            classStruct.canonicLabel = "";
+            classStruct.version = 1;
+
+            //actual root classes presented as hyponyms of the virtual root
+            hypoClasses = getRootSemanticClasses().collect(Collectors.toList());
+
+        } else {
+
+            //fill up Semantic class structure from OwlClass properties
+            classStruct = initSemClassStruct(semClass);
+            //virtual canonic id
+            classStruct.canonicId = classStruct.groupId + "-C";
+
+            if (withTerms) {
+                //produce virtual term ids
+                IntStream.range(0, classStruct.termMembers.size()).forEach(
+                        i -> classStruct.termMembers.get(i).id = classStruct.groupId + "-" + i
+                );
+                //add virtual canonic term
+                Structs.Term canonic = Structs.Term.createCanonic(classStruct.canonicLabel);
+                canonic.id = classStruct.canonicId;
+                classStruct.termMembers.add(0, canonic);
+            }
+
+            classStruct.hypoGroupIds = getHyperonymsOf(semClass)
+                    .map(hyper -> getSemClassIdOf(hyper))
+                    .collect(Collectors.toList());
+            if (classStruct.hypoGroupIds.isEmpty()) {
+                //actual root classes are presented as hyperonym of the virtual root 
+                classStruct.hypoGroupIds.add(ROOT_ID);
+            }
+
+            hypoClasses = getHyponymsOf(semClass).collect(Collectors.toList());
+        }
+
+        hypoClasses.forEach(hypoClass -> classStruct.hypoClasses
+                .add(getSemanticClassData(hypoClass, false))
+        );
+        classStruct.hypoClasses.sort(
+                (Structs.SemClass c1, Structs.SemClass c2) -> c1.canonicLabel.compareTo(c2.canonicLabel)
+        );
+
+        return classStruct;
+    }
+
     public Stream<String> getClassIncludingTerm(String form) {
         return getClassesIdForLabelPredicate(
                 //exact match 
@@ -280,7 +341,7 @@ public class OboOntoHandler implements AutoCloseable {
                 .distinct();
     }
 
-    private DefaultDirectedGraph<OWLClass, DefaultEdge> buildHyperonymyGraph() {
+    public DefaultDirectedGraph<OWLClass, DefaultEdge> buildHyperonymyGraph() {
 
         DefaultDirectedGraph<OWLClass, DefaultEdge> g = new DefaultDirectedGraph<>(DefaultEdge.class);
 
@@ -304,21 +365,26 @@ public class OboOntoHandler implements AutoCloseable {
         return g;
     }
 
-    private List<GraphPath<OWLClass, DefaultEdge>> getHyperonymyPaths(
-            OWLClass start, OWLClass end
-    ) {
-        DefaultDirectedGraph<OWLClass, DefaultEdge> g = buildHyperonymyGraph();
-        KShortestSimplePaths<OWLClass, DefaultEdge> kshortest = new KShortestSimplePaths<>(g, 100);
-        return kshortest.getPaths(start, end, 1);
+    List<GraphPath<OWLClass, DefaultEdge>> getHyperonymyPath(String fromclassid, String toclassid) {
+        return getHyperonymyPaths(buildHyperonymyGraph(), fromclassid, toclassid, 1);
     }
 
     //throws NoSuchElementException if one of the semantic class doesn't exists in the ontology
-    List<GraphPath<OWLClass, DefaultEdge>> getHyperonymyPaths(String fromclassid, String toclassid) {
+    public List<GraphPath<OWLClass, DefaultEdge>> getHyperonymyPaths(
+            DefaultDirectedGraph<OWLClass, DefaultEdge> g,
+            String fromclassid, String toclassid, int nbPath
+    ) {
         OWLClass fromClass = getSemanticClassesForId(fromclassid).findFirst().get();
         OWLClass toClass = getSemanticClassesForId(toclassid).findFirst().get();
-        DefaultDirectedGraph<OWLClass, DefaultEdge> g = buildHyperonymyGraph();
+        return getHyperonymyPaths(g, fromClass, toClass, nbPath);
+    }
+
+    public List<GraphPath<OWLClass, DefaultEdge>> getHyperonymyPaths(
+            DefaultDirectedGraph<OWLClass, DefaultEdge> g,
+            OWLClass start, OWLClass end, int nbPath
+    ) {
         KShortestSimplePaths<OWLClass, DefaultEdge> kshortest = new KShortestSimplePaths<>(g, 100);
-        return kshortest.getPaths(fromClass, toClass, 1);
+        return kshortest.getPaths(start, end, nbPath);
     }
 
     public OWLAxiomChange createRemoveHyponymyChange(OWLClass semclass, OWLClass hypo) {
@@ -356,6 +422,97 @@ public class OboOntoHandler implements AutoCloseable {
     //currently only exact synonyms can be created
     public AddAxiom createAddTermToClassChange(OWLClass semClass, String form) {
         return createAddTermToClassChange(semClass, form, Structs.Term.SYNONYM);
+    }
+
+    public List<RemoveAxiom> createRemoveClassChanges(OWLClass semClass) {
+        OWLEntityRemover remover = new OWLEntityRemover(Collections.singleton(onto));
+        semClass.accept(remover);
+        return remover.getChanges();
+    }
+
+    //Merged 2 classes by disolving the second one within the first one (adding non-redondant members and hyper/hypo links)
+    public List<OWLOntologyChange> createChangesTomergeClasses(
+            OWLClass semClass1, int version1, OWLClass semClass2, int version2,
+            List<OWLClass> parentsToCutFrom2
+    ) throws UnprocessableException {
+        List<OWLOntologyChange> changes = new ArrayList<>();
+
+        Structs.DetailSemClassNTerms classDta1 = getSemanticClassData(semClass1, true);
+        Structs.DetailSemClassNTerms classDta2 = getSemanticClassData(semClass2, true);
+
+        //compare terms by their surface form because there's no (reliable) termId stored in Ontology file (OBO)
+        Map<String, Integer> term1ByForm = new HashMap<>();
+        classDta1.termMembers.forEach(t1 -> term1ByForm.put(t1.form, t1.memberType));
+        term1ByForm.put(classDta1.canonicLabel, Structs.Term.CANONIC);
+
+        Map<String, Integer> term2ByForm = new HashMap<>();
+        classDta2.termMembers.forEach(t2 -> term2ByForm.put(t2.form, t2.memberType));
+        term2ByForm.put(classDta2.canonicLabel, Structs.Term.CANONIC);
+
+        for (Map.Entry<String, Integer> e2 : term2ByForm.entrySet()) {
+            String t2Form = e2.getKey();
+            int t2type = e2.getValue();
+            if (term1ByForm.containsKey(t2Form)) {
+
+                //if term is member of both classes, so the member does not need to be copied, but member types consistency check must be performed           
+                int t1type = term1ByForm.get(t2Form);
+
+                //canonical representative is also a synonym
+                if ((t2type == Structs.Term.CANONIC && t1type != Structs.Term.SYNONYM)
+                        || (t2type == Structs.Term.SYNONYM && (t1type != Structs.Term.CANONIC || t1type != Structs.Term.SYNONYM))) {
+                    throw new UnprocessableException("Can not merge class #" + classDta2.canonicId + " within #" + classDta1.canonicId + " because types of member '" + t2Form + "' are not consistent");
+                } else {
+                    //same member type on both classes
+                }
+
+            } else {
+                //the term of second class was not present in first class, so it will be copied
+                changes.add(
+                        //canonical representative of second class become a simple synonym
+                        createAddTermToClassChange(semClass1, t2Form, t2type == Structs.Term.CANONIC ? Structs.Term.SYNONYM : t2type)
+                );
+            }
+
+        }
+
+        List<String> parentsIdToCutFrom2 = parentsToCutFrom2.stream().map(c -> getSemClassIdOf(c)).collect(Collectors.toList());
+        classDta2.hyperGroupIds.forEach(hyperId -> {
+
+            if (parentsIdToCutFrom2.contains(hyperId)) {
+                //do nothing to get rid of links between the 2 classes that would create cycle after the merging process
+            } else {
+
+                //attach hyperonyms of class2 to the merged class
+                OWLClass hyperClass = getSemanticClassesForId(hyperId).findFirst().get();
+                changes.add(
+                        createAddHyponymyChange(hyperClass, semClass1)
+                );
+
+                //update old hyperonym version level
+                changes.addAll(incSemClassVersion(hyperClass));
+            }
+        });
+
+        classDta2.hypoGroupIds.forEach(hypoId -> {
+
+            if (classDta1.hypoGroupIds.contains(hypoId)) {
+                //do nothing if hyponym is already connected
+            } else {
+                //attach hyponyms of class2 to the merged class
+                OWLClass hypoClass = getSemanticClassesForId(hypoId).findFirst().get();
+                changes.add(
+                        createAddHyponymyChange(semClass1, hypoClass)
+                );
+
+                //update old hyponym version level
+                changes.addAll(incSemClassVersion(hypoClass));
+            }
+        });
+
+        //delete the second class itself
+        changes.addAll(createRemoveClassChanges(semClass2));
+
+        return changes;
     }
 
     private IRI getSemClassVersionIri(OWLOntology onto) {
@@ -401,7 +558,20 @@ public class OboOntoHandler implements AutoCloseable {
 
     }
 
+    public List<OWLOntologyChange> incSemClassVersion(OWLClass semClass) {
+        try {
+            return testAndSetSemClassVersion(semClass, Optional.empty());
+        } catch (StaleVersionException ex) {
+            //can not happen when empty knowVersion specified
+            return Collections.EMPTY_LIST;
+        }
+    }
+
     public List<OWLOntologyChange> testAndSetSemClassVersion(OWLClass semClass, int knowVersion) throws StaleVersionException {
+        return testAndSetSemClassVersion(semClass, Optional.of(knowVersion));
+    }
+
+    private List<OWLOntologyChange> testAndSetSemClassVersion(OWLClass semClass, Optional<Integer> knowVersion) throws StaleVersionException {
         List<OWLOntologyChange> changes = new ArrayList<>();
 
         //get semantic class current version number
@@ -412,7 +582,7 @@ public class OboOntoHandler implements AutoCloseable {
         int versionNumber = Integer.valueOf(versionAAA.getValue().annotationValue().asLiteral().get().getLiteral());
         //if version numbers don't match, it means the specified semantic class has been changed since it was loaded on the client,
         //therefore requested modification must be canceled
-        if (versionNumber != knowVersion) {
+        if (knowVersion.isPresent() && versionNumber != knowVersion.get()) {
             throw new StaleVersionException(semClass.getIRI());
         }
 
@@ -472,4 +642,10 @@ public class OboOntoHandler implements AutoCloseable {
         }
     }
 
+    public static class UnprocessableException extends Exception {
+
+        public UnprocessableException(String message) {
+            super(message);
+        }
+    }
 }

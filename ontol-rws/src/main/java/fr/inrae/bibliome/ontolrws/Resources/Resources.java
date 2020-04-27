@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.nio.file.StandardCopyOption;
 import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -18,7 +19,6 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -40,6 +40,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.jgrapht.GraphPath;
+import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
@@ -161,7 +162,7 @@ public class Resources {
             ontoHnd.getClassesIdForMatchingLabelPattern(pattern)
                     .map(semClassId -> {
                         OWLClass semClass = ontoHnd.getSemanticClassesForId(semClassId).findFirst().get();
-                        return getSemanticClassData(ontoHnd, semClass, false);
+                        return ontoHnd.getSemanticClassData(semClass, false);
                     })
                     .sorted(
                             (Structs.DetailSemClassNTerms sc1, Structs.DetailSemClassNTerms sc2)
@@ -188,7 +189,7 @@ public class Resources {
 
             List<GraphPath<OWLClass, DefaultEdge>> path = null;
             try {
-                path = ontoHnd.getHyperonymyPaths(fromclassid, toclassid);
+                path = ontoHnd.getHyperonymyPath(fromclassid, toclassid);
 
             } catch (NoSuchElementException e) {
             }
@@ -313,7 +314,7 @@ public class Resources {
                     if (englobingClassId.isPresent()) {
 
                         Optional<OWLClass> englobingClass = ontoHnd.getSemanticClassesForId(englobingClassId.get()).findFirst();
-                        Structs.DetailSemClassNTerms classDta = getSemanticClassData(ontoHnd, englobingClass.get(), false);
+                        Structs.DetailSemClassNTerms classDta = ontoHnd.getSemanticClassData(englobingClass.get(), false);
 
                         JsonObjectBuilder message = Json.createObjectBuilder()
                                 .add("msgNum", 1)
@@ -329,6 +330,7 @@ public class Resources {
                                                         .add("groupId", classDta.groupId)
                                                         .add("canonicLabel", classDta.canonicLabel)
                                                         .add("canonicId", classDta.canonicId)
+                                                        .add("version", classDta.version)
                                         )
                                 );
                         return Response.status(UNPROCESSABLE).entity(message.build()).build();
@@ -396,7 +398,90 @@ public class Resources {
     ) {
         return checkUserIsAuthForOnto(requestContext, projectid, (authUser, ontoHnd) -> {
 
-            return Response.status(Response.Status.NOT_IMPLEMENTED).build();
+            //the two classes must be distinct    
+            if (semclassid1.equals(semclassid2)) {
+
+                return Response.status(UNPROCESSABLE).entity("The two classes must be distinct to be merged").build();
+            } else {
+                List<OWLOntologyChange> changes = new ArrayList<>();
+
+                OWLClass semClass1;
+                Optional<OWLClass> semClass1Opt = ontoHnd.getSemanticClassesForId(semclassid1).findFirst();
+                if (!semClass1Opt.isPresent()) {
+                    return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Semantic class 1 not found (" + semclassid1 + ")").build();
+                } else {
+                    semClass1 = semClass1Opt.get();
+                }
+
+                OWLClass semClass2;
+                Optional<OWLClass> semClass2Opt = ontoHnd.getSemanticClassesForId(semclassid2).findFirst();
+                if (!semClass1Opt.isPresent()) {
+                    return Response.status(Response.Status.BAD_REQUEST.getStatusCode()).entity("Semantic class 2 not found (" + semclassid2 + ")").build();
+                } else {
+                    semClass2 = semClass2Opt.get();
+                }
+                try {
+                    changes.addAll(ontoHnd.testAndSetSemClassVersion(semClass1, version1));
+                    changes.addAll(ontoHnd.testAndSetSemClassVersion(semClass2, version2));
+                } catch (OboOntoHandler.StaleVersionException ex) {
+                    return Response.status(UNPROCESSABLE).entity(ex.getMessage()).build();
+                }
+
+                String mergedClassId;
+                //if both the classes are linked by an hyperonym bond (direct or not) then merging them may create a cycle in the graph.
+                //In a valid ontology, if classes 1 and 2 are connected, 
+                //either 1 is the ancestor of 2, or 2 is ancestor of 1. 
+                //
+                //So to prevent cycle, if class A is ancestor of class B, then 
+                //in every path from B to A, the link from class B to its parents must be removed in resulting merged class,
+                //all other links (i.e. in paths not connecting A and B) will be retained
+                DefaultDirectedGraph<OWLClass, DefaultEdge> g = ontoHnd.buildHyperonymyGraph();
+
+                List<OWLClass> parentsToCutFrom2 = ontoHnd
+                        .getHyperonymyPaths(g, semClass1Opt.get(), semClass2Opt.get(), 100)
+                        .stream().map(
+                                path -> path.getVertexList().get(path.getVertexList().size() - 2))
+                        .distinct()
+                        .collect(Collectors.toList());
+                List<OWLClass> parentsToCutFrom1 = ontoHnd
+                        .getHyperonymyPaths(g, semClass2Opt.get(), semClass1Opt.get(), 100)
+                        .stream().map(
+                                path -> path.getVertexList().get(path.getVertexList().size() - 2))
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                try {
+                    if (!parentsToCutFrom2.isEmpty() && !parentsToCutFrom1.isEmpty()) {
+                        return Response
+                                .status(Response.Status.BAD_REQUEST.getStatusCode())
+                                .entity("Inconsistency detected in the Terminology.\nIt seems there is a cycle between " + semclassid1 + " and " + semclassid2)
+                                .build();
+
+                    } else if (!parentsToCutFrom2.isEmpty()) {
+                        //class 1 is the ancestor of class 2
+                        changes.addAll(
+                                ontoHnd.createChangesTomergeClasses(semClass1, version1, semClass2, version2, parentsToCutFrom2)
+                        );
+                        mergedClassId = semclassid1;
+                    } else if (!parentsToCutFrom1.isEmpty()) {
+                        //class 2 is the ancestor of class 1
+                        changes.addAll(
+                                ontoHnd.createChangesTomergeClasses(semClass2, version2, semClass1, version1, parentsToCutFrom1)
+                        );
+                        mergedClassId = semclassid2;
+                    } else {
+                        //No link between the classes to be merged
+                        changes.addAll(
+                                ontoHnd.createChangesTomergeClasses(semClass1, version1, semClass2, version2, Collections.EMPTY_LIST)
+                        );
+                        mergedClassId = semclassid1;
+                    }
+                } catch (OboOntoHandler.UnprocessableException ex) {
+                    return Response.status(UNPROCESSABLE).entity(ex.getMessage()).build();
+                }
+
+                return applyChangesAndSaveOnto(ontoHnd, changes, mergedClassId);
+            }
         });
     }
 
@@ -607,64 +692,8 @@ public class Resources {
 
     private JsonObjectBuilder getSemanticClassResult(OboOntoHandler ontoHnd, OWLClass semClass, boolean withHypoDetails, boolean withTerms) {
         return getSemanticClassResult(ontoHnd,
-                getSemanticClassData(ontoHnd, semClass, withTerms),
+                ontoHnd.getSemanticClassData(semClass, withTerms),
                 withHypoDetails, withTerms);
-    }
-
-    private Structs.DetailSemClassNTerms getSemanticClassData(OboOntoHandler ontoHnd, OWLClass semClass, boolean withTerms) {
-
-        Structs.DetailSemClassNTerms classStruct;
-
-        List<OWLClass> hypoClasses;
-
-        if (semClass == null) {
-            classStruct = new Structs.DetailSemClassNTerms();
-            //virtual root class
-            classStruct.groupId = OboOntoHandler.ROOT_ID;
-            classStruct.canonicId = OboOntoHandler.ROOT_ID;
-            classStruct.canonicLabel = "";
-            classStruct.version = 1;
-
-            //actual root classes presented as hyponyms of the virtual root
-            hypoClasses = ontoHnd.getRootSemanticClasses().collect(Collectors.toList());
-
-        } else {
-
-            //fill up Semantic class structure from OwlClass properties
-            classStruct = ontoHnd.initSemClassStruct(semClass);
-            //virtual canonic id
-            classStruct.canonicId = classStruct.groupId + "-C";
-
-            if (withTerms) {
-                //produce virtual term ids
-                IntStream.range(0, classStruct.termMembers.size()).forEach(
-                        i -> classStruct.termMembers.get(i).id = classStruct.groupId + "-" + i
-                );
-                //add virtual canonic term
-                Structs.Term canonic = Structs.Term.createCanonic(classStruct.canonicLabel);
-                canonic.id = classStruct.canonicId;
-                classStruct.termMembers.add(0, canonic);
-            }
-
-            classStruct.hypoGroupIds = ontoHnd.getHyperonymsOf(semClass)
-                    .map(hyper -> OboOntoHandler.getSemClassIdOf(hyper))
-                    .collect(Collectors.toList());
-            if (classStruct.hypoGroupIds.isEmpty()) {
-                //actual root classes are presented as hyperonym of the virtual root 
-                classStruct.hypoGroupIds.add(OboOntoHandler.ROOT_ID);
-            }
-
-            hypoClasses = ontoHnd.getHyponymsOf(semClass).collect(Collectors.toList());
-        }
-
-        hypoClasses.forEach(hypoClass -> classStruct.hypoClasses
-                .add(getSemanticClassData(ontoHnd, hypoClass, false))
-        );
-        classStruct.hypoClasses.sort(
-                (Structs.SemClass c1, Structs.SemClass c2) -> c1.canonicLabel.compareTo(c2.canonicLabel)
-        );
-
-        return classStruct;
     }
 
     private JsonObjectBuilder getSemanticClassResult(OboOntoHandler ontoHnd, Structs.DetailSemClassNTerms classStruct, boolean withHypoDetails, boolean withTerms) {
