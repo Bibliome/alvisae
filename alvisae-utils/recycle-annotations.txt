@@ -1,0 +1,12 @@
+ALVISNLP=alvisnlp
+PSQL_HOST=bdd
+PSQL_PORT=5432
+PSQL_DB=annotation
+PSQL_SCHEMA=aae_new_arabido
+PSQL_USER=annotation_admin
+PSQL_PASSWORD=***
+CAMPAIGN_ID=10
+IMPORT_TASK=manual-annotation
+EXPORT_TASK=manual-annotation
+JAVA=/bibdev/install/java/jdk1.7.0/bin/java
+ALVISAE_JAR=cdxws/target/AlvisAE-cli.jar
