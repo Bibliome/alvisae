@@ -68,13 +68,13 @@ public class JAXRSConfig extends Application {
             throw new IllegalArgumentException("Missing configuration file parameter [" + CONFIGFILE_PARAMNAME + "], this service won't be able to operate");
         }
         File configFile = new File(filePath);
+        logger.info("config file path: " + configFile.getAbsolutePath());
         if (!configFile.exists() || !configFile.isFile()) {
             logger.log(Level.SEVERE, "Missing configuration file parameter [{0}]", CONFIGFILE_PARAMNAME);
             throw new IllegalArgumentException("Missing or Invalid configuration file [" + filePath + "], this service won't be able to operate");
         } else {
             return configFile;
         }
-        
     }
 
     public void ensureConfiguration() {
@@ -86,6 +86,7 @@ public class JAXRSConfig extends Application {
             input = new FileInputStream(configFile);
             Yaml yaml = Settings.getYamlHandler();
             Settings data = (Settings) yaml.load(input);
+            logger.info("settings = " + data.toString());
             appPropertiesMap.put(SETTINGS_PROPNAME, data);
 
             appPropertiesMap.put(CONFIGFILE_PARAMNAME, configFile.toString());

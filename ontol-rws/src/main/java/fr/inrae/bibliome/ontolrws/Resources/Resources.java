@@ -65,7 +65,9 @@ public class Resources {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getMyProjectList(@Context ContainerRequestContext requestContext
     ) {
+        logger.info("user/me");
         User authUser = getAuthUser(requestContext);
+        logger.info("authUser = " + authUser);
 
         JsonObject result = Json.createObjectBuilder()
                 .add("id", authUser.getId())

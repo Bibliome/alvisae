@@ -95,6 +95,11 @@ $ java  -jar target/ontolrws-classes.jar aTrivialPassword anotherPass '!more$#Co
 
 ```
 
+```sh
+$ echo -n aTrivialPassword | md5sum | tr a-f A-F
+C528B8E28222377010259DAEE9AD8C2F  -
+```
+
 ### Download/Upload ontologies using web services
 
 These web services are only authorized to users with `admin` privilege (see configuration file)

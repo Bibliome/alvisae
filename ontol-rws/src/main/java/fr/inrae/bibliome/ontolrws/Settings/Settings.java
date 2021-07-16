@@ -104,4 +104,9 @@ public class Settings {
     private List<Ontology> ontologies;
     private List<User> users;
 
+	@Override
+	public String toString() {
+		return "Settings [uploadFolder=" + uploadFolder + ", ontologies=" + ontologies + ", users=" + users + "]";
+	}
+
 }

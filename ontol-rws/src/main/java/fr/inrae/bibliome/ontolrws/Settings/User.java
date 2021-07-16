@@ -54,4 +54,10 @@ public class User {
         this.ontologies = ontologies;
     }
 
+	@Override
+	public String toString() {
+		return "User [id=" + id + ", name=" + name + ", password=" + password + ", isAdmin=" + isAdmin + ", ontologies="
+				+ ontologies + "]";
+	}
+
 }

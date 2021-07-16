@@ -1,0 +1,9 @@
+uploadFolder: "/home/dev/projects/inrae/ontologies/uploaded/"
+
+ontologies: []
+
+users:
+
+  - id: 1
+    name: "foo"
+    password: "37B51D194A7513E45B56F6524F2D51F2"
