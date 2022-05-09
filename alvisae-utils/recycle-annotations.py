@@ -51,7 +51,7 @@ class RecycleAnnotations(OptionParser):
             (options0, args0) = self.parse_args(args)
         for fn in args0:
             self._load_options_file(fn)
-        for k, v in options0.__dict__.iteritems():
+        for k, v in options0.__dict__.items():
             if v is not None:
                 self.options[k] = v
 
