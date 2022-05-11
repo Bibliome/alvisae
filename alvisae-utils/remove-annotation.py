@@ -84,22 +84,22 @@ class RemoveAnnotation(argparse.ArgumentParser):
         if args.doc is not None:
             where.append('x.doc_id IN (%s)' % (', '.join(('%s' % d.strip()) for d in args.doc.split(','))))
         sql1 = 'DELETE FROM annotationset AS x'
-        if len(using) > 1 or len(using_task) > 1:
+        if len(using) > 0 or len(using_task) > 0:
             sql1 += ' USING '
             sql1 += ', '.join(using + using_task)
-        if len(where) > 1 or len(where_task) > 1:
+        if len(where) > 0 or len(where_task) > 0:
             sql1 += ' WHERE '
             sql1 += ' AND '.join(('(%s)' % w) for w in (where + where_task))
-        if args.remove_assignment is None:
-            sql2 = None
-        else:
+        if args.remove_assignment:
             sql2 = 'DELETE FROM documentassignment as x'
-            if len(using) > 1:
+            if len(using) > 0:
                 sql2 += ' USING '
                 sql2 += ', '.join(using)
-            if len(where) > 1:
+            if len(where) > 0:
                 sql2 += ' WHERE '
                 sql2 += ' AND '.join(('(%s)' % w) for w in where)
+        else:
+            sql2 = None
         return sql1, sql2
 
 
