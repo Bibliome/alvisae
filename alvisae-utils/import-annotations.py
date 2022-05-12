@@ -5,7 +5,7 @@ import os.path
 
 
 USER_FILE = 'users.csv'
-TASK_FILE = 'task.csv'
+TASK_FILE = 'tasks.csv'
 
 
 class ImportAnnotations(alvisae.AlvisAEApp):
