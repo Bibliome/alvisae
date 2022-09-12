@@ -1,7 +1,7 @@
 #!/bin/env python
 
 from subprocess import check_call
-from os import listdir, mkdir, environ
+from os import mkdir, environ
 from optparse import OptionParser
 from sys import stderr
 from tempfile import mkdtemp
@@ -37,8 +37,8 @@ class RecycleAnnotations(OptionParser):
 
     def _load_options_file(self, fn):
         f = open(fn)
-        for l in f:
-            k, q, v = l.partition('=')
+        for line in f:
+            k, q, v = line.partition('=')
             if q != '=':
                 raise Exception('missing \'=\'')
             self.options[k.strip()] = v.strip()
@@ -150,7 +150,9 @@ class RecycleAnnotations(OptionParser):
         f.write(tpl % self.options)
         f.close()
 
+
 TARGET_CL = '''%(JAVA_HOME)s/bin/java -jar %(ALVISAE_JAR)s --import-annotations -p %(PROPS_FILE)s -d %(JSON_DIR)s --campaignId %(TARGET_CAMPAIGN)s --userList %(USER_FILE)s --taskList %(TASK_FILE)s'''
+
 
 PROPERTIES = '''db.type=postgresql
 db.server=%(PSQL_HOST)s
@@ -161,11 +163,12 @@ db.password=%(PSQL_PASSWORD)s
 db.schema=%(PSQL_SCHEMA)s
 '''
 
+
 SOURCE_CL = '''%(ALVISNLP)s -log %(LOG)s -verbose %(PLAN)s'''
 
 SOURCE_PLAN = '''
 <alvisnlp-plan id="export-manual">
-  <module id="read" class="AlvisAEReader2">
+  <read class="AlvisAEReader">
     <url>jdbc:postgresql://%(PSQL_HOST)s:%(PSQL_PORT)s/%(PSQL_DB)s</url>
     <schema>%(PSQL_SCHEMA)s</schema>
     <username>%(PSQL_USER)s</username>
@@ -180,69 +183,69 @@ SOURCE_PLAN = '''
     <typeFeature>__TYPE</typeFeature>
     <fragmentTypeFeature>__TYPE</fragmentTypeFeature>
     %(ADJUDICATE_PARAM)s
-  </module>
+  </read>
 
-  <sequence id="keep-zones">
+  <keep-zones>
     <active>"%(KEEP_ZONES)s" != ""</active>
 
-    <module id="text-annotations" class="Action">
+    <text-annotations class="Action">
       <target>documents.sections.relations[@kind == "text-bound" and @name != "%(KEEP_ZONES)s"].tuples[args[not outside:user[@__TYPE == "%(KEEP_ZONES)s"]]]</target>
       <action>$.set:feat:delete("delete")</action>
       <setFeatures/>
-    </module>
+    </text-annotations>
 
-    <module id="compound-annotations-1" class="Action">
+    <compound-annotations-1 class="Action">
       <target>documents.sections.relations.tuples[@delete != "delete" and args[@delete == "delete"]]</target>
       <action>set:feat:delete("delete")</action>
       <setFeatures/>
-    </module>
+    </compound-annotations-1>
 
-    <module id="compound-annotations-2" class="Action">
+    <compound-annotations-2 class="Action">
       <target>documents.sections.relations.tuples[@delete != "delete" and args[@delete == "delete"]]</target>
       <action>set:feat:delete("delete")</action>
       <setFeatures/>
-    </module>
+    </compound-annotations-2>
 
-    <module id="compound-annotations-3" class="Action">
+    <compound-annotations-3 class="Action">
       <target>documents.sections.relations.tuples[@delete != "delete" and args[@delete == "delete"]]</target>
       <action>set:feat:delete("delete")</action>
       <setFeatures/>
-    </module>
+    </compound-annotations-3>
 
-    <module id="compound-annotations-4" class="Action">
+    <compound-annotations-4 class="Action">
       <target>documents.sections.relations.tuples[@delete != "delete" and args[@delete == "delete"]]</target>
       <action>set:feat:delete("delete")</action>
       <setFeatures/>
-    </module>
+    </compound-annotations-4>
 
-    <module id="delete-them" class="Action">
+    <delete-them class="Action">
       <target>documents.sections.relations.tuples[@delete == "delete"]</target>
       <action>delete</action>
       <deleteElements/>
-    </module>
+    </delete-them>
 
-    <module id="delete-keep-zones" class="Action">
+    <delete-keep-zones class="Action">
       <target>documents.sections.relations:'%(KEEP_ZONES)s'.tuples</target>
       <action>delete</action>
       <deleteElements/>
-    </module>
-  </sequence>
+    </delete-keep-zones>
+  </keep-zones>
 
   %(IMPORT_PLAN)s
 
-  <module id="json" class="ExportCadixeJSON">
+  <json class="AlvisAEWriter">
     <outDir>%(JSON_DIR)s</outDir>
     <documentDescription>@description</documentDescription>
     <documentProperties>DocumentID=@external-id</documentProperties>
     <publish>%(PUBLISH)s</publish>
     <annotationSets>
       <element type="UserAnnotation" description="imported from %(SOURCE_TASK)s by %(SOURCE_USER)s in campaign %(SOURCE_CAMPAIGN)s">
-	<text>
-	  <instances>relations[(%(TYPE_FILTER)s) and @kind == "text-bound"].tuples[@referent == "true"]</instances>
-	  <type>relation.@name</type>
-	  <fragments>nav:arguments[@role ^= "frag"]</fragments>
+        <text>
+          <instances>relations[(%(TYPE_FILTER)s) and @kind == "text-bound"].tuples[@referent == "true"]</instances>
+          <type>relation.@name</type>
+          <fragments>nav:arguments[@role ^= "frag"]</fragments>
           <propdef>nav:features[%(FEATURE_FILTER)s]</propdef>
-	</text>
+        </text>
 
         <group>
           <instances>relations[(%(TYPE_FILTER)s) and @kind == "group"].tuples[@referent == "true"]</instances>
@@ -251,16 +254,16 @@ SOURCE_PLAN = '''
           <propdef>nav:features[%(FEATURE_FILTER)s]</propdef>
         </group>
 
-	<relation>
+        <relation>
           <instances>relations[(%(TYPE_FILTER)s) and @kind == "relation"].tuples[@referent == "true"]</instances>
-	  <type>relation.@name</type>
+          <type>relation.@name</type>
           <argdef>nav:arguments[not @role ^= "source"]</argdef>
           <role>@role</role>
           <propdef>nav:features[%(FEATURE_FILTER)s]</propdef>
-	</relation>
+        </relation>
       </element>
     </annotationSets>
-  </module>
+  </json>
 </alvisnlp-plan>
 '''
 
