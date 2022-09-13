@@ -99,7 +99,7 @@ class RecycleAnnotations(OptionParser):
             self.options['ADJUDICATE_PARAM'] = ''
         self.options['PUBLISH'] = str(self.options['PUBLISH']).lower()
         if 'IMPORT_PLAN' in self.options and self.options['IMPORT_PLAN']:
-            self.options['IMPORT_PLAN'] = '<import>%s</import>' % self.options['IMPORT_PLAN']
+            self.options['IMPORT_PLAN'] = '<imported-plan href="%s"/>' % self.options['IMPORT_PLAN']
         else:
             self.options['IMPORT_PLAN'] = ''
         self.options['LOG'] = self.options['WD'] + '/import.log'
