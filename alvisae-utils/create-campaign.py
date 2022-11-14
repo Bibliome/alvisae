@@ -1,6 +1,7 @@
 #!/bin/env python
 
 import alvisae
+import json
 
 
 class CreateCampaign(alvisae.AlvisAEApp):
@@ -12,11 +13,18 @@ class CreateCampaign(alvisae.AlvisAEApp):
 
     def run(self):
         args = self.parse_args()
+        with open(args.schema) as f:
+            schema = json.load(f)
+        if 'schema' not in schema:
+            schema = {'schema': schema}
+        schema_file = '.schema.json'
+        with open(schema_file, 'w') as f:
+            json.dump(schema, f, indent=4)
         end_cli = [
             '-c',
             args.campaign_name,
             '-s',
-            args.schema,
+            schema_file,
             '-w',
             args.workflow
         ]
