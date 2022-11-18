@@ -60,7 +60,7 @@ class CreateCampaign(alvisae.AlvisAEApp):
                 store_id = self.args.store_id % self.args.string
             with open(store_id, 'w') as f:
                 f.write(cid)
-            sys.stderr.write('campaign identifier written in ' + self.args.store_id + '\n')
+            sys.stderr.write('campaign identifier written in ' + store_id + '\n')
 
 
 if __name__ == '__main__':
