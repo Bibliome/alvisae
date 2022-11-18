@@ -28,8 +28,8 @@ class AlvisAEApp(argparse.ArgumentParser):
     def launch(self, args, end_cli):
         cli = self._begin_cli(args) + end_cli
         result = subprocess.run(cli, capture_output=True, encoding='utf8')
-        self.handle_stdout(result.stdout)
         self.handle_stderr(result.stderr)
+        self.handle_stdout(result.stdout)
 
     def handle_stdout(self, stdout):
         sys.stdout.write(stdout)
