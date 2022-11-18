@@ -2,6 +2,7 @@
 
 import alvisae
 import json
+import sys
 
 
 class CreateCampaign(alvisae.AlvisAEApp):
@@ -10,10 +11,11 @@ class CreateCampaign(alvisae.AlvisAEApp):
         self.add_argument('--name', metavar='NAME', dest='campaign_name', required=True, help='Campaign name')
         self.add_argument('--schema', metavar='SCHEMA', dest='schema', default='./schema.json', help='Path to annotation schema JSON file')
         self.add_argument('--workflow', metavar='WORKFLOW', dest='workflow', default='./workflow.xml', help='Path to annotation workflow XML file')
+        self.add_argument('--store-id', metavar='FILE', dest='store_id', required=False, help='Path to file where to write the created campaign id')
 
     def run(self):
-        args = self.parse_args()
-        with open(args.schema) as f:
+        self.args = self.parse_args()
+        with open(self.args.schema) as f:
             schema = json.load(f)
         if 'schema' not in schema:
             schema = {'schema': schema}
@@ -22,13 +24,22 @@ class CreateCampaign(alvisae.AlvisAEApp):
             json.dump(schema, f, indent=4)
         end_cli = [
             '-c',
-            args.campaign_name,
+            self.args.campaign_name,
             '-s',
             schema_file,
             '-w',
-            args.workflow
+            self.args.workflow
         ]
-        self.launch(args, end_cli)
+        self.launch(self.args, end_cli)
+
+    def handle_stdout(self, stdout):
+        if self.args.store_id is None:
+            sys.stdout.write(stdout)
+        else:
+            cid, *_ = stdout.split('\t')
+            with open(self.args.store_id, 'w') as f:
+                f.write(cid)
+            sys.stderr.write('campaign identifier written in ' + self.args.store_id)
 
 
 if __name__ == '__main__':
