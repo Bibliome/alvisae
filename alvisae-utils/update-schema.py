@@ -24,7 +24,7 @@ class RemoveAnnotation(alvisae.PSQLApp):
         str_schema = json.dumps(schema)
         esc_schema = str_schema.replace('\'', '\'\'')
         campaign_ids = ', '.join(str(int(cid)) for cid in args.campaign_ids.split(','))
-        sql = 'UPDATE campaign SET schema = \'%s\' WHERE campaign_id in (%s);\n' % (esc_schema, campaign_ids)
+        sql = 'UPDATE campaign SET schema = \'%s\' WHERE id in (%s);\n' % (esc_schema, campaign_ids)
         return [sql]
 
 
