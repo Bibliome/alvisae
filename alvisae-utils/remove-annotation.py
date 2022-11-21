@@ -10,7 +10,7 @@ class RemoveAnnotation(alvisae.PSQLApp):
         self.add_argument('--campaign', metavar='CID', dest='campaign_id', required=True, help='Campaign identifier (AlvisAE internal numeric)')
         self.add_argument('--user', metavar='USER', dest='user', required=False, default=None, help='User name')
         self.add_argument('--task', metavar='TASK', dest='task', required=False, default=None, help='Task name')
-        self.add_argument('--document', metavar='DOC', dest='doc', required=False, default=None, help='Task name')
+        self.add_argument('--document', metavar='DOC', dest='doc', required=False, default=None, help='Document identifier (AlvisAE internal numeric)')
         self.add_argument('--remove-assignment', action='store_true', dest='remove_assignment', default=False, help='also remove assignment')
 
     def _build_sql(self, args):
