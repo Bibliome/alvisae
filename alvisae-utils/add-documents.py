@@ -12,8 +12,8 @@ TMP_DIR = '.tmp/add-documents'
 class AddDocuments(alvisae.AlvisAEApp):
     def __init__(self):
         alvisae.AlvisAEApp.__init__(self, 'register documents', '--add-documents')
-        self.add_argument('--json', metavar='DIR', dest='json_dir', required=True, help='Path containing annotation JSON files')
-        self.add_argument('--one-by-one', dest='one_by_one', action='store_true', default=False, help='Egister documents one by one, resilient to duplicate documents')
+        self.add_argument('--json', metavar='DIR', dest='json_dir', required=True, help='Path containing document JSON files')
+        self.add_argument('--one-by-one', dest='one_by_one', action='store_true', default=False, help='Register documents one by one, resilient to duplicate documents')
 
     def run(self):
         args = self.parse_args()
