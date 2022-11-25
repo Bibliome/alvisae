@@ -6,6 +6,12 @@ class Schema:
         return Schema._annotation_types[name]
 
     @staticmethod
+    def _kind_types(kind):
+        for adef in Schema._annotation_types.values():
+            if adef.kind == kind:
+                yield adef
+
+    @staticmethod
     def _add_type(atype):
         assert isinstance(atype, AnnotationType)
         assert atype.name not in Schema._annotation_types
@@ -20,6 +26,22 @@ class Schema:
         for aj in j.values():
             AnnotationType.from_json(aj)
 
+    @staticmethod
+    def _kind_name(kind):
+        if kind == 0:
+            return 'Text-bound'
+        if kind == 1:
+            return 'Group'
+        if kind == 2:
+            return 'Relation'
+
+    @staticmethod
+    def console():
+        for kind in range(3):
+            print('\u001b[1m%s\u001b[0m' % Schema._kind_name(kind))
+            for adef in Schema._kind_types(kind):
+                adef.console('  ')
+
 
 class AnnotationType:
     def __init__(self, kind, spec_def_key, name, color):
@@ -33,6 +55,10 @@ class AnnotationType:
         self._color = color
         self._properties = {}
         Schema._add_type(self)
+
+    @property
+    def kind(self):
+        return self._kind
 
     @property
     def name(self):
@@ -80,6 +106,21 @@ class AnnotationType:
         props = [Property.from_json(jp) for jp in j['propDef'].values()]
         adef.add_properties(*props)
 
+    def _console_name(self):
+        hex_color = self.color.lstrip('#')
+        rgb_color = tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+        term_color = ';'.join(str(c) for c in rgb_color)
+        if self._kind == 0:
+            return '\u001b[30m\u001b[48;2;%sm%s\u001b[0m' % (term_color, self.name)
+        return '\u001b[48;2;255;255;255m\u001b[38;2;%sm%s\u001b[0m' % (term_color, self.name)
+
+    def console(self, indent='  '):
+        print('%s%s' % (indent, self._console_name()))
+        self._console('  ')
+        print('    Properties')
+        for p in self._properties.values():
+            p.console('      ')
+
 
 class TextBound(AnnotationType):
     def __init__(self, name, color, minFrag=1, maxFrag=10):
@@ -103,6 +144,9 @@ class TextBound(AnnotationType):
     @staticmethod
     def _from_json(name, color, j):
         return TextBound(name, color, j['minFrag'], j['maxFrag'])
+
+    def _console(self, indent='  '):
+        pass
 
 
 class Group(AnnotationType):
@@ -131,6 +175,10 @@ class Group(AnnotationType):
         compType = [Schema.get_type(ct) for ct in j['compType']]
         return Group(name, color, j['homogeneous'], compType, j['minComp'], j['maxComp'])
 
+    def _console(self, indent='  '):
+        homogeneity = 'homogeneous' if self._homogeneous else 'heterogeneous'
+        print('  %s%s: %s' % ((indent, homogeneity, ' | '.join(ct.name for ct in self._compTypes))))
+
 
 class Relation(AnnotationType):
     def __init__(self, name, color, args):
@@ -146,6 +194,10 @@ class Relation(AnnotationType):
         args0 = [list(a.items())[0] for a in j]
         args = {k: [Schema.get_type(t) for t in v] for (k, v) in args0}
         return Relation(name, color, args)
+
+    def _console(self, indent='  '):
+        for k, types in self._args.items():
+            print('  %s%s: %s' % (indent, k, ', '.join(t.name for t in types)))
 
 
 class Property:
@@ -187,6 +239,9 @@ class Property:
             return TyDIProperty(key, mandatory, valType['TyDIRefBaseURL'], minVal, maxVal)
         return FreeProperty(key, mandatory, minVal, maxVal)
 
+    def console(self, indent='      '):
+        print('%s%s (%s)' % (indent, self._key, self._console_type()))
+
 
 class FreeProperty(Property):
     def __init__(self, key, mandatory, minVal=1, maxVal=10):
@@ -197,6 +252,9 @@ class FreeProperty(Property):
             'closedDomain': False,
             'defaultVal': ''
         }
+
+    def _console_type(self):
+        return '*'
 
 
 class ClosedSetProperty(Property):
@@ -215,6 +273,9 @@ class ClosedSetProperty(Property):
             'domain': self._domain
         }
 
+    def _console_type(self):
+        return ' | '.join(self._domain)
+
 
 class TyDIProperty(Property):
     def __init__(self, key, mandatory, base_url, minVal=1, maxVal=10):
@@ -228,6 +289,9 @@ class TyDIProperty(Property):
             'TyDIRefBaseURL': self._base_url
         }
 
+    def _console_type(self):
+        return self._base_url
+
 
 if __name__ == '__main__':
     import sys
@@ -238,4 +302,4 @@ if __name__ == '__main__':
         with open(sys.argv[1]) as f:
             j = json.load(f)
     Schema.from_json(j)
-    json.dump(Schema.to_json(), sys.stdout, indent=4)
+    Schema.console()
