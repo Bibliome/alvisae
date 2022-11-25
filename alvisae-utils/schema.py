@@ -15,6 +15,11 @@ class Schema:
     def to_json():
         return {k: v.to_json() for (k, v) in Schema._annotation_types.items()}
 
+    @staticmethod
+    def from_json(j):
+        for aj in j.values():
+            AnnotationType.from_json(aj)
+
 
 class AnnotationType:
     def __init__(self, kind, spec_def_key, name, color):
@@ -61,6 +66,20 @@ class AnnotationType:
     def _spec_def_to_json(self):
         raise NotImplementedError()
 
+    @staticmethod
+    def from_json(j):
+        name = j['type']
+        color = j['color']
+        kind = j['kind']
+        if kind == 0:
+            adef = TextBound._from_json(name, color, j['txtBindingDef'])
+        elif kind == 1:
+            adef = Group._from_json(name, color, j['groupDef'])
+        elif kind == 2:
+            adef = Relation._from_json(name, color, j['relationDef'])
+        props = [Property.from_json(jp) for jp in j['propDef'].values()]
+        adef.add_properties(*props)
+
 
 class TextBound(AnnotationType):
     def __init__(self, name, color, minFrag=1, maxFrag=10):
@@ -80,6 +99,10 @@ class TextBound(AnnotationType):
             'minFrag': self._minFrag,
             'maxFrag': self._maxFrag
         }
+
+    @staticmethod
+    def _from_json(name, color, j):
+        return TextBound(name, color, j['minFrag'], j['maxFrag'])
 
 
 class Group(AnnotationType):
@@ -103,6 +126,11 @@ class Group(AnnotationType):
             'homogeneous': self._homogeneous
         }
 
+    @staticmethod
+    def _from_json(name, color, j):
+        compType = [Schema.get_type(ct) for ct in j['compType']]
+        return Group(name, color, j['homogeneous'], compType, j['minComp'], j['maxComp'])
+
 
 class Relation(AnnotationType):
     def __init__(self, name, color, args):
@@ -112,6 +140,12 @@ class Relation(AnnotationType):
 
     def _spec_def_to_json(self):
         return [dict(((k, [a.name for a in v]),)) for (k, v) in self._args.items()]
+
+    @staticmethod
+    def _from_json(name, color, j):
+        args0 = [list(a.items())[0] for a in j]
+        args = {k: [Schema.get_type(t) for t in v] for (k, v) in args0}
+        return Relation(name, color, args)
 
 
 class Property:
@@ -145,10 +179,12 @@ class Property:
     @staticmethod
     def from_json(j):
         key, mandatory, minVal, maxVal, valType = [j[k] for k in ('key', 'mandatory', 'minVal', 'maxVal', 'valType')]
+        if 'valTypeName' not in valType:
+            return FreeProperty(key, mandatory, minVal, maxVal)
         if valType['valTypeName'] == 'ClosedDomain':
-            return ClosedSetProperty(key, mandatory, j['domain'], j['default'], minVal, maxVal)
+            return ClosedSetProperty(key, mandatory, valType['domain'], valType['defaultVal'], minVal, maxVal)
         if valType['valTypeName'] == 'TyDI_conceptRef':
-            return TyDIProperty(key, mandatory, j['TyDIRefBaseURL'], minVal, maxVal)
+            return TyDIProperty(key, mandatory, valType['TyDIRefBaseURL'], minVal, maxVal)
         return FreeProperty(key, mandatory, minVal, maxVal)
 
 
@@ -191,3 +227,15 @@ class TyDIProperty(Property):
             'valTypeName': 'TyDI_conceptRef',
             'TyDIRefBaseURL': self._base_url
         }
+
+
+if __name__ == '__main__':
+    import sys
+    import json
+    if len(sys.argv) == 1:
+        j = json.load(sys.stdin)
+    else:
+        with open(sys.argv[1]) as f:
+            j = json.load(f)
+    Schema.from_json(j)
+    json.dump(Schema.to_json(), sys.stdout, indent=4)
