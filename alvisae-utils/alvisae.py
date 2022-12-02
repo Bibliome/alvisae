@@ -52,7 +52,7 @@ class PSQLApp(argparse.ArgumentParser):
         self._write_sql(args, db_props)
         existing_pgpass = self._ensure_pgpass(db_props)
         try:
-            sys.stderr.write('running psql')
+            sys.stderr.write('running psql\n')
             result = subprocess.run(['psql', '-h', db_props['db.server'], '-p', db_props['db.port'], '-U', db_props['db.username'], '-w', '-f', self.sql_file, db_props['db.dbname']], capture_output=True, encoding='utf8')
             sys.stdout.write(result.stdout)
             sys.stderr.write(result.stderr)
