@@ -13,6 +13,7 @@ class RemoveAnnotation(alvisae.PSQLApp):
         alvisae.PSQLApp.__init__(self, 'delete annotation', 'update_schema.sql')
         self.add_argument('--schema', metavar='FILE', dest='schema_file', required=True, help='New schema file')
         self.add_argument('--campaigns', metavar='CID', dest='campaign_ids', required=True, help='Campaign identifiers (AlvisAE internal numeric, comma separated)')
+        self.add_argument('--update-tasks', dest='update_tasks', action='store_true', default=False, help='Either to update the task definition to annotate all types')
 
     def _build_sql(self, args):
         with open(args.schema_file) as f:
@@ -23,6 +24,9 @@ class RemoveAnnotation(alvisae.PSQLApp):
         esc_schema = str_schema.replace('\'', '\'\'')
         campaign_ids = ', '.join(str(int(cid)) for cid in args.campaign_ids.split(','))
         sql = 'UPDATE campaign SET schema = \'%s\' WHERE id in (%s);\n' % (esc_schema, campaign_ids)
+        if args.update_tasks:
+            sql2 = 'UPDATE taskdefinition SET annotationtypes = \'%s\' where campaign_id in (%s);\n' % (','.join(schema.keys()), campaign_ids)
+            return [sql, sql2]
         return [sql]
 
     def _post_process(self, args):
