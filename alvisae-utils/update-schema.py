@@ -1,13 +1,11 @@
 #!/bin/env python
 
 import os
-import os.path
 import json
 import alvisae
 
 
 SQL_FILE = 'update_schema.sql'
-PG_PASS = os.path.expanduser('~/.pgpass')
 
 
 class RemoveAnnotation(alvisae.PSQLApp):
@@ -26,6 +24,9 @@ class RemoveAnnotation(alvisae.PSQLApp):
         campaign_ids = ', '.join(str(int(cid)) for cid in args.campaign_ids.split(','))
         sql = 'UPDATE campaign SET schema = \'%s\' WHERE id in (%s);\n' % (esc_schema, campaign_ids)
         return [sql]
+
+    def _post_process(self, args):
+        pass
 
 
 if __name__ == '__main__':

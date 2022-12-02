@@ -47,6 +47,9 @@ class RemoveAnnotation(alvisae.PSQLApp):
             sql2 = None
         return sql1, sql2
 
+    def _post_process(self, args):
+        pass
+
 
 if __name__ == '__main__':
     RemoveAnnotation().run()

@@ -60,6 +60,7 @@ class PSQLApp(argparse.ArgumentParser):
             if not existing_pgpass:
                 sys.stderr.write('deleting %s\n' % PSQLApp.PG_PASS)
                 os.remove(PSQLApp.PG_PASS)
+        self._post_process(args)
 
     def _read_db_props(self, args):
         sys.stderr.write('reading %s\n' % args.db_props)
@@ -91,4 +92,7 @@ class PSQLApp(argparse.ArgumentParser):
         return False
 
     def _build_sql(self, args):
+        raise NotImplementedError()
+
+    def _post_process(self, ags):
         raise NotImplementedError()
