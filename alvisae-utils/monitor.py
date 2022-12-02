@@ -12,7 +12,7 @@ class Monitor(alvisae.PSQLApp):
         self.add_argument('--aggregate-documents', dest='aggregate_documents', required=False, default=False, action='store_true', help='Aggregate documents')
 
     def _build_sql(self, args):
-        select = 'ans.campaign_id, c.name AS campaign_name, doc_id, doc.description AS doc_description, user_id, u.login AS annotator, t.name AS task, count(ans.id) AS versions'
+        select = 'ans.campaign_id, c.name AS campaign_name, doc_id, doc.description AS doc_description, user_id, u.login AS annotator, t.name AS task, count(ans.id) AS versions, bool_or(published IS NOT NULL) AS is_published'
         from_ = 'annotationset AS ans, campaign AS c, document AS doc, "user" AS u, taskdefinition AS t'
         where = 'ans.campaign_id IN (%s) AND ans.campaign_id = c.id AND doc_id = doc.id AND user_id != 1 AND user_id = u.id AND ans.task_id = t.id' % args.campaign_ids
         group_by = 'ans.campaign_id, c.name, doc_id, doc.description, user_id, u.login, t.name'
@@ -38,19 +38,26 @@ class Monitor(alvisae.PSQLApp):
     def _post_process(self, args):
         if args.aggregate_documents:
             header, data = self._read_data()
-            agg_header = list(h for h in header if h not in ('doc_id', 'doc_description', 'versions'))
+            agg_header = list(h for h in header if h not in ('doc_id', 'doc_description', 'versions', 'is_published'))
             agg = collections.defaultdict(list)
             for row in data:
                 k = tuple(row[h] for h in agg_header)
-                agg[k].append(int(row['versions']))
+                agg[k].append(((row['is_published'] == 't'), int(row['versions'])))
             with open('monitor.csv', 'w') as f:
                 f.write('\t'.join(agg_header))
-                f.write('\tdoc_versions\n')
+                f.write('\tassigned\tpending\tpublished\n')
                 for k, v in agg.items():
                     f.write('\t'.join(k))
-                    v.sort()
-                    f.write('\t%s\n' % ','.join(str(i) for i in v))
-            
+                    assigned, pending, done = 0, 0, 0
+                    for published, versions in v:
+                        if published:
+                            done += 1
+                        elif versions <= 1:
+                            assigned += 1
+                        else:
+                            pending += 1
+                    f.write('\t%d\t%d\t%d\n' % (assigned, pending, done))
+
 
 if __name__ == '__main__':
     Monitor().run()
