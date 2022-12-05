@@ -9,6 +9,7 @@ class Monitor(alvisae.PSQLApp):
         alvisae.PSQLApp.__init__(self, 'Monitor campaigns', 'monitor.sql')
         self.add_argument('--campaigns', metavar='CID', dest='campaign_ids', required=True, help='Campaign identifiers (AlvisAE internal numeric, comma separated)')
         self.add_argument('--tasks', metavar='TASK', dest='tasks', required=False, default=None, help='Tasks to monitor (comma separated)')
+        self.add_argument('--table-file', metavar='FILE', dest='table_file', default='monitor.csv', help='Output file name')
         self.add_argument('--aggregate-documents', dest='aggregate_documents', required=False, default=False, action='store_true', help='Aggregate documents')
 
     def _build_sql(self, args):
@@ -19,11 +20,11 @@ class Monitor(alvisae.PSQLApp):
         if args.tasks is not None:
             where += ' AND t.name in (%s)' % (','.join(('\'' + t + '\'') for t in args.tasks))
         sql = 'SELECT %s FROM %s WHERE %s GROUP BY %s' % (select, from_, where, group_by)
-        copy = '\\copy (%s) TO \'%s\' WITH CSV DELIMITER \'\t\' HEADER' % (sql, 'monitor.csv')
+        copy = '\\copy (%s) TO \'%s\' WITH CSV DELIMITER \'\t\' HEADER' % (sql, args.table_file)
         return [copy]
 
-    def _read_data(self):
-        with open('monitor.csv') as f:
+    def _read_data(self, args):
+        with open(args.table_file) as f:
             data = []
             header = None
             for line in f:
@@ -43,7 +44,7 @@ class Monitor(alvisae.PSQLApp):
             for row in data:
                 k = tuple(row[h] for h in agg_header)
                 agg[k].append(((row['is_published'] == 't'), int(row['versions'])))
-            with open('monitor.csv', 'w') as f:
+            with open(args.table_file, 'w') as f:
                 f.write('\t'.join(agg_header))
                 f.write('\tassigned\tpending\tpublished\n')
                 for k, v in agg.items():
