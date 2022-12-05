@@ -46,8 +46,8 @@ class PSQLApp(argparse.ArgumentParser):
         self.add_argument('--db-props', metavar='DBPROPS', dest='db_props', default='./db.props', help='Path to annotation database properties')
         self.sql_file = sql_file
 
-    def run(self):
-        args = self.parse_args()
+    def run(self, args=None):
+        args = self.parse_args(args)
         db_props = self._read_db_props(args)
         self._write_sql(args, db_props)
         existing_pgpass = self._ensure_pgpass(db_props)
