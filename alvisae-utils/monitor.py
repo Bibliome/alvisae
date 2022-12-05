@@ -38,7 +38,7 @@ class Monitor(alvisae.PSQLApp):
 
     def _post_process(self, args):
         if args.aggregate_documents:
-            header, data = self._read_data()
+            header, data = self._read_data(args)
             agg_header = list(h for h in header if h not in ('doc_id', 'doc_description', 'versions', 'is_published'))
             agg = collections.defaultdict(list)
             for row in data:
