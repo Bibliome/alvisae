@@ -11,7 +11,8 @@ class RemoveAnnotation(alvisae.PSQLApp):
         self.add_argument('--user', metavar='USER', dest='user', required=False, default=None, help='User name')
         self.add_argument('--task', metavar='TASK', dest='task', required=False, default=None, help='Task name')
         self.add_argument('--document', metavar='DOC', dest='doc', required=False, default=None, help='Document identifier (AlvisAE internal numeric)')
-        self.add_argument('--remove-assignment', action='store_true', dest='remove_assignment', default=False, help='also remove assignment')
+        self.add_argument('--remove-assignment', action='store_true', dest='remove_assignment', default=False, help='also remove document assignments')
+        self.add_argument('--remove-campaign-assignment', action='store_true', dest='remove_campaign_assignment', default=False, help='also remove campaign assignments')
 
     def _build_sql(self, args):
         using = []
@@ -35,6 +36,7 @@ class RemoveAnnotation(alvisae.PSQLApp):
         if len(where) > 0 or len(where_task) > 0:
             sql1 += ' WHERE '
             sql1 += ' AND '.join(('(%s)' % w) for w in (where + where_task))
+        result = [sql1]
         if args.remove_assignment:
             sql2 = 'DELETE FROM documentassignment as x'
             if len(using) > 0:
@@ -43,9 +45,23 @@ class RemoveAnnotation(alvisae.PSQLApp):
             if len(where) > 0:
                 sql2 += ' WHERE '
                 sql2 += ' AND '.join(('(%s)' % w) for w in where)
-        else:
-            sql2 = None
-        return sql1, sql2
+            result.append(sql2)
+        if args.remove_campaign_assignment:
+            where = ['ca.campaign_id = %s' % args.campaign_id]
+            using = []
+            if args.user is not None:
+                using.append('"user" AS u')
+                where.append('u.login IN (%s)' % (', '.join(('\'%s\'' % u.strip()) for u in args.user.split(','))))
+                where.append('u.id = ca.user_id')
+            sql3 = 'DELETE FROM campaignannotator AS ca'
+            if len(using) > 0:
+                sql3 += ' USING '
+                sql3 += ', '.join(using)
+            if len(where) > 0:
+                sql3 += ' WHERE '
+                sql3 += ' AND '.join(('(%s)' % w) for w in where)
+            result.append(sql3)
+        return result
 
     def _post_process(self, args):
         pass
