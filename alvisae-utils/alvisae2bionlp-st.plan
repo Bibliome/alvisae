@@ -31,10 +31,91 @@
     <alias module="read" param="docIds"/>
   </param>
 
+  <param name="normalizations-file">
+    <alias module="normalizations" param="mappingFile"/>
+  </param>
+
+  <param name="out-dir">
+    <alias module="write.text" param="outDir"/>
+    <alias module="write.entities" param="outDir"/>
+    <alias module="write.normalizations" param="outDir"/>
+    <alias module="write.relations" param="outDir"/>
+  </param>
+
   <read class="AlvisAEReader">
     <userFeature>user</userFeature>
     <section>text</section>
     <typeFeature>__TYPE</typeFeature>
     <fragmentTypeFeature>__TYPE</fragmentTypeFeature>
+    <campaignIdFeature>campaign-id</campaignIdFeature>
+    <campaignNameFeature>campaign-name</campaignNameFeature>
+    <userIdFeature>user-id</userIdFeature>
+    <taskIdFeature>task-id</taskIdFeature>
   </read>
+
+  <normalizations class="FileMapper">
+    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+    <form>@__TYPE</form>
+    <targetFeatures>,normalization-feature,normalization-name</targetFeatures>
+  </normalizations>
+
+  <ids>
+    <entities class="Action">
+      <target>documents.sections</target>
+      <action>id:enumerate:tid:T(sort:ival(relations[@kind == "text-bound"].tuples, args:frag0.start))</action>
+      <setFeatures/>
+    </entities>
+
+    <normalizations class="Action">
+      <target>documents.sections</target>
+      <action>id:enumerate:nid:N(sort:ival(relations[@kind == "text-bound"].tuples[@normalization-feature], args:frag0.start))</action>
+      <setFeatures/>
+    </normalizations>
+
+    <relations class="Action">
+      <target>documents.sections</target>
+      <action>id:enumerate:rid:R(sort:ival(relations[@kind == "relation"].tuples, args[args:frag0]{0}.args:frag0.start))</action>
+      <setFeatures/>
+    </relations>
+  </ids>
+
+  <write>
+    <text class="TabularExport">
+      <files>documents</files>
+      <fileName>"txt/" ^ @external-id ^ ".txt"</fileName>
+      <lines>sections</lines>
+      <columns>contents</columns>
+    </text>
+
+    <entities class="TabularExport">
+      <files>documents</files>
+      <fileName>"ent/" ^ @external-id ^ ".ent"</fileName>
+      <lines>sort:ival(sections.relations[@kind == "text-bound"].tuples, args:frag0.start)</lines>
+      <columns separator="|">
+	@tid|
+	@__TYPE ^ " " ^ str:join:';'(args, start ^ " " ^ end)|
+	str:normalizeSpace(str:join:' '(args, @form))
+      </columns>
+    </entities>
+
+    <normalizations class="TabularExport">
+      <files>documents</files>
+      <fileName>"norm/" ^ @external-id ^ ".norm"</fileName>
+      <lines>sort:ival(sections.relations[@kind == "text-bound"].tuples[@normalization-feature], args:frag0.start)</lines>
+      <columns separator="|">
+	@nid|
+	@normalization-name ^ " Annotation:" ^ @tid ^ " Referent:" ^ properties:last(@normalization-feature)
+      </columns>
+    </normalizations>
+
+    <relations class="TabularExport">
+      <files>documents</files>
+      <fileName>"rel/" ^ @external-id ^ ".rel"</fileName>
+      <lines>sort:ival(sections.relations[@kind == "relation"].tuples, args[args:frag0]{0}.args:frag0.start)</lines>
+      <columns separator="|">
+	@rid|
+	@__TYPE ^ " " ^ str:join:' '(nav:arguments, @role ^ ":" ^ @rid ^ @tid)
+      </columns>
+    </relations>
+  </write>
 </alvisnlp-plan>
