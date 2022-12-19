@@ -6,3 +6,5 @@ ontol-rws/target
 .classpath
 .project
 .settings
+alvisae-utils/__pycache__
+alvisae-utils/db.props
