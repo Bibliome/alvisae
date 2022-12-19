@@ -1,0 +1,40 @@
+<alvisnlp-plan id="alvisae2bionlp-st">
+  <param name="db-schema">
+    <alias module="read" param="schema"/>
+  </param>
+  
+  <param name="db-url">
+    <alias module="read" param="url"/>
+  </param>
+  
+  <param name="db-login">
+    <alias module="read" param="username"/>
+  </param>
+  
+  <param name="db-password">
+    <alias module="read" param="password"/>
+  </param>
+  
+  <param name="campaigns">
+    <alias module="read" param="campaignId"/>
+  </param>
+    
+  <param name="task">
+    <alias module="read" param="taskName"/>
+  </param>
+    
+  <param name="user">
+    <alias module="read" param="userNames"/>
+  </param>
+    
+  <param name="docs">
+    <alias module="read" param="docIds"/>
+  </param>
+
+  <read class="AlvisAEReader">
+    <userFeature>user</userFeature>
+    <section>text</section>
+    <typeFeature>__TYPE</typeFeature>
+    <fragmentTypeFeature>__TYPE</fragmentTypeFeature>
+  </read>
+</alvisnlp-plan>
