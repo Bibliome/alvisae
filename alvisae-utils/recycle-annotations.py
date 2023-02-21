@@ -30,8 +30,10 @@ class RecycleAnnotations(OptionParser):
         self.add_option('--alvisae-jar', action='store', type='string', dest='ALVISAE_JAR', help='path to the AlvisAE jar file')
         self.add_option('--annotation-types', action='store', type='string', dest='ANNOTATION_TYPES', help='comma separated list of annotation types to recycle (all annotations if omitted)')
         self.add_option('--keep-zones', action='store', type='string', dest='KEEP_ZONES', help='text annotation type of keep zones, annotations outside thes zones will be deleted')
+        self.add_option('--keep-all-if-no-zone', action='store_true', dest='KEEP_ALL_IF_NO_ZONE', help='keep all document if there is no keep zone')
         self.add_option('--dry-run', action='store_true', dest='DRY_RUN', default=False, help='do not execute commands, just generate files')
         self.add_option('--import-plan', action='store', type='string', dest='IMPORT_PLAN', default=None, help='import the specified custom plan before re-injecting annotations')
+        self.add_option('--alias', action='append', nargs=2, type='string', dest='ALIAS', default=[], help='alias value to pass to custom plan')
         self.add_option('--publish', action='store_true', dest='PUBLISH', default=False, help='publish the annotation (broken: the AlvisAE importer does not take it into account)')
         self.options = {}
 
@@ -92,14 +94,21 @@ class RecycleAnnotations(OptionParser):
         if 'TARGET_CAMPAIGN' not in self.options or not self.options['TARGET_CAMPAIGN']:
             self.options['TARGET_CAMPAIGN'] = self.options['SOURCE_CAMPAIGN']
         if 'KEEP_ZONES' not in self.options:
-            self.options['KEEP_ZONES'] = ''
+            self.options['KEEP_ZONES'] = 'dummy'
+        if 'KEEP_ALL_IF_NO_ZONE' in self.options and self.options['KEEP_ALL_IF_NO_ZONE']:
+            self.options['KEEP_ALL_IF_NO_ZONE'] = 'true'
+        else:
+            self.options['KEEP_ALL_IF_NO_ZONE'] = 'false'
         if self.options['ADJUDICATE']:
             self.options['ADJUDICATE_PARAM'] = '<loadDependencies/> <adjudicate/>'
         else:
             self.options['ADJUDICATE_PARAM'] = ''
         self.options['PUBLISH'] = str(self.options['PUBLISH']).lower()
         if 'IMPORT_PLAN' in self.options and self.options['IMPORT_PLAN']:
-            self.options['IMPORT_PLAN'] = '<imported-plan href="%s"/>' % self.options['IMPORT_PLAN']
+            if 'ALIAS' in self.options and self.options['ALIAS']:
+                self.options['IMPORT_PLAN'] = '<imported-plan href="%s">\n%s\n  </imported-plan>' % (self.options['IMPORT_PLAN'], '\n'.join('    <%s>%s</%s>' % (k, v, k) for k, v in self.options['ALIAS']))
+            else:
+                self.options['IMPORT_PLAN'] = '<imported-plan href="%s"/>' % self.options['IMPORT_PLAN']
         else:
             self.options['IMPORT_PLAN'] = ''
         self.options['LOG'] = self.options['WD'] + '/import.log'
@@ -187,6 +196,32 @@ SOURCE_PLAN = '''
 
   <keep-zones>
     <active>"%(KEEP_ZONES)s" != ""</active>
+
+    <keep-all-if-no-zone>
+      <active>%(KEEP_ALL_IF_NO_ZONE)s</active>
+
+      <create-rel class="Action">
+        <target>documents.sections</target>
+        <action>new:relation("%(KEEP_ZONES)s")</action>
+        <createRelations/>
+      </create-rel>
+
+      <create-zones class="Action">
+        <target>documents[not sections.relations[@kind == "text-bound" and @name == "%(KEEP_ZONES)s"].tuples].sections</target>
+        <action>
+          relations:%(KEEP_ZONES)s.new:tuple.(
+            set:feat:__TYPE("%(KEEP_ZONES)s")
+          | set:feat:user("dummy")
+          | set:arg:frag0(target.new:annotation:user(0, str:len(target.contents)).(set:feat:__TYPE("%(KEEP_ZONES)s")))
+          )
+        </action>
+        <createTuples/>
+        <setArguments/>
+        <setFeatures/>
+        <createAnnotations/>
+        <addToLayer/>
+      </create-zones>
+    </keep-all-if-no-zone>
 
     <text-annotations class="Action">
       <target>documents.sections.relations[@kind == "text-bound" and @name != "%(KEEP_ZONES)s"].tuples[args[not outside:user[@__TYPE == "%(KEEP_ZONES)s"]]]</target>
