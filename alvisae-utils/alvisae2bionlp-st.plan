@@ -35,8 +35,14 @@
     <alias module="normalizations" param="mappingFile"/>
   </param>
 
+  <param name="type-exclusion-file">
+    <alias module="exclude-types.map" param="mappingFile"/>
+  </param>
+
   <param name="out-dir">
+    <alias module="write.docs" param="outDir"/>
     <alias module="write.text" param="outDir"/>
+    <alias module="write.layout" param="outDir"/>
     <alias module="write.entities" param="outDir"/>
     <alias module="write.normalizations" param="outDir"/>
     <alias module="write.relations" param="outDir"/>
@@ -53,6 +59,44 @@
     <taskIdFeature>task-id</taskIdFeature>
   </read>
 
+  <shell/>
+
+  <exclude-types>
+    <map class="FileMapper">
+      <target>documents.sections.relations</target>
+      <form>@name</form>
+      <targetFeatures>excluded</targetFeatures>
+    </map>
+
+    <delete class="Action">
+      <target>documents.sections.relations[@excluded]</target>
+      <action>delete</action>
+      <deleteElements/>
+    </delete>
+  </exclude-types>
+
+  <layout>
+    <create-relation class="Action">
+      <target>documents.sections</target>
+      <action>new:relation:HTML.set:feat:kind("layout")</action>
+      <createRelations/>
+      <setFeatures/>
+    </create-relation>
+
+    <create-tuples class="Action">
+      <target>documents.sections.layer:html</target>
+      <action>
+	section.relations:HTML.new:tuple.(
+	set:arg:arg0(target) |
+	set:feat:__TYPE(target.@tag)
+	)
+      </action>
+      <createTuples/>
+      <setArguments/>
+      <setFeatures/>
+    </create-tuples>
+  </layout>
+
   <normalizations class="FileMapper">
     <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
     <form>@__TYPE</form>
@@ -60,11 +104,11 @@
   </normalizations>
 
   <ids>
-    <entities class="Action">
+    <entities-and-entities class="Action">
       <target>documents.sections</target>
-      <action>id:enumerate:tid:T(sort:ival(relations[@kind == "text-bound"].tuples, args:frag0.start))</action>
+      <action>id:enumerate:tid:T(sort:ival(relations[@kind == "text-bound" or @kind == "layout"].tuples, (if relation.@name == "HTML" then 1 else 1000000) * args:frag0.start))</action>
       <setFeatures/>
-    </entities>
+    </entities-and-entities>
 
     <normalizations class="Action">
       <target>documents.sections</target>
@@ -80,6 +124,12 @@
   </ids>
 
   <write>
+    <docs class="TabularExport">
+      <corpusFile>docs.txt</corpusFile>
+      <lines>documents</lines>
+      <columns>@external-id</columns>
+    </docs>
+    
     <text class="TabularExport">
       <files>documents</files>
       <fileName>"txt/" ^ @external-id ^ ".txt"</fileName>
@@ -87,10 +137,21 @@
       <columns>contents</columns>
     </text>
 
+    <layout class="TabularExport">
+      <files>documents</files>
+      <fileName>"layout/" ^ @external-id ^ ".lay"</fileName>
+      <lines>sort:ival(sections.relations:HTML.tuples, args:frag0.start)</lines>
+      <columns separator="|">
+	@tid|
+	@__TYPE ^ " " ^ str:join:';'(args, start ^ " " ^ end)|
+	str:normalizeSpace(str:join:' '(args, @form))
+      </columns>
+    </layout>
+
     <entities class="TabularExport">
       <files>documents</files>
-      <fileName>"ent/" ^ @external-id ^ ".ent"</fileName>
-      <lines>sort:ival(sections.relations[@kind == "text-bound"].tuples, args:frag0.start)</lines>
+      <fileName>"entities/" ^ @external-id ^ ".ent"</fileName>
+      <lines>sort:ival(sections.relations[@kind == "text-bound" and not @layout].tuples, args:frag0.start)</lines>
       <columns separator="|">
 	@tid|
 	@__TYPE ^ " " ^ str:join:';'(args, start ^ " " ^ end)|
@@ -100,7 +161,7 @@
 
     <normalizations class="TabularExport">
       <files>documents</files>
-      <fileName>"norm/" ^ @external-id ^ ".norm"</fileName>
+      <fileName>"normalizations/" ^ @external-id ^ ".norm"</fileName>
       <lines>sort:ival(sections.relations[@kind == "text-bound"].tuples[@normalization-feature], args:frag0.start)</lines>
       <columns separator="|">
 	@nid|
@@ -110,7 +171,7 @@
 
     <relations class="TabularExport">
       <files>documents</files>
-      <fileName>"rel/" ^ @external-id ^ ".rel"</fileName>
+      <fileName>"relations/" ^ @external-id ^ ".rel"</fileName>
       <lines>sort:ival(sections.relations[@kind == "relation"].tuples, args[args:frag0]{0}.args:frag0.start)</lines>
       <columns separator="|">
 	@rid|
