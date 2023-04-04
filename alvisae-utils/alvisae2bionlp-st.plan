@@ -57,9 +57,8 @@
     <campaignNameFeature>campaign-name</campaignNameFeature>
     <userIdFeature>user-id</userIdFeature>
     <taskIdFeature>task-id</taskIdFeature>
+    <campaignNameFeature>campaign-name</campaignNameFeature>
   </read>
-
-  <shell/>
 
   <exclude-types>
     <map class="FileMapper">
