@@ -58,7 +58,7 @@ _standard ouput:_
 
 _example:_
 <pre>
- java -jar target/AlvisAE-cli.jar --create-user -p dbparam.props --userName foo --password bar
+ java -jar AlvisAE-cli.jar --create-user -p dbparam.props --userName foo --password bar
 
 ...
 4	"foo"
@@ -83,7 +83,7 @@ _standard ouput:_
 
 _example:_
 <pre>
- java -jar target/AlvisAE-cli.jar --create-campaign -p dbparam.props -c "New Campaign #1" -s embedded_schema.json -w workflow.xml
+ java -jar AlvisAE-cli.jar --create-campaign -p dbparam.props -c "New Campaign #1" -s embedded_schema.json -w workflow.xml
 
 ...
 14	"New Campaign #1"
@@ -110,7 +110,7 @@ _standard ouput (one line per added doc):_
 
 _example:_
 <pre>
- java -jar target/AlvisAE-cli.jar --add-documents  -p dbparam.props -d /tmp/json
+ java -jar AlvisAE-cli.jar --add-documents  -p dbparam.props -d /tmp/json
 
 ...
 2014	"/tmp/json/BTID-20052.json"	"BTID20052"
@@ -142,7 +142,7 @@ _standard ouput:_
 
 _example:_
 <pre>
- java -jar target/AlvisAE-cli.jar --import-annotations  -p dbparam.props --annotationSetFile /tmp/json/BTID-20052.json --docInternalId 2014 -c "New Campaign #1" --userName foo --taskName "default-task"
+ java -jar AlvisAE-cli.jar --import-annotations  -p dbparam.props --annotationSetFile /tmp/json/BTID-20052.json --docInternalId 2014 -c "New Campaign #1" --userName foo --taskName "default-task"
 
 </pre>
 
@@ -180,7 +180,7 @@ _standard ouput:_
 
 _example:_
 <pre>
- java -jar target/AlvisAE-cli.jar --import-annotations  -p dbparam.props -d /tmp/json/ -c "New Campaign #1""
+ java -jar AlvisAE-cli.jar --import-annotations  -p dbparam.props -d /tmp/json/ -c "New Campaign #1""
 
 </pre>
 
@@ -210,7 +210,7 @@ _standard ouput:_
 
 _example:_
 <pre>
- java -jar target/AlvisAE-cli.jar --assign-document  -p dbparam.props --docInternalId 2014 -c "New Campaign #1" 
+ java -jar AlvisAE-cli.jar --assign-document  -p dbparam.props --docInternalId 2014 -c "New Campaign #1" 
 
 </pre>
 
@@ -233,7 +233,7 @@ _standard ouput:_
 
 _example:_
 <pre>
- java -jar target/AlvisAE-cli.jar --export-campaign -p dbparam.props -c "New Campaign #1" -f json -o /tmp
+ java -jar AlvisAE-cli.jar --export-campaign -p dbparam.props -c "New Campaign #1" -f json -o /tmp
 
 ...
 /tmp/aae_14.zip
