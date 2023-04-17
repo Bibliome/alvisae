@@ -1,0 +1,15 @@
+<alvisae-workflow>
+  <task-definition name="annotation" cardinality="2" visibility="public">
+    <edit-annotations>
+      <all-annotation-types/>
+    </edit-annotations>
+  </task-definition>
+  <task-definition name="review" cardinality="1" visibility="public">
+    <dependencies>
+      <review-of task="annotation"/>
+    </dependencies>        
+    <edit-annotations>
+      <all-annotation-types/>
+    </edit-annotations>
+  </task-definition>
+</alvisae-workflow>

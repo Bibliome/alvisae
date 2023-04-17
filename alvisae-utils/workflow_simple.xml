@@ -1,0 +1,7 @@
+<alvisae-workflow>
+  <task-definition name="annotation" cardinality="1" visibility="public">
+    <edit-annotations>
+      <all-annotation-types/>
+    </edit-annotations>
+  </task-definition>
+</alvisae-workflow>
