@@ -5,7 +5,7 @@
 the 3 first steps of [Installation](aae_ws_installation.md) must be completed
 * Install Maven
 * Get the source code
-* Set-up database parameters in a property file (named @dbparam.props@ hereafter)
+* Set-up database parameters in a property file (named `dbparam.props` hereafter)
 
 ## Build the CLI program
 
@@ -21,7 +21,7 @@ h3. generate the CLI jar
 mvn clean compile assembly:single
 </pre>
 
-the jar @AlvisAE-cli.jar@ will be generated in the @target@ subdirectory 
+the jar `AlvisAE-cli.jar` will be generated in the `target` subdirectory 
 
 ## modus operandi
 
@@ -39,7 +39,7 @@ the command line interface program provides several distinct commands:
 * **export-campaign** 
  export the documents and annotations of the specified campaign as a zip archive
 
-All of these commands require a mandatory parameter (@dbparam.props@) which specifies the AlvisAE Database to work with. 
+All of these commands require a mandatory parameter (`dbparam.props`) which specifies the AlvisAE Database to work with. 
 
 ### Creating a new user
 
@@ -54,7 +54,7 @@ _parameters:_
 * **--password** user's password
 
 _standard ouput:_
-* @userInternalId@ \t @"userName"@
+* `userInternalId` \t `"userName"`
 
 _example:_
 <pre>
@@ -69,17 +69,17 @@ _example:_
 Will create a new campaign with the specified name, Annotation schema and Workflow definition
 
 _command:_
-* *@--create-campaign@*
+* *`--create-campaign`*
 
 +parameters:+
-* *@-p@* properties file containing connection parameters
-* *@-c@* campaign name
-* *@-s@* JSON schema definition file
-* *@-w@*  %{background:lightgreen}[optional]% XML workflow definition file
-* *@--guidelines@*  %{background:lightgreen}[optional]% URL to the annotation guidelines of the campaign
+* *`-p`* properties file containing connection parameters
+* *`-c`* campaign name
+* *`-s`* JSON schema definition file
+* *`-w`*  %{background:lightgreen}[optional]% XML workflow definition file
+* *`--guidelines`*  %{background:lightgreen}[optional]% URL to the annotation guidelines of the campaign
 
 _standard ouput:_
-* @campaignInternalId@ \t @"campaignName"@
+* `campaignInternalId` \t `"campaignName"`
 
 _example:_
 <pre>
@@ -94,9 +94,9 @@ _example:_
 
 Will add all documents present in the specified directory (files with .json extension).
 
-**Note**: An optional unique document identifier may be set at the property key @DocumentID@ in the JSON file (makes the following import-annotations step easier).
+**Note**: An optional unique document identifier may be set at the property key `DocumentID` in the JSON file (makes the following import-annotations step easier).
 
-**Note**: If present, @--add-documents@ will store the first annotation set with type @HtmlAnnotation@ as the HTML layout of the document.
+**Note**: If present, `--add-documents` will store the first annotation set with type `HtmlAnnotation` as the HTML layout of the document.
 
 _command:_
 * **--add-documents**
@@ -106,7 +106,7 @@ _parameters:_
 * **-d** documents input directory
 
 _standard ouput (one line per added doc):_
-* @documentInternalId@ \t @"importedDocumentPath"@ \t @"optionalDocumentExternalId"@
+* `documentInternalId` \t `"importedDocumentPath"` \t `"optionalDocumentExternalId"`
 
 _example:_
 <pre>
@@ -123,7 +123,7 @@ Will import the Annotation Set present in the specified JSON file, and associate
 (as side effects, the document and the user will be associated to the campaign, the document will be assigned to the user)
 
 _command:_
-* *@--import-annotations@*
+* *`--import-annotations`*
 
 _parameters:_
 * **-p** properties file containing connection parameters
@@ -155,7 +155,7 @@ _example:_
 
 Will import, in the specified campaign, all user's Annotation Sets contained in the json files present in the specified directory.
 The corresponding documents (identified by their external ids) must have already been imported in the database.
-Only Annotation sets corresponding to actual user & task (identified by their internal ids, or translated thanks to @taskList@ and @userList@) will be imported
+Only Annotation sets corresponding to actual user & task (identified by their internal ids, or translated thanks to `taskList` and `userList`) will be imported
 (as side effects, the document and the user will be associated to the campaign, the document will be assigned to the user)
 
 _command:_
@@ -170,9 +170,9 @@ or,  **--campaignId**  internal id of the Campaign where to import the Annotatio
 * **--taskList** %{background:lightgreen}[optional]% CSV file containing the map of task ids and name (if none specified, the internal id are reused)
 * **--userList** %{background:lightgreen}[optional]% CSV file containing the map of users ids and name (if none specified, the internal id are reused)
 
-*Notes* about @taskList@ and @userList@
-* In the JSON format, task and user are specified by numeric internal id. @taskList@ (and @userList@) is used to convert the numeric id found in the Json file to the task name (respectively user name) found in the destination campaign.  
-* Since these files are produced during Json [[CLICreateCampaign#Export-a-campaign|export of a campaign]] , this allows seamless import (in the same database) to another campaign sharing the same workflow; Just reuse the @taskList@ file unchanged during import. If the task names (or user names) are different between campaigns, you'll need to explicitly make the mapping by editing the second column of @taskList@ (resp. @userList@)
+*Notes* about `taskList` and `userList`
+* In the JSON format, task and user are specified by numeric internal id. `taskList` (and `userList`) is used to convert the numeric id found in the Json file to the task name (respectively user name) found in the destination campaign.  
+* Since these files are produced during Json [[CLICreateCampaign#Export-a-campaign|export of a campaign]] , this allows seamless import (in the same database) to another campaign sharing the same workflow; Just reuse the `taskList` file unchanged during import. If the task names (or user names) are different between campaigns, you'll need to explicitly make the mapping by editing the second column of `taskList` (resp. `userList`)
 
 
 _standard ouput:_
@@ -229,7 +229,7 @@ or,  **--campaignId**  internal id of the Campaign to be exported
 * **--format** %{background:lightgreen}[optional]% format of the exported files ( +CSV+ | Json )
 
 _standard ouput:_
-* @zipArchiveFileName@
+* `zipArchiveFileName`
 
 _example:_
 <pre>
