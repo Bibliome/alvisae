@@ -25,16 +25,16 @@ class RecycleAnnotations(OptionParser):
         self.add_option('--target-campaign', action='store', type='string', dest='TARGET_CAMPAIGN', help='identifier of the campaign where to write annotations (same as --source-campaign if omitted)')
         self.add_option('--target-users', action='store', type='string', dest='TARGET_USERS', help='name of the users that own the written annotations')
         self.add_option('--target-task', action='store', type='string', dest='TARGET_TASK', help='name of the task of the written annotations (same as --source-task if omitted)')
-        self.add_option('--adjudicate', action='store_true', dest='ADJUDICATE', default=False, help='perform auto-adjudication for reviewing tasks')
+        self.add_option('--adjudicate', action='store_true', dest='ADJUDICATE', default=None, help='perform auto-adjudication for reviewing tasks')
         self.add_option('--java-home', action='store', type='string', dest='JAVA_HOME', help='path to java home directory')
         self.add_option('--alvisae-jar', action='store', type='string', dest='ALVISAE_JAR', help='path to the AlvisAE jar file')
         self.add_option('--annotation-types', action='store', type='string', dest='ANNOTATION_TYPES', help='comma separated list of annotation types to recycle (all annotations if omitted)')
         self.add_option('--keep-zones', action='store', type='string', dest='KEEP_ZONES', help='text annotation type of keep zones, annotations outside thes zones will be deleted')
-        self.add_option('--keep-all-if-no-zone', action='store_true', dest='KEEP_ALL_IF_NO_ZONE', help='keep all document if there is no keep zone')
-        self.add_option('--dry-run', action='store_true', dest='DRY_RUN', default=False, help='do not execute commands, just generate files')
+        self.add_option('--keep-all-if-no-zone', action='store_true', dest='KEEP_ALL_IF_NO_ZONE', default=None, help='keep all document if there is no keep zone')
+        self.add_option('--dry-run', action='store_true', dest='DRY_RUN', default=None, help='do not execute commands, just generate files')
         self.add_option('--import-plan', action='store', type='string', dest='IMPORT_PLAN', default=None, help='import the specified custom plan before re-injecting annotations')
         self.add_option('--alias', action='append', nargs=2, type='string', dest='ALIAS', default=[], help='alias value to pass to custom plan')
-        self.add_option('--publish', action='store_true', dest='PUBLISH', default=False, help='publish the annotation (broken: the AlvisAE importer does not take it into account)')
+        self.add_option('--publish', action='store_true', dest='PUBLISH', default=None, help='publish the annotation (broken: the AlvisAE importer does not take it into account)')
         self.options = {}
 
     def _load_options_file(self, fn):
@@ -61,6 +61,25 @@ class RecycleAnnotations(OptionParser):
             if k not in self.options or self.options[k] is None:
                 raise Exception('missing option ' + k)
 
+    def _bool(self, key, stringize=False):
+        if key in self.options:
+            if self.options[key] is None:
+                self.options[key] = False
+            elif self.options[key] is True:
+                pass
+            elif self.options[key] is False:
+                pass
+            elif self.options[key] == '0' or self.options[key].lower() == 'false' or self.options[key].lower() == 'no':
+                self.options[key] = False
+            elif self.options[key] == '1' or self.options[key].lower() == 'true' or self.options[key].lower() == 'yes':
+                self.options[key] = True
+            else:
+                raise Exception('could not understand ' + key + ' = ' + self.options[key])
+        else:
+            self.options[key] = False
+        if stringize:
+            self.options[key] = str(self.options[key]).lower()
+
     def _validate_options(self):
         self._check_options(
             'ALVISNLP',
@@ -77,6 +96,7 @@ class RecycleAnnotations(OptionParser):
             'JAVA_HOME',
             'ALVISAE_JAR'
         )
+        self._bool('DRY_RUN')
         if 'WD' not in self.options:
             self.options['WD'] = mkdtemp('', 'recycle-annotations__', '/tmp')
         if 'SOURCE_DOCUMENTS' in self.options and self.options['SOURCE_DOCUMENTS']:
@@ -94,15 +114,13 @@ class RecycleAnnotations(OptionParser):
             self.options['TARGET_CAMPAIGN'] = self.options['SOURCE_CAMPAIGN']
         if 'KEEP_ZONES' not in self.options:
             self.options['KEEP_ZONES'] = 'dummy'
-        if 'KEEP_ALL_IF_NO_ZONE' in self.options and self.options['KEEP_ALL_IF_NO_ZONE']:
-            self.options['KEEP_ALL_IF_NO_ZONE'] = 'true'
-        else:
-            self.options['KEEP_ALL_IF_NO_ZONE'] = 'false'
+        self._bool('KEEP_ALL_IF_NO_ZONE', True)
+        self._bool('ADJUDICATE')
         if self.options['ADJUDICATE']:
             self.options['ADJUDICATE_PARAM'] = '<loadDependencies/> <adjudicate/>'
         else:
             self.options['ADJUDICATE_PARAM'] = ''
-        self.options['PUBLISH'] = str(self.options['PUBLISH']).lower()
+        self._bool('PUBLISH', True)
         if 'IMPORT_PLAN' in self.options and self.options['IMPORT_PLAN']:
             if 'ALIAS' in self.options and self.options['ALIAS']:
                 self.options['IMPORT_PLAN'] = '<imported-plan href="%s">\n%s\n  </imported-plan>' % (self.options['IMPORT_PLAN'], '\n'.join('    <%s>%s</%s>' % (k, v, k) for k, v in self.options['ALIAS']))
@@ -119,7 +137,6 @@ class RecycleAnnotations(OptionParser):
         self.options['USER_FILE'] = self.options['WD'] + '/users.csv'
         self.options['TASK_FILE'] = self.options['WD'] + '/tasks.csv'
         self.options['FEATURE_FILTER'] = '@key != "referent" and @key != "id" and @key != "__TYPE" and @key != "created" and @key != "annotation-set" and @key != "user" and @key != "unmatched"'
-        stderr.write(str(self.options) + '\n')
 
     def run(self):
         self._load_options()
