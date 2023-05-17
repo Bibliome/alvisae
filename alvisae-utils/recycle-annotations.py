@@ -38,13 +38,12 @@ class RecycleAnnotations(OptionParser):
         self.options = {}
 
     def _load_options_file(self, fn):
-        f = open(fn)
-        for line in f:
-            k, q, v = line.partition('=')
-            if q != '=':
-                raise Exception('missing \'=\'')
-            self.options[k.strip()] = v.strip()
-        f.close()
+        with open(fn) as f:
+            for line in f:
+                k, q, v = line.partition('=')
+                if q != '=':
+                    raise Exception('missing \'=\'')
+                self.options[k.strip()] = v.strip()
 
     def _load_options(self, args=None):
         if args is None:
@@ -120,6 +119,7 @@ class RecycleAnnotations(OptionParser):
         self.options['USER_FILE'] = self.options['WD'] + '/users.csv'
         self.options['TASK_FILE'] = self.options['WD'] + '/tasks.csv'
         self.options['FEATURE_FILTER'] = '@key != "referent" and @key != "id" and @key != "__TYPE" and @key != "created" and @key != "annotation-set" and @key != "user" and @key != "unmatched"'
+        stderr.write(str(self.options) + '\n')
 
     def run(self):
         self._load_options()
@@ -187,8 +187,8 @@ SOURCE_PLAN = '''
     <userFeature>user</userFeature>
     <userNames>%(SOURCE_USER)s</userNames>
     %(DOC_IDS)s
-    <sectionName>text</sectionName>
-    <fragmentsLayerName>user</fragmentsLayerName>
+    <section>text</section>
+    <fragmentsLayer>user</fragmentsLayer>
     <typeFeature>__TYPE</typeFeature>
     <fragmentTypeFeature>__TYPE</fragmentTypeFeature>
     %(ADJUDICATE_PARAM)s
