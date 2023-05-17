@@ -114,6 +114,7 @@ class RecycleAnnotations(OptionParser):
             self.options['TARGET_CAMPAIGN'] = self.options['SOURCE_CAMPAIGN']
         if 'KEEP_ZONES' not in self.options:
             self.options['KEEP_ZONES'] = 'dummy'
+            self.options['KEEP_ALL_IF_NO_ZONE'] = True
         self._bool('KEEP_ALL_IF_NO_ZONE', True)
         self._bool('ADJUDICATE')
         if self.options['ADJUDICATE']:
