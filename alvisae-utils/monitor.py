@@ -11,6 +11,7 @@ class Monitor(alvisae.PSQLApp):
         self.add_argument('--tasks', metavar='TASK', dest='tasks', required=False, default=None, help='Tasks to monitor (comma separated)')
         self.add_argument('--table-file', metavar='FILE', dest='table_file', default='monitor.csv', help='Output file name')
         self.add_argument('--aggregate-documents', dest='aggregate_documents', required=False, default=False, action='store_true', help='Aggregate documents')
+        self.add_argument('--exclude-documents', dest='exclude_documents', required=False, default=None, help='Exclude specified documents from the table (comma separated internal ids)')
 
     def _build_sql(self, args):
         select = 'ans.campaign_id, c.name AS campaign_name, doc_id, doc.description AS doc_description, user_id, u.login AS annotator, t.name AS task, count(ans.id) AS versions, bool_or(published IS NOT NULL) AS is_published, greatest(max(ans.published), max(ans.created)) AS last_touch'
@@ -19,6 +20,8 @@ class Monitor(alvisae.PSQLApp):
         group_by = 'ans.campaign_id, c.name, doc_id, doc.description, user_id, u.login, t.name'
         if args.tasks is not None:
             where += ' AND t.name in (%s)' % (','.join(('\'' + t + '\'') for t in args.tasks))
+        if args.exclude_documents is not None:
+            where += ' AND doc_id NOT IN (%s)' % args.exclude_documents
         sql = 'SELECT %s FROM %s WHERE %s GROUP BY %s' % (select, from_, where, group_by)
         copy = '\\copy (%s) TO \'%s\' WITH CSV DELIMITER \'\t\' HEADER' % (sql, args.table_file)
         return [copy]
