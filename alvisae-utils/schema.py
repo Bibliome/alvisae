@@ -6,7 +6,7 @@ class Schema:
         return Schema._annotation_types[name]
 
     @staticmethod
-    def _kind_types(kind):
+    def kind_types(kind):
         for adef in Schema._annotation_types.values():
             if adef.kind == kind:
                 yield adef
@@ -39,7 +39,7 @@ class Schema:
     def console():
         for kind in range(3):
             print('\u001b[1m%s\u001b[0m' % Schema._kind_name(kind))
-            for adef in Schema._kind_types(kind):
+            for adef in Schema.kind_types(kind):
                 adef.console('  ')
 
 
