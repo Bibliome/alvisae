@@ -1,0 +1,237 @@
+<alvisnlp-plan id="alvisae2bionlp-st">
+  <param name="db-schema">
+    <alias module="read" param="schema"/>
+  </param>
+  
+  <param name="db-url">
+    <alias module="read" param="url"/>
+  </param>
+  
+  <param name="db-login">
+    <alias module="read" param="username"/>
+  </param>
+  
+  <param name="db-password">
+    <alias module="read" param="password"/>
+  </param>
+  
+  <param name="campaigns">
+    <alias module="read" param="campaignId"/>
+  </param>
+    
+  <param name="task">
+    <alias module="read" param="taskName"/>
+  </param>
+    
+  <param name="user">
+    <alias module="read" param="userNames"/>
+  </param>
+    
+  <param name="docs">
+    <alias module="read" param="docIds"/>
+  </param>
+
+  <param name="out-dir">
+    <alias module="write.documents" param="outDir"/>
+    <alias module="write.entities" param="outDir"/>
+    <alias module="write.relations" param="outDir"/>
+  </param>
+
+  <param name="type-exclusion-file">
+    <alias module="exclude-types.map" param="mappingFile"/>
+  </param>
+
+  <read class="AlvisAEReader">
+    <userFeature>user</userFeature>
+    <section>text</section>
+    <campaignIdFeature>campaign-id</campaignIdFeature>
+    <campaignNameFeature>campaign-name</campaignNameFeature>
+    <userIdFeature>user-id</userIdFeature>
+    <taskIdFeature>task-id</taskIdFeature>
+    <campaignNameFeature>campaign-name</campaignNameFeature>
+  </read>
+
+  <exclude-types>
+    <map class="FileMapper">
+      <target>documents.sections.relations</target>
+      <form>@name</form>
+      <targetFeatures>excluded</targetFeatures>
+    </map>
+
+    <delete class="Action">
+      <target>documents.sections.relations[@excluded]</target>
+      <action>delete</action>
+      <deleteElements/>
+    </delete>
+  </exclude-types>
+
+  <seg href="res://segmentation.plan"/>
+
+  <forms>
+    <entities class="Action">
+      <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+      <action>
+	set:feat:form(str:join:' '(args, @form)) |
+        set:feat:form-large(str:sub(relation.section.contents, args:frag0.start, args{-1}.end)) |
+	set:feat:form-pretty(args:frag0.@form)
+      </action>
+      <setFeatures/>
+    </entities>
+
+    <pretty>
+      <frag1 class="Action">
+	<target>documents.sections.relations[@kind == "text-bound"].tuples[args:frag1]</target>
+	<action>
+	  set:feat:form-pretty(@form-pretty ^ " ((" ^ str:sub(relation.section.contents, args:frag0.end, args:frag1.start) ^ ")) " ^ args:frag1)
+	</action>
+	<setFeatures/>
+      </frag1>
+
+      <frag2 class="Action">
+	<target>documents.sections.relations[@kind == "text-bound"].tuples[args:frag2]</target>
+	<action>
+	  set:feat:form-pretty(@form-pretty ^ " ((" ^ str:sub(relation.section.contents, args:frag1.end, args:frag2.start) ^ ")) " ^ args:frag2)
+	</action>
+	<setFeatures/>
+      </frag2>
+      
+      <frag3 class="Action">
+	<target>documents.sections.relations[@kind == "text-bound"].tuples[args:frag3]</target>
+	<action>
+	  set:feat:form-pretty(@form-pretty ^ " ((" ^ str:sub(relation.section.contents, args:frag2.end, args:frag3.start) ^ ")) " ^ args:frag3)
+	</action>
+	<setFeatures/>
+      </frag3>
+    </pretty>
+  </forms>
+
+  <write>
+    <documents class="TabularExport">
+      <corpusFile>documents.txt</corpusFile>
+      <trueCSV/>
+      <lines>documents</lines>
+      <columns separator=";">
+	@campaign-id;
+	@campaign-name;
+	@id;
+	@external-id;
+	@description;
+	relation.tuples{0}.@user;
+	int(sections.layer:words)
+      </columns>
+      <headers>
+	"CAMPAIGN_ID",
+	"CAMPAIGN_NAME",
+	"DOC_ID",
+	"DOC_EXT_ID",
+	"DOC_TITLE",
+	"ANNOTATOR",
+	"TOKENS"
+      </headers>
+    </documents>
+    
+    <entities class="TabularExport">
+      <corpusFile>entities.txt</corpusFile>
+      <trueCSV/>
+      <lines>documents.sections.relations[@kind == "text-bound"].tuples</lines>
+      <columns separator=";">
+	relation.section.document.@campaign-id;
+	relation.section.document.@campaign-name;
+	relation.section.document.@id;
+	relation.section.document.@external-id;
+	relation.section.document.@description;
+	@user;
+	@id;
+	relation.@name;
+	str:normalizeSpace(@form);
+	str:normalizeSpace(args:frag0.ctx:sentence-before);
+	str:normalizeSpace(@form-pretty);
+	str:normalizeSpace(args{-1}.ctx:sentence-after);
+	str:join:', '(nav:features[@key != "id" and @key != "type" and @key != "annotation-set" and @key != "created" and @key != "referent" and @key != "task-id" and @key != "user" and @key != "user-id" and @key != "form" and @key != "form-large" and @key != "form-pretty"], @key ^ "=" ^ @value)
+      </columns>
+      <headers>
+	"CAMPAIGN_ID",
+	"CAMPAIGN_NAME",
+	"DOC_ID",
+	"DOC_EXT_ID",
+	"DOC_TITLE",
+	"ANNOTATOR",
+	"ID",
+	"TYPE",
+	"FORM",
+	"CTX_BEFORE",
+	"CTX_FORM",
+	"CTX_AFTER",
+	"PROPS"
+      </headers>
+    </entities>
+
+    <entity-types class="AggregateValues">
+      <outFile>entity-types.txt</outFile>
+      <entries>documents.sections.relations[@kind == "text-bound"].tuples</entries>
+      <key>@type</key>
+      <aggregators>
+	<count/>
+      </aggregators>
+    </entity-types>
+
+    <relations class="TabularExport">
+      <corpusFile>relations.txt</corpusFile>
+      <trueCSV/>
+      <lines>documents.sections.relations[@kind == "relation"].tuples</lines>
+      <columns separator=";">
+	relation.section.document.@campaign-id;
+	relation.section.document.@campaign-name;
+	relation.section.document.@id;
+	relation.section.document.@external-id;
+	relation.section.document.@description;
+	@user;
+	@id;
+	relation.@name;
+	nav:arguments{0}.@role;
+	nav:arguments{0}.@id;
+	nav:arguments{0}.@type;
+	nav:arguments{0}.@form;
+	nav:arguments{1}.@role;
+	nav:arguments{1}.@id;
+	nav:arguments{1}.@type;
+	nav:arguments{1}.@form;
+	if (args{0}).args:frag0.start &lt; (args{1}).args:frag0.start
+	then int(sets:inter((args{0}).args:frag0.after:words, (args{1}).(args{-1}).before:words))
+	else int(sets:inter((args{0}).args:frag0.before:words, (args{1}).(args{-1}).after:words));
+	if (args{0}).args:frag0.start &lt; (args{1}).args:frag0.start
+	then str:normalizeSpace(str:sub(relation.section.contents, (args{0}).args:frag0.start, (args{1}).(args{-1}).end))
+	else str:normalizeSpace(str:sub(relation.section.contents, (args{1}).args:frag0.start, (args{0}).(args{-1}).end))
+      </columns>
+      <headers>
+	"CAMPAIGN_ID",
+	"CAMPAIGN_NAME",
+	"DOC_ID",
+	"DOC_EXT_ID",
+	"DOC_TITLE",
+	"ANNOTATOR",
+	"ID",
+	"TYPE",
+	"ARG1_ROLE",
+	"ARG1_ID",
+	"ARG1_TYPE",
+	"ARG1_FORM",
+	"ARG2_ROLE",
+	"ARG2_ID",
+	"ARG2_TYPE",
+	"ARG2_FORM",
+	"ARG_DISTANCE",
+	"TEXT"
+      </headers>
+    </relations>
+
+    <relation-types class="AggregateValues">
+      <outFile>relation-types.txt</outFile>
+      <entries>documents.sections.relations[@kind == "relation"].tuples</entries>
+      <key>@type</key>
+      <aggregators>
+	<count/>
+      </aggregators>
+    </relation-types>
+  </write>
+</alvisnlp-plan>
