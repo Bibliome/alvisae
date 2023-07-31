@@ -23,6 +23,10 @@
     <alias module="load" param="campaignId"/>
   </param>
 
+  <param name="userNames">
+    <alias module="load" param="userNames"/>
+  </param>
+
   <param name="alvisae-url-prefix">
     <alias module="alvisae-url.prefix" param="value"/>
   </param>
