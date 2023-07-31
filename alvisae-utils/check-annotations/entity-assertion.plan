@@ -1,0 +1,25 @@
+<alvisnlp-plan id="entity-assertion">
+  <param name="outFile">
+    <alias module="check" param="outFile"/>
+  </param>
+  
+  <param name="entities">
+    <alias module="check" param="target"/>
+  </param>
+
+  <param name="condition">
+    <alias module="check" param="assertion"/>
+  </param>
+
+  <check class="Assert">
+    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+    <severe>false</severe>
+    <message>
+      relation.section.document.@id ^ "\t" ^
+      relation.section.document.@external-id ^ "\t" ^
+      @type ^ "\t" ^
+      str:normalizeSpace(@form) ^ "\t" ^
+      args:entity.(@start_ ^ "-" ^ @end_)
+    </message>
+  </check>
+</alvisnlp-plan>
