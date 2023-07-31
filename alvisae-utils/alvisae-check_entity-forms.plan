@@ -47,7 +47,7 @@
     <exact class="Action">
       <target>documents.sections.relations:entity-check_entity-forms.tuples</target>
       <action>
-	span:alvisae.tuples(@type) as seen.
+	span:alvisae.nav:tuples(@type) as seen.
 	target.(
 	  set:feat:seen-level("exact") |
 	  set:arg:seen(seen)
