@@ -10,7 +10,20 @@
   <param name="condition">
     <alias module="check" param="assertion"/>
   </param>
-
+  <!--
+      Leading anfd trailing whitespaces:
+      not (@form =~ "^\\W" or @form =~ "\\W$")
+      
+      Boundaries inside words:
+      not (args{0}.ctx:before(1) =~ "\\w$" or args{-1}.ctx:after(1) =~ "^\\w")
+      
+      No letters:
+      not (@form =~ "^\\W+$")
+      
+      Includes certain words:
+      not (@form =^ "insect" or @form =^ "plant")
+  -->
+  
   <check class="Assert">
     <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
     <severe>false</severe>
