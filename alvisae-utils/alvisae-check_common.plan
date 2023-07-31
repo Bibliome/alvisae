@@ -19,12 +19,15 @@
     <alias module="load" param="taskName"/>
   </param>
 
+  <param name="campaignId">
+    <alias module="load" param="campaignId"/>
+  </param>
+
+  <param name="alvisae-url-prefix">
+    <alias module="alvisae-url.prefix" param="value"/>
+  </param>
+
   <load class="AlvisAEReader">
-    <url></url>
-    <username></username>
-    <password></password>
-    <schema></schema>
-    <taskName></taskName>
     <externalIdFeature>external-id</externalIdFeature>
     <campaignIdFeature>campaign-id</campaignIdFeature>
     <campaignNameFeature>campaign-name</campaignNameFeature>
