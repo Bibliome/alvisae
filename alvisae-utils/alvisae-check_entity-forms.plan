@@ -1,0 +1,60 @@
+<alvisnlp-plan id="entity-forms">
+  <param name="entries">
+    <alias module="project" param="entries"/>
+  </param>
+
+  <param name="caseInsensitive">
+    <alias module="project" param="caseInsensitive"/>
+  </param>
+
+  <param name="wordStartCaseInsensitive">
+    <alias module="project" param="wordStartCaseInsensitive"/>
+  </param>
+
+  <match-relation class="Action">
+    <target>documents.sections</target>
+    <action>new:relation:entity-check_entity-forms</action>
+    <createRelations/>
+  </match-relation>
+
+  <project class="ElementProjector">
+    <entries>documents.sections.relations[@kind == "text-bound"].tuples</entries>
+    <key>@form</key>
+    <targetLayer>entity-check_entity-forms</targetLayer>
+    <action>
+      $ as target.section.relations:entity-check_entity-forms.new:tuple.(
+        set:arg:match(target) |
+        set:arg:entry(entry)
+      )
+    </action>
+    <createTuples/>
+    <setArguments/>
+  </project>
+
+  <overlaps>
+    <annotations class="RemoveOverlaps">
+      <layer>entity-check_entity-forms</layer>
+    </annotations>
+
+    <tuples class="Action">
+      <target>documents.sections.relations:entity-check_entity-forms.tuples[not args:match]</target>
+      <action>delete</action>
+      <deleteElements/>
+    </tuples>
+  </overlaps>
+
+  <seen>
+    <exact class="Action">
+      <target>documents.sections.relations:entity-check_entity-forms.tuples</target>
+      <action>
+	span:alvisae.tuples(@type) as seen.
+	target.(
+	  set:feat:seen-level("exact") |
+	  set:arg:seen(seen)
+	)
+      </action>
+      <setFeatures/>
+      <setArguments/>
+    </exact>
+  </seen>
+</alvisnlp-plan>

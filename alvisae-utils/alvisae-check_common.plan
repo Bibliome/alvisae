@@ -1,0 +1,52 @@
+<alvisnlp-plan id="alvisae-check_common">
+  <load class="AlvisAEReader">
+    <url></url>
+    <username></username>
+    <password></password>
+    <schema></schema>
+    <taskName></taskName>
+    <externalIdFeature>external-id</externalIdFeature>
+    <campaignIdFeature>campaign-id</campaignIdFeature>
+    <campaignNameFeature>campaign-name</campaignNameFeature>
+    <userIdFeature>user-id</userIdFeature>
+    <taskIdFeature>task-id</taskIdFeature>
+  </load>
+
+  <alvisae-url>
+    <prefix class="SetFeature">
+      <target>$</target>
+      <featureName>alvisae-url-prefix</featureName>
+    </prefix>
+    
+    <doc-url class="Action">
+      <target>documents</target>
+      <action>
+	set:feat:alvisae-url(
+	corpus.@alvisae-url-prefix ^
+	"/#docView:u=" ^ (sections.relations.tuples[@user-id != ""]){0}.@user-id ^
+	"&amp;c=" ^ @campaign-id ^
+	"&amp;d=" ^ @id ^
+	"&amp;o=0" ^
+        "&amp;t=" ^ (sections.relations.tuples[@task-id != ""]){0}.@task-id
+        )
+      </action>
+      <setFeatures/>
+    </doc-url>
+  </alvisae-url>
+  
+  <start-end class="Action">
+    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+    <action>
+      set:feat:start_(args:frag0.start) |
+      set:feat:end_((if args:frag3 then args:frag3 else (if args:frag2 then args:frag2 else (if args:frag1 then args:frag1 else args:frag0))).end) |
+      set:feat:form(str:join:' '(args, @form))
+    </action>
+    <setFeatures/>
+  </start-end>
+
+  <superform class="Action">
+    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+    <action>set:feat:superform(str:sub(relation.section.contents, @start_, @end_))</action>
+    <setFeatures/>
+  </superform>
+</alvisnlp-plan>
