@@ -1,6 +1,7 @@
-<alvisnlp-plan id="entity-forms">
+<alvisnlp-plan id="entity-occurrences">
   <param name="entities">
     <alias module="entries" param="target"/>
+    <alias module="entries" param="clean.feature"/>
   </param>
 
   <param name="caseInsensitive">
@@ -18,22 +19,22 @@
 
   <entries class="Action">
     <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
-    <action>set:feat:entity-check_entity-occurrences("please-check")</action>
+    <action>set:feat:check-annotations_entity-occurrences("please-check")</action>
     <setFeatures/>
   </entries>
 
   <match-relation class="Action">
     <target>documents.sections</target>
-    <action>new:relation:entity-check_entity-occurrences</action>
+    <action>new:relation:check-annotations_entity-occurrences</action>
     <createRelations/>
   </match-relation>
 
   <project class="ElementProjector">
-    <entries>sort:nsval(documents.sections.relations.tuples[@entity-check_entity-occurrences == "please-check"], @form ^ "__" ^ @type)</entries>
+    <entries>sort:nsval(documents.sections.relations.tuples[@check-annotations_entity-occurrences == "please-check"], @form ^ "__" ^ @type)</entries>
     <key>@form</key>
-    <targetLayer>entity-check_entity-occurrences</targetLayer>
+    <targetLayer>check-annotations_entity-occurrences</targetLayer>
     <action>
-      $ as target.section.relations:entity-check_entity-occurrences.new:tuple.(
+      $ as target.section.relations:check-annotations_entity-occurrences.new:tuple.(
         set:arg:occurrence(target) |
         set:arg:entity(entry)
       )
@@ -44,11 +45,11 @@
 
   <overlaps>
     <annotations class="RemoveOverlaps">
-      <layer>entity-check_entity-occurrences</layer>
+      <layer>check-annotations_entity-occurrences</layer>
     </annotations>
 
     <tuples class="Action">
-      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[not args:occurrence]</target>
+      <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[not args:occurrence]</target>
       <action>delete</action>
       <deleteElements/>
     </tuples>
@@ -56,7 +57,7 @@
 
   <match>
     <exact class="Action">
-      <target>documents.sections.relations:entity-check_entity-occurrences.tuples</target>
+      <target>documents.sections.relations:check-annotations_entity-occurrences.tuples</target>
       <action>
 	args:occurrence.span:alvisae.nav:tuples(@type) as match.
 	target.(
@@ -69,7 +70,7 @@
     </exact>
 
     <remove-self-match class="Action">
-      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[args:entity.id:unique == args:match.id:unique]</target>
+      <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[args:entity.id:unique == args:match.id:unique]</target>
       <action>
 	delete
       </action>
@@ -77,7 +78,7 @@
     </remove-self-match>
 
     <broader class="Action">
-      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[not args:match]</target>
+      <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[not args:match]</target>
       <action>
 	args:occurrence.outside:alvisae.nav:tuples(@type) as match.
 	target.(
@@ -90,7 +91,7 @@
     </broader>
 
     <narrower class="Action">
-      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[not args:match]</target>
+      <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[not args:match]</target>
       <action>
 	args:occurrence.inside:alvisae.nav:tuples(@type) as match.
 	target.(
@@ -103,7 +104,7 @@
     </narrower>
 
     <overlapping class="Action">
-      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[not args:match]</target>
+      <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[not args:match]</target>
       <action>
 	args:occurrence.overlapping:alvisae.nav:tuples(@type) as match.
 	target.(
@@ -116,7 +117,7 @@
     </overlapping>
 
     <type-comparison class="Action">
-      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[args:match]</target>
+      <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[args:match]</target>
       <action>
 	set:feat:match-type(if args:match.@type == args:entity.@type then "type-identical" else "type-mismatch")
       </action>
@@ -124,7 +125,7 @@
     </type-comparison>
 
     <none class="Action">
-      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[not args:match]</target>
+      <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[not args:match]</target>
       <action>
 	set:feat:match-boundaries("boundaries-none")
       </action>
@@ -134,7 +135,7 @@
 
   <write-matched class="TabularExport">
     <outDir>.</outDir>
-    <lines>documents.sections.relations:entity-check_entity-occurrences.tuples[@match-boundaries != "boundaries-exact" and @match-boundaries != "boundaries-none" and @match-type != "type-identical"]</lines>
+    <lines>documents.sections.relations:check-annotations_entity-occurrences.tuples[@match-boundaries != "boundaries-exact" and @match-boundaries != "boundaries-none" and @match-type != "type-identical"]</lines>
     <columns separator=";">
       @match-boundaries;
       @match-type;
@@ -168,7 +169,7 @@
   <write-unmatched class="TabularExport">
     <append/>
     <outDir>.</outDir>
-    <lines>documents.sections.relations:entity-check_entity-occurrences.tuples[@match-boundaries == "boundaries-none"]</lines>
+    <lines>documents.sections.relations:check-annotations_entity-occurrences.tuples[@match-boundaries == "boundaries-none"]</lines>
     <columns separator=";">
       @match-boundaries;
       "";
@@ -199,9 +200,21 @@
     </headers>
   </write-unmatched>
 
-  <clean class="Action">
-    <target>documents.sections.(layer:entity-check_entity-occurrences | relations:entity-check_entity-occurrences)</target>
-    <action>delete</action>
-    <deleteElements/>
+  <clean>
+    <layer class="ClearLayer">
+      <layer>check-annotations_entity-occurrences</layer>
+    </layer>
+
+    <relation class="Action">
+      <target>documents.sections.relations:check-annotations_entity-occurrences</target>
+      <action>delete</action>
+      <deleteElements/>
+    </relation>
+
+    <feature class="Action">
+      <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+      <action>set:remove-feature:check-annotations_entity-occurrences</action>
+      <setFeatures/>
+    </feature>
   </clean>
 </alvisnlp-plan>
