@@ -18,7 +18,9 @@
       relation.section.document.@id ^ "\t" ^
       relation.section.document.@external-id ^ "\t" ^
       @type ^ "\t" ^
+      args{0}.ctx:before(20) ^ "\t" ^
       str:normalizeSpace(@form) ^ "\t" ^
+      args{-1}.ctx:after(20) ^ "\t" ^
       args:entity.(@start_ ^ "-" ^ @end_)
     </message>
   </check>

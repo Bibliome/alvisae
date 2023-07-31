@@ -1,7 +1,7 @@
 <alvisnlp-plan id="entity-occurrences">
   <param name="entities">
     <alias module="entries" param="target"/>
-    <alias module="entries" param="clean.feature"/>
+    <alias module="clean.feature" param="target"/>
   </param>
 
   <param name="caseInsensitive">
@@ -201,8 +201,8 @@
   </write-unmatched>
 
   <clean>
-    <layer class="ClearLayer">
-      <layer>check-annotations_entity-occurrences</layer>
+    <layer class="ClearLayers">
+      <layerNames>check-annotations_entity-occurrences</layerNames>
     </layer>
 
     <relation class="Action">
