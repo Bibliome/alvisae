@@ -1,5 +1,5 @@
 <alvisnlp-plan id="entity-forms">
-  <param name="entries">
+  <param name="entities">
     <alias module="entries" param="target"/>
   </param>
 
@@ -12,30 +12,30 @@
   </param>
 
   <param name="outFile">
-    <alias module="write-seen" param="corpusFile"/>
-    <alias module="write-unseen" param="corpusFile"/>
+    <alias module="write-matched" param="corpusFile"/>
+    <alias module="write-unmatched" param="corpusFile"/>
   </param>
 
   <entries class="Action">
     <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
-    <action>set:feat:entity-check_entity-forms("please-check")</action>
+    <action>set:feat:entity-check_entity-occurrences("please-check")</action>
     <setFeatures/>
   </entries>
 
   <match-relation class="Action">
     <target>documents.sections</target>
-    <action>new:relation:entity-check_entity-forms</action>
+    <action>new:relation:entity-check_entity-occurrences</action>
     <createRelations/>
   </match-relation>
 
   <project class="ElementProjector">
-    <entries>sort:nsval(documents.sections.relations.tuples[@entity-check_entity-forms == "please-check"], @form ^ "__" ^ @type)</entries>
+    <entries>sort:nsval(documents.sections.relations.tuples[@entity-check_entity-occurrences == "please-check"], @form ^ "__" ^ @type)</entries>
     <key>@form</key>
-    <targetLayer>entity-check_entity-forms</targetLayer>
+    <targetLayer>entity-check_entity-occurrences</targetLayer>
     <action>
-      $ as target.section.relations:entity-check_entity-forms.new:tuple.(
-        set:arg:match(target) |
-        set:arg:entry(entry)
+      $ as target.section.relations:entity-check_entity-occurrences.new:tuple.(
+        set:arg:occurrence(target) |
+        set:arg:entity(entry)
       )
     </action>
     <createTuples/>
@@ -44,24 +44,24 @@
 
   <overlaps>
     <annotations class="RemoveOverlaps">
-      <layer>entity-check_entity-forms</layer>
+      <layer>entity-check_entity-occurrences</layer>
     </annotations>
 
     <tuples class="Action">
-      <target>documents.sections.relations:entity-check_entity-forms.tuples[not args:match]</target>
+      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[not args:occurrence]</target>
       <action>delete</action>
       <deleteElements/>
     </tuples>
   </overlaps>
 
-  <seen>
+  <match>
     <exact class="Action">
-      <target>documents.sections.relations:entity-check_entity-forms.tuples</target>
+      <target>documents.sections.relations:entity-check_entity-occurrences.tuples</target>
       <action>
-	args:match.span:alvisae.nav:tuples(@type) as seen.
+	args:occurrence.span:alvisae.nav:tuples(@type) as match.
 	target.(
-	  set:feat:seen-boundaries("boundaries-exact") |
-	  set:arg:seen(seen)
+	  set:feat:match-boundaries("boundaries-exact") |
+	  set:arg:match(match)
 	)
       </action>
       <setFeatures/>
@@ -69,7 +69,7 @@
     </exact>
 
     <remove-self-match class="Action">
-      <target>documents.sections.relations:entity-check_entity-forms.tuples[args:entry.id:unique == args:seen.id:unique]</target>
+      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[args:entity.id:unique == args:match.id:unique]</target>
       <action>
 	delete
       </action>
@@ -77,12 +77,12 @@
     </remove-self-match>
 
     <broader class="Action">
-      <target>documents.sections.relations:entity-check_entity-forms.tuples[not args:seen]</target>
+      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[not args:match]</target>
       <action>
-	args:match.outside:alvisae.nav:tuples(@type) as seen.
+	args:occurrence.outside:alvisae.nav:tuples(@type) as match.
 	target.(
-	  set:feat:seen-boundaries("boundaries-broader") |
-	  set:arg:seen(seen)
+	  set:feat:match-boundaries("boundaries-broader") |
+	  set:arg:match(match)
 	)
       </action>
       <setFeatures/>
@@ -90,12 +90,12 @@
     </broader>
 
     <narrower class="Action">
-      <target>documents.sections.relations:entity-check_entity-forms.tuples[not args:seen]</target>
+      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[not args:match]</target>
       <action>
-	args:match.inside:alvisae.nav:tuples(@type) as seen.
+	args:occurrence.inside:alvisae.nav:tuples(@type) as match.
 	target.(
-	  set:feat:seen-boundaries("boundaries-narrower") |
-	  set:arg:seen(seen)
+	  set:feat:match-boundaries("boundaries-narrower") |
+	  set:arg:match(match)
 	)
       </action>
       <setFeatures/>
@@ -103,12 +103,12 @@
     </narrower>
 
     <overlapping class="Action">
-      <target>documents.sections.relations:entity-check_entity-forms.tuples[not args:seen]</target>
+      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[not args:match]</target>
       <action>
-	args:match.overlapping:alvisae.nav:tuples(@type) as seen.
+	args:occurrence.overlapping:alvisae.nav:tuples(@type) as match.
 	target.(
-	  set:feat:seen-boundaries("boundaries-overlapping") |
-	  set:arg:seen(seen)
+	  set:feat:match-boundaries("boundaries-overlapping") |
+	  set:arg:match(match)
 	)
       </action>
       <setFeatures/>
@@ -116,87 +116,92 @@
     </overlapping>
 
     <type-comparison class="Action">
-      <target>documents.sections.relations:entity-check_entity-forms.tuples[args:seen]</target>
+      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[args:match]</target>
       <action>
-	set:feat:seen-type(if args:seen.@type == args:entry.@type then "type-identical" else "type-mismatch")
+	set:feat:match-type(if args:match.@type == args:entity.@type then "type-identical" else "type-mismatch")
       </action>
       <setFeatures/>
     </type-comparison>
 
-    <other class="Action">
-      <target>documents.sections.relations:entity-check_entity-forms.tuples[not args:seen]</target>
+    <none class="Action">
+      <target>documents.sections.relations:entity-check_entity-occurrences.tuples[not args:match]</target>
       <action>
-	set:feat:seen-boundaries("boundaries-none")
+	set:feat:match-boundaries("boundaries-none")
       </action>
       <setFeatures/>
-    </other>
-  </seen>
+    </none>
+  </match>
 
-  <write-seen class="TabularExport">
+  <write-matched class="TabularExport">
     <outDir>.</outDir>
-    <lines>documents.sections.relations:entity-check_entity-forms.tuples[@seen-boundaries != "boundaries-exact" and @seen-boundaries != "boundaries-none" and @seen-type != "type-identical"]</lines>
+    <lines>documents.sections.relations:entity-check_entity-occurrences.tuples[@match-boundaries != "boundaries-exact" and @match-boundaries != "boundaries-none" and @match-type != "type-identical"]</lines>
     <columns separator=";">
-      @seen-boundaries;
-      @seen-type;
-      args:entry.relation.section.document.@id;
-      args:entry.relation.section.document.@external-id;
-      args:entry.@type;
-      str:normalizeSpace(args:entry.@form);
-      args:entry.(@start_ ^ "-" ^ @end_);
-      args:seen.relation.section.document.@id;
-      args:seen.relation.section.document.@external-id;
-      args:seen.@type;
-      str:normalizeSpace(args:seen.@form);
-      args:seen.(@start_ ^ "-" ^ @end_)
+      @match-boundaries;
+      @match-type;
+      args:entity.relation.section.document.@id;
+      args:entity.relation.section.document.@external-id;
+      args:entity.@type;
+      str:normalizeSpace(args:entity.@form);
+      args:entity.(@start_ ^ "-" ^ @end_);
+      args:match.relation.section.document.@id;
+      args:match.relation.section.document.@external-id;
+      args:match.@type;
+      str:normalizeSpace(args:match.@form);
+      args:match.(@start_ ^ "-" ^ @end_)
     </columns>
     <headers>
       "DIFF_BOUNDARIES",
       "DIFF_TYPE",
-      "ENTRY_DOCID",
-      "ENTRY_EXTDOCID",
-      "ENTRY_TYPE",
-      "ENTRY_FORM",
-      "ENTRY_OFFSET",
+      "ENTITY_DOCID",
+      "ENTITY_EXTDOCID",
+      "ENTITY_TYPE",
+      "ENTITY_FORM",
+      "ENTITY_OFFSET",
       "MATCH_DOCID",
       "MATCH_EXTDOCID",
       "MATCH_TYPE",
       "MATCH_FORM",
       "MATCH_OFFSET"
     </headers>
-  </write-seen>
+  </write-matched>
 
-
-  <write-unseen class="TabularExport">
+  <write-unmatched class="TabularExport">
     <append/>
     <outDir>.</outDir>
-    <lines>documents.sections.relations:entity-check_entity-forms.tuples[@seen-boundaries == "boundaries-none"]</lines>
+    <lines>documents.sections.relations:entity-check_entity-occurrences.tuples[@match-boundaries == "boundaries-none"]</lines>
     <columns separator=";">
-      @seen-boundaries;
+      @match-boundaries;
       "";
-      args:entry.relation.section.document.@id;
-      args:entry.relation.section.document.@external-id;
-      args:entry.@type;
-      str:normalizeSpace(args:entry.@form);
-      args:entry.(@start_ ^ "-" ^ @end_);
-      args:match.section.document.@id;
-      args:match.section.document.@external-id;
+      args:entity.relation.section.document.@id;
+      args:entity.relation.section.document.@external-id;
+      args:entity.@type;
+      str:normalizeSpace(args:entity.@form);
+      args:entity.(@start_ ^ "-" ^ @end_);
+      args:occurrence.section.document.@id;
+      args:occurrence.section.document.@external-id;
       "";
-      str:normalizeSpace(args:match.@form);
-      args:match.(start ^ "-" ^ end)
+      str:normalizeSpace(args:occurrence.@form);
+      args:occurrence.(start ^ "-" ^ end)
     </columns>
     <headers>
       "DIFF_BOUNDARIES",
       "DIFF_TYPE",
-      "ENTRY_DOCID",
-      "ENTRY_EXTDOCID",
-      "ENTRY_TYPE",
-      "ENTRY_FORM",
-      "ENTRY_OFFSET",
+      "ENTITY_DOCID",
+      "ENTITY_EXTDOCID",
+      "ENTITY_TYPE",
+      "ENTITY_FORM",
+      "ENTITY_OFFSET",
       "MATCH_DOCID",
       "MATCH_EXTDOCID",
       "MATCH_TYPE",
       "MATCH_FORM",
       "MATCH_OFFSET"
     </headers>
-  </write-unseen>
+  </write-unmatched>
+
+  <clean class="Action">
+    <target>documents.sections.(layer:entity-check_entity-occurrences | relations:entity-check_entity-occurrences)</target>
+    <action>delete</action>
+    <deleteElements/>
+  </clean>
 </alvisnlp-plan>
