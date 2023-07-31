@@ -1,4 +1,24 @@
 <alvisnlp-plan id="alvisae-check_common">
+  <param name="url">
+    <alias module="load" param="url"/>
+  </param>
+
+  <param name="username">
+    <alias module="load" param="username"/>
+  </param>
+
+  <param name="password">
+    <alias module="load" param="password"/>
+  </param>
+
+  <param name="schema">
+    <alias module="load" param="schema"/>
+  </param>
+
+  <param name="taskName">
+    <alias module="load" param="taskName"/>
+  </param>
+
   <load class="AlvisAEReader">
     <url></url>
     <username></username>
