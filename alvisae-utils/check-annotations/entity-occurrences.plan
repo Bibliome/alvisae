@@ -4,6 +4,11 @@
     <alias module="clean.feature" param="target"/>
   </param>
 
+  <param name="candidates">
+    <alias module="candidates" param="target"/>
+    <alias module="clean.feature-candidate" param="target"/>
+  </param>
+
   <param name="caseInsensitive">
     <alias module="project" param="caseInsensitive"/>
   </param>
@@ -22,6 +27,12 @@
     <action>set:feat:check-annotations_entity-occurrences("please-check")</action>
     <setFeatures/>
   </entries>
+
+  <candidates class="Action">
+    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+    <action>set:feat:check-annotations_entity-occurrences_candidate("yes")</action>
+    <setFeatures/>
+  </candidates>
 
   <match-relation class="Action">
     <target>documents.sections</target>
@@ -59,7 +70,7 @@
     <exact class="Action">
       <target>documents.sections.relations:check-annotations_entity-occurrences.tuples</target>
       <action>
-	args:occurrence.span:alvisae.nav:tuples(@type) as match.
+	args:occurrence.span:alvisae.nav:tuples(@type)[@check-annotations_entity-occurrences_candidate == "yes"] as match.
 	target.(
 	  set:feat:match-boundaries("boundaries-exact") |
 	  set:arg:match(match)
@@ -80,7 +91,7 @@
     <broader class="Action">
       <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[not args:match]</target>
       <action>
-	args:occurrence.outside:alvisae.nav:tuples(@type) as match.
+	args:occurrence.outside:alvisae.nav:tuples(@type)[@check-annotations_entity-occurrences_candidate == "yes"] as match.
 	target.(
 	  set:feat:match-boundaries("boundaries-broader") |
 	  set:arg:match(match)
@@ -93,7 +104,7 @@
     <narrower class="Action">
       <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[not args:match]</target>
       <action>
-	args:occurrence.inside:alvisae.nav:tuples(@type) as match.
+	args:occurrence.inside:alvisae.nav:tuples(@type)[@check-annotations_entity-occurrences_candidate == "yes"] as match.
 	target.(
 	  set:feat:match-boundaries("boundaries-narrower") |
 	  set:arg:match(match)
@@ -106,7 +117,7 @@
     <overlapping class="Action">
       <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[not args:match]</target>
       <action>
-	args:occurrence.overlapping:alvisae.nav:tuples(@type) as match.
+	args:occurrence.overlapping:alvisae.nav:tuples(@type)[@check-annotations_entity-occurrences_candidate == "yes"] as match.
 	target.(
 	  set:feat:match-boundaries("boundaries-overlapping") |
 	  set:arg:match(match)
@@ -139,11 +150,15 @@
     <columns separator=";">
       @match-boundaries;
       @match-type;
+      args:entity.relation.section.document.@campaign-id;
+      args:entity.relation.section.document.@campaign-name;
       args:entity.relation.section.document.@id;
       args:entity.relation.section.document.@external-id;
       args:entity.@type;
       str:normalizeSpace(args:entity.@form);
       args:entity.(@start_ ^ "-" ^ @end_);
+      args:match.relation.section.document.@campaign-id;
+      args:match.relation.section.document.@campaign-name;
       args:match.relation.section.document.@id;
       args:match.relation.section.document.@external-id;
       args:match.@type;
@@ -153,11 +168,15 @@
     <headers>
       "DIFF_BOUNDARIES",
       "DIFF_TYPE",
+      "ENTITY_CAMPAIGN_ID",
+      "ENTITY_CAMPAIGN_NAME",
       "ENTITY_DOCID",
       "ENTITY_EXTDOCID",
       "ENTITY_TYPE",
       "ENTITY_FORM",
       "ENTITY_OFFSET",
+      "MATCH_CAMPAIGN_ID",
+      "MATCH_CAMPAIGN_NAME",
       "MATCH_DOCID",
       "MATCH_EXTDOCID",
       "MATCH_TYPE",
@@ -173,11 +192,15 @@
     <columns separator=";">
       @match-boundaries;
       "";
+      args:entity.relation.section.document.@campaign-id;
+      args:entity.relation.section.document.@campaign-name;
       args:entity.relation.section.document.@id;
       args:entity.relation.section.document.@external-id;
       args:entity.@type;
       str:normalizeSpace(args:entity.@form);
       args:entity.(@start_ ^ "-" ^ @end_);
+      args:occurrence.section.document.@campaign-id;
+      args:occurrence.section.document.@campaign-name;
       args:occurrence.section.document.@id;
       args:occurrence.section.document.@external-id;
       "";
@@ -187,11 +210,15 @@
     <headers>
       "DIFF_BOUNDARIES",
       "DIFF_TYPE",
+      "ENTITY_CAMPAIGN_ID",
+      "ENTITY_CAMPAIGN_NAME",
       "ENTITY_DOCID",
       "ENTITY_EXTDOCID",
       "ENTITY_TYPE",
       "ENTITY_FORM",
       "ENTITY_OFFSET",
+      "MATCH_CAMPAIGN_ID",
+      "MATCH_CAMPAIGN_NAME",
       "MATCH_DOCID",
       "MATCH_EXTDOCID",
       "MATCH_TYPE",
@@ -216,5 +243,11 @@
       <action>set:remove-feature:check-annotations_entity-occurrences</action>
       <setFeatures/>
     </feature>
+
+    <feature-candidate class="Action">
+      <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+      <action>set:remove-feature:check-annotations_entity-occurrences_candidate</action>
+      <setFeatures/>
+    </feature-candidate>
   </clean>
 </alvisnlp-plan>
