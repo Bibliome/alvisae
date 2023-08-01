@@ -1,0 +1,35 @@
+<alvisnlp-plan id="entity-same-property">
+  <param name="relation">
+    <alias module="check" param="relations"/>
+  </param>
+
+  <param name="property">
+    <alias module="feature.property" param="value"/>
+  </param>
+
+  <param name="outFile">
+    <alias module="feature.file" param="value"/>
+  </param>
+
+  <features>
+    <property class="SetFeature">
+      <target>$</target>
+      <feature>check-annotation_same-property</feature>
+    </property>
+
+    <file class="SetFeature">
+      <target>$</target>
+      <feature>check-annotation_same-property_file</feature>
+    </file>
+  </features>
+
+  <check class="PythonScript">
+    <script>check-annotations/entity-same-property.py</script>
+    <layers/>
+    <callPython/>
+    <scriptParams>
+      <property>@check-annotation_same-property</property>
+      <outFile>@check-annotation_same-property_file</outFile>
+    </scriptParams>
+  </check>
+</alvisnlp-plan>
