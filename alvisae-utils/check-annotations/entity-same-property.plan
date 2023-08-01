@@ -4,11 +4,15 @@
   </param>
 
   <param name="property">
-    <alias module="feature.property" param="value"/>
+    <alias module="features.property" param="value"/>
+  </param>
+
+  <param name="caseInsensitive">
+    <alias module="features.case" param="value"/>
   </param>
 
   <param name="outFile">
-    <alias module="feature.file" param="value"/>
+    <alias module="features.file" param="value"/>
   </param>
 
   <features>
@@ -16,6 +20,12 @@
       <target>$</target>
       <feature>check-annotation_same-property</feature>
     </property>
+
+    <case class="SetFeature">
+      <target>$</target>
+      <feature>check-annotation_same-property_case</feature>
+      <value>false</value>
+    </case>
 
     <file class="SetFeature">
       <target>$</target>
@@ -25,11 +35,12 @@
 
   <check class="PythonScript">
     <script>check-annotations/entity-same-property.py</script>
-    <layers/>
+    <layers>alvisae</layers>
     <callPython/>
     <scriptParams>
       <property>@check-annotation_same-property</property>
       <outFile>@check-annotation_same-property_file</outFile>
+      <caseInsensitive>@check-annotation_same-property_case</caseInsensitive>
     </scriptParams>
   </check>
 </alvisnlp-plan>
