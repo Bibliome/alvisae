@@ -23,11 +23,10 @@ def tuple_str(t):
     return '[c=%s (%s), d=%s (%s), o=%s-%s]' % (doc.features['campaign-id'], doc.features['campaign-name'], doc.identifier, doc.features['external-id'], t.features['start_'], t.features['end_'])
 
 
-with open(CORPUS.params['outFile'], 'w') as f:
-    f.write('FORM\tPROPERTY (%s)\tN_OCC\tOCCURRENCES\n' % PROPERTY)
-    for form, values in DICT.items():
-        if len(values) >= 2:
-            for value, tuples in values.items():
-                f.write('\t'.join([form, value, str(len(tuples)), '; '.join(tuple_str(t) for t in tuples)]))
-                f.write('\n')
-CORPUS.write_events_json(sys.stdout)
+sys.stdout.write('FORM\tPROPERTY (%s)\tN_OCC\tOCCURRENCES\n' % PROPERTY)
+for form, values in DICT.items():
+    if len(values) >= 2:
+        for value, tuples in values.items():
+            sys.stdout.write('\t'.join([form, value, str(len(tuples)), '; '.join(tuple_str(t) for t in tuples)]))
+            sys.stdout.write('\n')
+

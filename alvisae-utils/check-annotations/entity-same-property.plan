@@ -12,7 +12,7 @@
   </param>
 
   <param name="outFile">
-    <alias module="features.file" param="value"/>
+    <alias module="check" param="outputFile"/>
   </param>
 
   <features>
@@ -26,11 +26,6 @@
       <feature>check-annotation_same-property_case</feature>
       <value>false</value>
     </case>
-
-    <file class="SetFeature">
-      <target>$</target>
-      <feature>check-annotation_same-property_file</feature>
-    </file>
   </features>
 
   <check class="PythonScript">
@@ -39,7 +34,6 @@
     <callPython/>
     <scriptParams>
       <property>@check-annotation_same-property</property>
-      <outFile>@check-annotation_same-property_file</outFile>
       <caseInsensitive>@check-annotation_same-property_case</caseInsensitive>
     </scriptParams>
   </check>
