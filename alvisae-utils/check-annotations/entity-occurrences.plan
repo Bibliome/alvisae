@@ -18,8 +18,7 @@
   </param>
 
   <param name="outFile">
-    <alias module="write-matched" param="corpusFile"/>
-    <alias module="write-unmatched" param="corpusFile"/>
+    <alias module="write" param="outputFile"/>
   </param>
 
   <entries class="Action">
@@ -144,88 +143,14 @@
     </none>
   </match>
 
-  <write-matched class="TabularExport">
-    <outDir>.</outDir>
-    <lines>documents.sections.relations:check-annotations_entity-occurrences.tuples[@match-boundaries != "boundaries-exact" and @match-boundaries != "boundaries-none" and @match-type != "type-identical"]</lines>
-    <columns separator=";">
-      @match-boundaries;
-      @match-type;
-      args:entity.relation.section.document.@campaign-id;
-      args:entity.relation.section.document.@campaign-name;
-      args:entity.relation.section.document.@id;
-      args:entity.relation.section.document.@external-id;
-      args:entity.@type;
-      str:normalizeSpace(args:entity.@form);
-      args:entity.(@start_ ^ "-" ^ @end_);
-      args:match.relation.section.document.@campaign-id;
-      args:match.relation.section.document.@campaign-name;
-      args:match.relation.section.document.@id;
-      args:match.relation.section.document.@external-id;
-      args:match.@type;
-      str:normalizeSpace(args:match.@form);
-      args:match.(@start_ ^ "-" ^ @end_)
-    </columns>
-    <headers>
-      "DIFF_BOUNDARIES",
-      "DIFF_TYPE",
-      "ENTITY_CAMPAIGN_ID",
-      "ENTITY_CAMPAIGN_NAME",
-      "ENTITY_DOCID",
-      "ENTITY_EXTDOCID",
-      "ENTITY_TYPE",
-      "ENTITY_FORM",
-      "ENTITY_OFFSET",
-      "MATCH_CAMPAIGN_ID",
-      "MATCH_CAMPAIGN_NAME",
-      "MATCH_DOCID",
-      "MATCH_EXTDOCID",
-      "MATCH_TYPE",
-      "MATCH_FORM",
-      "MATCH_OFFSET"
-    </headers>
-  </write-matched>
-
-  <write-unmatched class="TabularExport">
-    <append/>
-    <outDir>.</outDir>
-    <lines>documents.sections.relations:check-annotations_entity-occurrences.tuples[@match-boundaries == "boundaries-none"]</lines>
-    <columns separator=";">
-      @match-boundaries;
-      "";
-      args:entity.relation.section.document.@campaign-id;
-      args:entity.relation.section.document.@campaign-name;
-      args:entity.relation.section.document.@id;
-      args:entity.relation.section.document.@external-id;
-      args:entity.@type;
-      str:normalizeSpace(args:entity.@form);
-      args:entity.(@start_ ^ "-" ^ @end_);
-      args:occurrence.section.document.@campaign-id;
-      args:occurrence.section.document.@campaign-name;
-      args:occurrence.section.document.@id;
-      args:occurrence.section.document.@external-id;
-      "";
-      str:normalizeSpace(args:occurrence.@form);
-      args:occurrence.(start ^ "-" ^ end)
-    </columns>
-    <headers>
-      "DIFF_BOUNDARIES",
-      "DIFF_TYPE",
-      "ENTITY_CAMPAIGN_ID",
-      "ENTITY_CAMPAIGN_NAME",
-      "ENTITY_DOCID",
-      "ENTITY_EXTDOCID",
-      "ENTITY_TYPE",
-      "ENTITY_FORM",
-      "ENTITY_OFFSET",
-      "MATCH_CAMPAIGN_ID",
-      "MATCH_CAMPAIGN_NAME",
-      "MATCH_DOCID",
-      "MATCH_EXTDOCID",
-      "MATCH_TYPE",
-      "MATCH_FORM",
-      "MATCH_OFFSET"
-    </headers>
-  </write-unmatched>
+  <write class="PythonScript">
+    <script>check-annotations/entity-occurrences.py</script>
+    <layers>alvisae,check-annotations_entity-occurrences</layers>
+    <callPython/>
+    <scriptParams>
+      <caseInsensitive>@check-annotation_same-property_case</caseInsensitive>
+    </scriptParams>
+  </write>
 
   <clean>
     <layer class="ClearLayers">
