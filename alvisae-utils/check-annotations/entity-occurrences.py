@@ -9,11 +9,15 @@ class Occurrences:
         self.match_boundaries = collections.defaultdict(lambda: collections.defaultdict(Occurrences))
 
 
+def get_form(form):
+    if CF:
+        return form.lower()
+    return form
+
+
 def get_element(t, role, occurrences):
     elt = t.args[role]
-    form = elt.features['form']
-    if CF:
-        form = form.lower()
+    form = get_form(elt.features['form'])
     type_ = elt.features['type']
     occ = occurrences[(form, type_)]
     occ.occurrences.add(elt)
@@ -48,7 +52,7 @@ for doc in CORPUS.documents:
             matches = entity_occ.match_boundaries[match_level]
             if match_boundaries == 'boundaries-none':
                 a = t.args['occurrence']
-                matches[(a.form, '')].occurrences.add(a)
+                matches[(get_form(a.form), '')].occurrences.add(a)
             else:
                 get_element(t, 'match', matches)
 
