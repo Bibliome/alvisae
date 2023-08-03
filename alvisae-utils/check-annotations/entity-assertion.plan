@@ -15,8 +15,8 @@
     <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
     <severe>false</severe>
     <message>
-      relation.section.document.@id ^ "\t" ^
-      relation.section.document.@external-id ^ "\t" ^
+      relation.section.document.(@campaign-id ^ " (" ^ @campaign-name ^ ")\t") ^
+      relation.section.document.(@id ^ " (" ^ @external-id ^ ")\t") ^
       @type ^ "\t" ^
       str:replace(args{0}.ctx:before(20), "\n", "\\n") ^ "\t" ^
       str:replace(@form, "\n", "\\n") ^ "\t" ^
