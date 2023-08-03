@@ -6,7 +6,6 @@
 
   <param name="candidates">
     <alias module="candidates" param="target"/>
-    <alias module="clean.feature-candidate" param="target"/>
   </param>
 
   <param name="caseInsensitive">
@@ -15,6 +14,10 @@
 
   <param name="wordStartCaseInsensitive">
     <alias module="project" param="wordStartCaseInsensitive"/>
+  </param>
+
+  <param name="aggregateCaseFolding">
+    <alias module="case-folding" param="value"/>
   </param>
 
   <param name="outFile">
@@ -143,12 +146,17 @@
     </none>
   </match>
 
+  <case-folding class="SetFeature">
+    <target>$</target>
+    <feature>check-annotation_same-property_case-folding</feature>
+  </case-folding>
+
   <write class="PythonScript">
     <script>check-annotations/entity-occurrences.py</script>
     <layers>alvisae,check-annotations_entity-occurrences</layers>
     <callPython/>
     <scriptParams>
-      <caseInsensitive>@check-annotation_same-property_case</caseInsensitive>
+      <caseFolding>@check-annotation_same-property_case-folding</caseFolding>
     </scriptParams>
   </write>
 
@@ -163,16 +171,14 @@
       <deleteElements/>
     </relation>
 
-    <feature class="Action">
+    <features class="Action">
       <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
-      <action>set:remove-feature:check-annotations_entity-occurrences</action>
+      <action>
+	set:remove-feature:check-annotations_entity-occurrences |
+	set:remove-feature:check-annotations_entity-occurrences_candidate |
+	set:remove-feature:check-annotations_entity-occurrences_case-folding
+      </action>
       <setFeatures/>
-    </feature>
-
-    <feature-candidate class="Action">
-      <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
-      <action>set:remove-feature:check-annotations_entity-occurrences_candidate</action>
-      <setFeatures/>
-    </feature-candidate>
+    </features>
   </clean>
 </alvisnlp-plan>

@@ -12,7 +12,7 @@ class Occurrences:
 def get_element(t, role, occurrences):
     elt = t.args[role]
     form = elt.features['form']
-    if CI:
+    if CF:
         form = form.lower()
     type_ = elt.features['type']
     occ = occurrences[(form, type_)]
@@ -33,8 +33,8 @@ def get_match_level(match_boundaries, match_type):
 
 
 CORPUS = alvisnlp.Corpus.parse_json(sys.stdin)
-ci = CORPUS.params['caseInsensitive']
-CI = ci == 'yes' or ci == 'y' or ci == 'true'
+cf = CORPUS.params['caseFolding']
+CF = cf == 'yes' or cf == 'y' or cf == 'true'
 ENTITIES = collections.defaultdict(Occurrences)
 for doc in CORPUS.documents:
     for sec in doc.sections:
