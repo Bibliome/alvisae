@@ -1,0 +1,63 @@
+<alvisnlp-plan id="annotation-check_entity-property-reference">
+  <param name="outFile">
+    <alias module="check" param="outFile"/>
+  </param>
+  
+  <param name="entities">
+    <alias module="map.tabular" param="target"/>
+    <alias module="check" param="target"/>
+  </param>
+
+  <param name="property">
+    <alias module="features.property" param="value"/>
+  </param>
+
+  <param name="prefix">
+    <alias module="features.prefix" param="value"/>
+  </param>
+
+  <param name="referenceFile">
+    <alias module="map.tabular" param="mappingFile"/>
+  </param>
+
+  <param name="keyColumn">
+    <alias module="map.tabular" param="keyColumn"/>
+  </param>
+
+  <features>
+    <property class="SetFeature">
+      <target>$</target>
+      <feature>check-annotations_entity-property-reference_property</feature>
+    </property>
+    
+    <prefix class="SetFeature">
+      <target>$</target>
+      <feature>check-annotations_entity-property-reference_prefix</feature>
+      <value/>
+    </prefix>
+  </features>
+  
+  <map>
+    <select>tabular</select>
+    <tabular class="FileMapper">
+      <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+      <form>corpus.@check-annotations_entity-property-reference_prefix ^ properties:last(corpus.@check-annotations_entity-property-reference_property)</form>
+      <targetFeatures>check-annotations_entity-property-reference_found</targetFeatures>
+    </tabular>
+  </map>
+
+  <check class="Assert">
+    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+    <assertion>@check-annotations_entity-property-reference_found</assertion>
+    <severe>false</severe>
+    <message>
+      relation.section.document.(@campaign-id ^ " (" ^ @campaign-name ^ ")\t") ^
+      relation.section.document.(@id ^ " (" ^ @external-id ^ ")\t") ^
+      @annotator ^ "\t" ^
+      @type ^ "\t" ^
+      properties:last(corpus.@check-annotations_entity-property-reference_property) ^ "\t" ^
+      str:replace(@form, "\n", "\\n") ^ "\t" ^
+      args:entity.(@start_ ^ "-" ^ @end_)
+    </message>
+  </check>
+</alvisnlp-plan>
