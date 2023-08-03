@@ -21,7 +21,7 @@ for doc in CORPUS.documents:
 
 def tuple_str(t):
     doc = t.relation.section.document
-    return '[c=%s (%s), d=%s (%s), o=%s-%s]' % (doc.features['campaign-id'], doc.features['campaign-name'], doc.identifier, doc.features['external-id'], t.features['start_'], t.features['end_'])
+    return '[c=%s (%s), a=%s, d=%s (%s), o=%s-%s]' % (doc.features['campaign-id'], doc.features['campaign-name'], t.features['annotator'], doc.identifier, doc.features['external-id'], t.features['start_'], t.features['end_'])
 
 
 sys.stdout.write('FORM\tPROPERTY (%s)\tN_OCC\tOCCURRENCES\n' % PROPERTY)

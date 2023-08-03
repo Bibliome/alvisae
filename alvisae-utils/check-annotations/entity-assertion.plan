@@ -17,6 +17,7 @@
     <message>
       relation.section.document.(@campaign-id ^ " (" ^ @campaign-name ^ ")\t") ^
       relation.section.document.(@id ^ " (" ^ @external-id ^ ")\t") ^
+      @annotator ^ "\t" ^
       @type ^ "\t" ^
       str:replace(args{0}.ctx:before(20), "\n", "\\n") ^ "\t" ^
       str:replace(@form, "\n", "\\n") ^ "\t" ^

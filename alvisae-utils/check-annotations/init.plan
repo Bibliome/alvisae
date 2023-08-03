@@ -39,9 +39,16 @@
     <externalIdFeature>external-id</externalIdFeature>
     <campaignIdFeature>campaign-id</campaignIdFeature>
     <campaignNameFeature>campaign-name</campaignNameFeature>
+    <userFeature>annotator</userFeature>
     <userIdFeature>user-id</userIdFeature>
     <taskIdFeature>task-id</taskIdFeature>
   </load>
+
+  <document-annotator class="Action">
+    <target>documents</target>
+    <action>set:feat:annotator((sections.relations[@kind == "text-bound"].tuples){0}.@annotator)</action>
+    <setFeatures/>
+  </document-annotator>
 
   <exclusive-zones>
     <feature class="SetFeature">
