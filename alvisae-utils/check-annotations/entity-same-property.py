@@ -2,6 +2,7 @@ import alvisnlp
 import sys
 import collections
 
+
 CORPUS = alvisnlp.Corpus.parse_json(sys.stdin)
 PROPERTY = CORPUS.params['property']
 ci = CORPUS.params['caseInsensitive']
@@ -11,11 +12,12 @@ for doc in CORPUS.documents:
     for sec in doc.sections:
         for rel in sec.relations:
             for t in rel.tuples:
-                form = t.features['form']
-                if CI:
-                    form = form.lower()
-                value = ','.join(sorted(t.features.get(PROPERTY)))
-                DICT[form][value].append(t)
+                if t.features['check-annotations_entity-same-property'] == 'please-check':
+                    form = t.features['form']
+                    if CI:
+                        form = form.lower()
+                    value = ','.join(sorted(t.features.get(PROPERTY)))
+                    DICT[form][value].append(t)
 
 
 def tuple_str(t):

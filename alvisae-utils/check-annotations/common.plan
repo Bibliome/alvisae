@@ -27,8 +27,12 @@
     <alias module="load" param="userNames"/>
   </param>
 
-  <param name="alvisae-url-prefix">
+  <param name="alvisaeUrlPrefix">
     <alias module="alvisae-url.prefix" param="value"/>
+  </param>
+
+  <param name="exclusiveZones">
+    <alias module="exclusive-zones" param="value"/>
   </param>
 
   <load class="AlvisAEReader">
@@ -39,10 +43,16 @@
     <taskIdFeature>task-id</taskIdFeature>
   </load>
 
+  <exclusive-zones class="SetFeature">
+    <target>$</target>
+    <feature>check-annotations_exclusive-zones</feature>
+    <value/>
+  </exclusive-zones>
+
   <alvisae-url>
     <prefix class="SetFeature">
       <target>$</target>
-      <featureName>alvisae-url-prefix</featureName>
+      <feature>alvisae-url-prefix</feature>
     </prefix>
     
     <doc-url class="Action">

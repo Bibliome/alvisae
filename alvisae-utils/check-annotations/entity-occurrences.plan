@@ -68,6 +68,22 @@
     </tuples>
   </overlaps>
 
+  <exclusive-zones>
+    <active>@check-annotations_exclusive-zones != ""</active>
+
+    <entity-in-exclusive class="Action">
+      <target>documents[sections.relations[@name == corpus.@check-annotations_exclusive-zones].tuples].sections.relations:check-annotations_entity-occurrences.tuples[not args:entity.args:frag0.outside:alvisae[@type == corpus.@check-annotations_exclusive-zones]]</target>
+      <action>delete</action>
+      <deleteElements/>
+    </entity-in-exclusive>
+      
+    <match-in-exclusive class="Action">
+      <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[args:occurrence[section.document[sections.relations[@name == corpus.@check-annotations_exclusive-zones].tuples] and not outside:alvisae[@type == corpus.@check-annotations_exclusive-zones]]]</target>
+      <action>delete</action>
+      <deleteElements/>
+    </match-in-exclusive>
+  </exclusive-zones>
+  
   <match>
     <exact class="Action">
       <target>documents.sections.relations:check-annotations_entity-occurrences.tuples</target>
@@ -176,10 +192,17 @@
       <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
       <action>
 	set:remove-feature:check-annotations_entity-occurrences |
-	set:remove-feature:check-annotations_entity-occurrences_candidate |
-	set:remove-feature:check-annotations_entity-occurrences_case-folding
+	set:remove-feature:check-annotations_entity-occurrences_candidate
       </action>
       <setFeatures/>
     </features>
+
+    <corpus-features class="Action">
+      <target>$</target>
+      <action>
+	set:remove-feature:check-annotations_entity-occurrences_case-folding
+      </action>
+      <setFeatures/>
+    </corpus-features>
   </clean>
 </alvisnlp-plan>
