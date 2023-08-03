@@ -1,7 +1,7 @@
 <alvisnlp-plan id="entity-occurrences">
   <param name="entities">
     <alias module="entries" param="target"/>
-    <alias module="clean.feature" param="target"/>
+    <alias module="clean.features" param="target"/>
   </param>
 
   <param name="candidates">
@@ -149,6 +149,7 @@
   <case-folding class="SetFeature">
     <target>$</target>
     <feature>check-annotation_same-property_case-folding</feature>
+    <value>false</value>
   </case-folding>
 
   <write class="PythonScript">
