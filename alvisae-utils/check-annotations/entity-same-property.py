@@ -29,4 +29,5 @@ for form, values in DICT.items():
         for value, tuples in values.items():
             sys.stdout.write('\t'.join([form, value, str(len(tuples)), '; '.join(tuple_str(t) for t in tuples)]))
             sys.stdout.write('\n')
-
+        form = ''
+        values = ''
