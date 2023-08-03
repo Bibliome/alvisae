@@ -56,6 +56,12 @@
     <setArguments/>
   </project>
 
+  <exclusive-zones class="Action">
+    <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[not args:occurrence.outside:check-annotations_exclusive-zones]</target>
+    <action>delete</action>
+    <deleteElements/>
+  </exclusive-zones>
+
   <overlaps>
     <annotations class="RemoveOverlaps">
       <layer>check-annotations_entity-occurrences</layer>
@@ -67,22 +73,6 @@
       <deleteElements/>
     </tuples>
   </overlaps>
-
-  <exclusive-zones>
-    <active>@check-annotations_exclusive-zones != ""</active>
-
-    <entity-in-exclusive class="Action">
-      <target>documents[sections.relations[@name == corpus.@check-annotations_exclusive-zones].tuples].sections.relations:check-annotations_entity-occurrences.tuples[not args:entity.args:frag0.outside:alvisae[@type == corpus.@check-annotations_exclusive-zones]]</target>
-      <action>delete</action>
-      <deleteElements/>
-    </entity-in-exclusive>
-      
-    <match-in-exclusive class="Action">
-      <target>documents.sections.relations:check-annotations_entity-occurrences.tuples[args:occurrence[section.document[sections.relations[@name == corpus.@check-annotations_exclusive-zones].tuples] and not outside:alvisae[@type == corpus.@check-annotations_exclusive-zones]]]</target>
-      <action>delete</action>
-      <deleteElements/>
-    </match-in-exclusive>
-  </exclusive-zones>
   
   <match>
     <exact class="Action">

@@ -26,12 +26,6 @@
       <feature>check-annotation_same-property_case</feature>
       <value>false</value>
     </case>
-
-    <mark class="Action">
-      <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
-      <action>$[@type != corpus.@check-annotations_exclusive-zones and not (relation.section.document.relations[@name == corpus.@check-annotations_exclusive-zones].tuples and args.outside:alvisae[@type == corpus.@check-annotations_exclusive-zones])].set:feat:check-annotations_entity-same-property("please-check")</action>
-      <setFeatures/>
-    </mark>
   </features>
 
   <check class="PythonScript">
@@ -52,10 +46,4 @@
     </action>
     <setFeatures/>
   </clean>
-
-  <clean-mark class="Action">
-    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
-    <action>set:remove-feature:heck-annotations_entity-same-property</action>
-    <setFeatures/>
-  </clean-mark>
 </alvisnlp-plan>

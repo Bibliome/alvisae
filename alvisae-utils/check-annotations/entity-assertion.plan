@@ -4,21 +4,15 @@
   </param>
   
   <param name="entities">
-    <alias module="mark" param="target"/>
+    <alias module="check" param="target"/>
   </param>
 
   <param name="condition">
     <alias module="check" param="assertion"/>
   </param>
-
-  <mark class="Action">
-    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
-    <action>$[@type != corpus.@check-annotations_exclusive-zones and not (relation.section.document.relations[@name == corpus.@check-annotations_exclusive-zones].tuples and args.outside:alvisae[@type == corpus.@check-annotations_exclusive-zones])].set:feat:check-annotations_entity-assertion("please-check")</action>
-    <setFeatures/>
-  </mark>
   
   <check class="Assert">
-    <target>documents.sections.relations[@kind == "text-bound"].tuples[@check-annotations_entity-assertion == "please-check"]</target>
+    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
     <severe>false</severe>
     <message>
       relation.section.document.@id ^ "\t" ^
@@ -30,10 +24,4 @@
       args:entity.(@start_ ^ "-" ^ @end_)
     </message>
   </check>
-
-  <clean class="Action">
-    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
-    <action>set:remove-feature:check-annotations_entity-assertion</action>
-    <setFeatures/>
-  </clean>
 </alvisnlp-plan>

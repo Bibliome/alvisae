@@ -32,7 +32,7 @@
   </param>
 
   <param name="exclusiveZones">
-    <alias module="exclusive-zones" param="value"/>
+    <alias module="exclusive-zones.feature" param="value"/>
   </param>
 
   <load class="AlvisAEReader">
@@ -43,10 +43,62 @@
     <taskIdFeature>task-id</taskIdFeature>
   </load>
 
-  <exclusive-zones class="SetFeature">
-    <target>$</target>
-    <feature>check-annotations_exclusive-zones</feature>
-    <value/>
+  <exclusive-zones>
+    <feature class="SetFeature">
+      <target>$</target>
+      <feature>check-annotations_exclusive-zones</feature>
+      <value/>
+    </feature>
+
+    <copy-annotations class="Action">
+      <target>documents.sections.relations[@name == corpus.@check-annotations_exclusive-zones].tuples.args</target>
+      <action>section.new:annotation:check-annotations_exclusive-zones(target)</action>
+      <createAnnotations/>
+      <addToLayer/>
+    </copy-annotations>
+
+    <whole-zone class="Action">
+      <target>documents[not sections.layer:check-annotations_exclusive-zones]</target>
+      <action>sections.new:annotation:check-annotations_exclusive-zones(0, str:len(contents))</action>
+      <createAnnotations/>
+      <addToLayer/>
+    </whole-zone>
+
+    <annotations class="Action">
+      <target>documents.sections.layer:alvisae[@type == corpus.@check-annotations_exclusive-zones or not outside:check-annotations_exclusive-zones]</target>
+      <action>set:feat:check-annotations_exclusive-zones_delete("please-delete")</action>
+      <setFeatures/>
+    </annotations>
+
+    <level-1 class="Action">
+      <target>documents.sections.relations.tuples[not @check-annotations_exclusive-zones_delete and args[@check-annotations_exclusive-zones_delete == "please-delete"]]</target>
+      <action>set:feat:check-annotations_exclusive-zones_delete("please-delete")</action>
+      <setFeatures/>
+    </level-1>
+
+    <level-2 class="Action">
+      <target>documents.sections.relations.tuples[not @check-annotations_exclusive-zones_delete and args[@check-annotations_exclusive-zones_delete == "please-delete"]]</target>
+      <action>set:feat:check-annotations_exclusive-zones_delete("please-delete")</action>
+      <setFeatures/>
+    </level-2>
+
+    <level-3 class="Action">
+      <target>documents.sections.relations.tuples[not @check-annotations_exclusive-zones_delete and args[@check-annotations_exclusive-zones_delete == "please-delete"]]</target>
+      <action>set:feat:check-annotations_exclusive-zones_delete("please-delete")</action>
+      <setFeatures/>
+    </level-3>
+
+    <level-4 class="Action">
+      <target>documents.sections.relations.tuples[not @check-annotations_exclusive-zones_delete and args[@check-annotations_exclusive-zones_delete == "please-delete"]]</target>
+      <action>set:feat:check-annotations_exclusive-zones_delete("please-delete")</action>
+      <setFeatures/>
+    </level-4>
+
+    <delete class="Action">
+      <target>documents.sections.relations.tuples[@check-annotations_exclusive-zones_delete == "please-delete"]</target>
+      <action>delete</action>
+      <deleteElements/>
+    </delete>
   </exclusive-zones>
 
   <alvisae-url>

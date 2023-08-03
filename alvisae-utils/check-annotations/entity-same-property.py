@@ -12,12 +12,11 @@ for doc in CORPUS.documents:
     for sec in doc.sections:
         for rel in sec.relations:
             for t in rel.tuples:
-                if t.features['check-annotations_entity-same-property'] == 'please-check':
-                    form = t.features['form']
-                    if CI:
-                        form = form.lower()
-                    value = ','.join(sorted(t.features.get(PROPERTY)))
-                    DICT[form][value].append(t)
+                form = t.features['form']
+                if CI:
+                    form = form.lower()
+                value = ','.join(sorted(t.features.get(PROPERTY)))
+                DICT[form][value].append(t)
 
 
 def tuple_str(t):
