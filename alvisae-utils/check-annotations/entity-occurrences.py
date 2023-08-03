@@ -48,6 +48,7 @@ for doc in CORPUS.documents:
             match_type = t.features['match-type']
             match_level = get_match_level(match_boundaries, match_type)
             if match_level is None:
+                entity_occ.occurrences.add(t.args['match'])
                 continue
             matches = entity_occ.match_boundaries[match_level]
             if match_boundaries == 'boundaries-none':
