@@ -1,4 +1,4 @@
-<alvisnlp-plan id="alvisae-check_common">
+<alvisnlp-plan id="alvisae-check_init">
   <param name="url">
     <alias module="load" param="url"/>
   </param>
@@ -102,7 +102,7 @@
     </level-4>
 
     <delete class="Action">
-      <target>documents.sections.relations.tuples[@check-annotations_exclusive-zones_delete == "please-delete"]</target>
+      <target>documents.sections.(layer:alvisae|relations.tuples)[@check-annotations_exclusive-zones_delete == "please-delete"]</target>
       <action>delete</action>
       <deleteElements/>
     </delete>
