@@ -41,7 +41,7 @@
     <select>tabular</select>
     <tabular class="FileMapper">
       <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
-      <form>corpus.@check-annotations_entity-property-reference_prefix ^ properties:last(corpus.@check-annotations_entity-property-reference_property)</form>
+      <form>corpus.@check-annotations_entity-property-reference_prefix ^ str:normalizeSpace(properties:last(corpus.@check-annotations_entity-property-reference_property))</form>
       <targetFeatures>check-annotations_entity-property-reference_found</targetFeatures>
     </tabular>
   </map>
