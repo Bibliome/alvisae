@@ -39,6 +39,14 @@
     <alias module="exclude-types.map" param="mappingFile"/>
   </param>
 
+  <param name="zone-type">
+    <alias module="zones.feature" param="value"/>
+  </param>
+
+  <param name="zone-selection">
+    <alias module="zones.do.trim" param="fragmentSelection"/>
+  </param>
+
   <param name="out-dir">
     <alias module="write.docs" param="outDir"/>
     <alias module="write.text" param="outDir"/>
@@ -59,6 +67,46 @@
     <taskIdFeature>task-id</taskIdFeature>
     <campaignNameFeature>campaign-name</campaignNameFeature>
   </read>
+
+  <zones>
+    <feature class="SetFeature">
+      <target>$</target>
+      <feature>zone-type</feature>
+      <value/>
+    </feature>
+
+    <do>
+      <active>@zone-type != ""</active>
+
+      <layer class="Action">
+	<target>documents.sections.relations[@name == corpus.@zone-type].tuples</target>
+	<action>args.add:zone</action>
+	<addToLayer/>
+      </layer>
+
+      <trim class="MergeSections">
+	<documentFilter>int(sections.layer:zone)>0</documentFilter>
+	<targetSection>trimmed</targetSection>
+	<fragmentLayer>zone</fragmentLayer>
+      </trim>
+    </do>
+  </zones>
+
+  <remove-empty>
+    <layout class="Action">
+      <target>documents.sections.layer:html[@form =~ "^\\s*$"]</target>
+      <action>delete</action>
+      <deleteElements/>
+    </layout>
+    
+    <entities class="Action">
+      <target>documents.sections.relations[@kind == "text-bound"].tuples[pred:all(args, @form =~ "^\\s*$")]</target>
+      <action>
+	($|args).delete
+      </action>
+      <deleteElements/>
+    </entities>
+  </remove-empty>
 
   <exclude-types>
     <map class="FileMapper">
@@ -161,10 +209,10 @@
     <normalizations class="TabularExport">
       <files>documents</files>
       <fileName>"normalizations/" ^ @external-id ^ ".norm"</fileName>
-      <lines>sort:ival(sections.relations[@kind == "text-bound"].tuples[@normalization-feature], args:frag0.start)</lines>
+      <lines>sort:ival(sections.relations[@kind == "text-bound"].tuples[@normalization-feature and properties:last(@normalization-feature) != ""], args:frag0.start)</lines>
       <columns separator="|">
 	@nid|
-	@normalization-name ^ " Annotation:" ^ @tid ^ " Referent:" ^ properties:last(@normalization-feature)
+	@normalization-name ^ " Annotation:" ^ @tid ^ " Referent:" ^ str:replace(properties:last(@normalization-feature), " ", "_")
       </columns>
     </normalizations>
 
