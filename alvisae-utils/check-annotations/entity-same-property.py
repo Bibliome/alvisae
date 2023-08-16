@@ -15,7 +15,7 @@ for doc in CORPUS.documents:
                 form = t.features['form']
                 if CI:
                     form = form.lower()
-                value = ','.join(sorted(t.features.get(PROPERTY)))
+                value = ', '.join(sorted(s.strip() for s in t.features.get(PROPERTY)))
                 DICT[form][value].append(t)
 
 

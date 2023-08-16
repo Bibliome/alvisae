@@ -57,7 +57,7 @@
       @type ^ "\t" ^
       properties:last(corpus.@check-annotations_entity-property-reference_property) ^ "\t" ^
       str:replace(@form, "\n", "\\n") ^ "\t" ^
-      args:entity.(@start_ ^ "-" ^ @end_)
+      (@start_ ^ "-" ^ @end_)
     </message>
   </check>
 </alvisnlp-plan>

@@ -30,7 +30,6 @@
 
   <check class="PythonScript">
     <script>check-annotations/entity-same-property.py</script>
-    <layers>alvisae</layers>
     <callPython/>
     <scriptParams>
       <property>@check-annotation_same-property</property>

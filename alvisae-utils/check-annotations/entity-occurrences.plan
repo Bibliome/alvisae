@@ -160,7 +160,6 @@
 
   <write class="PythonScript">
     <script>check-annotations/entity-occurrences.py</script>
-    <layers>alvisae,check-annotations_entity-occurrences</layers>
     <callPython/>
     <scriptParams>
       <caseFolding>@check-annotation_same-property_case-folding</caseFolding>

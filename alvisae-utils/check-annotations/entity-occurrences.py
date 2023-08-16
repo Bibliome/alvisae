@@ -104,7 +104,4 @@ for (entity_form, entity_type), entity_occ in ENTITIES.items():
             ]))
             sys.stdout.write('\n')
             match_boundaries = ''
-        entity_form = ''
-        entity_type = ''
-        entity_occ_n = ''
-        entity_occ_str = ''
+        entity_occ_str = '...'
