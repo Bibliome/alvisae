@@ -155,6 +155,7 @@ class RecycleAnnotations(OptionParser):
 
     def recycle(self):
         stderr.write('Working directory: %s\n' % self.options['WD'])
+        self._write_file(self.options['PROPS_FILE'], PROPERTIES)
         self._write_file(self.options['PLAN'], SOURCE_PLAN)
         self._write_file(self.options['ALVISNLP_CL_SAVE'], SOURCE_CL)
         try:
@@ -164,7 +165,6 @@ class RecycleAnnotations(OptionParser):
         self._call(SOURCE_CL % self.options, True)
 
         self._write_file(self.options['ALVISAE_CL_SAVE'], TARGET_CL)
-        self._write_file(self.options['PROPS_FILE'], PROPERTIES)
         cli = TARGET_CL % self.options
         for u in self.options['TARGET_USERS_LIST']:
             self.options['TARGET_USER'] = u
@@ -196,10 +196,7 @@ SOURCE_CL = '''%(ALVISNLP)s -log %(LOG)s -verbose %(PLAN)s'''
 SOURCE_PLAN = '''
 <alvisnlp-plan id="export-manual">
   <read class="AlvisAEReader">
-    <url>jdbc:postgresql://%(PSQL_HOST)s:%(PSQL_PORT)s/%(PSQL_DB)s</url>
-    <schema>%(PSQL_SCHEMA)s</schema>
-    <username>%(PSQL_USER)s</username>
-    <password>%(PSQL_PASSWORD)s</password>
+    <databasePropsFile>%(PROPS_FILE)s</databasePropsFile>
     <campaignId>%(SOURCE_CAMPAIGN)s</campaignId>
     <taskName>%(SOURCE_TASK)s</taskName>
     <userFeature>user</userFeature>
