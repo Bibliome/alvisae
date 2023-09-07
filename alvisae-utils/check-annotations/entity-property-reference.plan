@@ -5,6 +5,7 @@
   
   <param name="entities">
     <alias module="map.tabular" param="target"/>
+    <alias module="map.obo" param="target"/>
     <alias module="check" param="target"/>
   </param>
 
@@ -18,6 +19,14 @@
 
   <param name="referenceFile">
     <alias module="map.tabular" param="mappingFile"/>
+  </param>
+
+  <param name="oboFile">
+    <alias module="map.obo" param="oboFiles"/>
+  </param>
+
+  <param name="format">
+    <alias module="map" param="select"/>
   </param>
 
   <param name="keyColumn">
@@ -39,11 +48,19 @@
   
   <map>
     <select>tabular</select>
+    
     <tabular class="FileMapper">
       <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
       <form>corpus.@check-annotations_entity-property-reference_prefix ^ str:normalizeSpace(properties:last(corpus.@check-annotations_entity-property-reference_property))</form>
       <targetFeatures>check-annotations_entity-property-reference_found</targetFeatures>
     </tabular>
+
+    <obo class="OBOMapper">
+      <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+      <form>corpus.@check-annotations_entity-property-reference_prefix ^ str:normalizeSpace(properties:last(corpus.@check-annotations_entity-property-reference_property))</form>
+      <idKeys/>
+      <idFeature>check-annotations_entity-property-reference_found</idFeature>
+    </obo>
   </map>
 
   <check class="Assert">
