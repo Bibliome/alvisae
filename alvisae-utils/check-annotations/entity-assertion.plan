@@ -23,7 +23,8 @@
       str:replace(args{0}.ctx:before(20), "\n", "\\n") ^ "\t" ^
       str:replace(@form, "\n", "\\n") ^ "\t" ^
       str:replace(args{-1}.ctx:after(20), "\n", "\\n") ^ "\t" ^
-      args:entity.(@start_ ^ "-" ^ @end_)
+      args:entity.(@start_ ^ "-" ^ @end_) ^ "\t" ^
+      @id
     </message>
   </check>
 </alvisnlp-plan>

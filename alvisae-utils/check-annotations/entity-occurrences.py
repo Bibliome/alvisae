@@ -67,7 +67,7 @@ def tuple_str(t):
         doc = t.section.document
         start = str(t.start)
         end = str(t.end)
-    return '[c=%s (%s), a=%s, d=%s (%s), h=%s, o=%s-%s]' % (doc.features['campaign-id'], doc.features['campaign-name'], doc.features['annotator'], doc.identifier, doc.features['external-id'], doc.features['alvisae-url'], start, end)
+    return '[c=%s (%s), a=%s, d=%s (%s), h=%s, o=%s-%s, i=%s]' % (doc.features['campaign-id'], doc.features['campaign-name'], doc.features['annotator'], doc.identifier, doc.features['external-id'], doc.features['alvisae-url'], start, end, t.features['id'])
 
 
 def occ_str(occ):
