@@ -70,6 +70,7 @@
     <message>
       relation.section.document.(@campaign-id ^ " (" ^ @campaign-name ^ ")\t") ^
       relation.section.document.(@id ^ " (" ^ @external-id ^ ")\t") ^
+      relation.section.document.@alvisae-url ^ "\t" ^
       @annotator ^ "\t" ^
       @type ^ "\t" ^
       properties:last(corpus.@check-annotations_entity-property-reference_property) ^ "\t" ^

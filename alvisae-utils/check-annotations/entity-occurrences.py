@@ -67,7 +67,7 @@ def tuple_str(t):
         doc = t.section.document
         start = str(t.start)
         end = str(t.end)
-    return '[c=%s (%s), a=%s, d=%s (%s), o=%s-%s]' % (doc.features['campaign-id'], doc.features['campaign-name'], doc.features['annotator'], doc.identifier, doc.features['external-id'], start, end)
+    return '[c=%s (%s), a=%s, d=%s (%s), h=%s, o=%s-%s]' % (doc.features['campaign-id'], doc.features['campaign-name'], doc.features['annotator'], doc.identifier, doc.features['external-id'], doc.features['alvisae-url'], start, end)
 
 
 def occ_str(occ):
@@ -104,4 +104,4 @@ for (entity_form, entity_type), entity_occ in ENTITIES.items():
             ]))
             sys.stdout.write('\n')
             match_boundaries = ''
-        entity_occ_str = '...'
+        # entity_occ_str = '...'
