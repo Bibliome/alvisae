@@ -20,8 +20,12 @@
     <alias module="case-folding" param="value"/>
   </param>
 
-  <param name="outFile">
-    <alias module="write" param="outputFile"/>
+  <param name="aggregatedFile">
+    <alias module="write.aggregated" param="outputFile"/>
+  </param>
+
+  <param name="fullFile">
+    <alias module="write.full" param="corpusFile"/>
   </param>
 
   <entries class="Action">
@@ -158,12 +162,69 @@
     <value>false</value>
   </case-folding>
 
-  <write class="PythonScript">
-    <script>check-annotations/entity-occurrences.py</script>
-    <callPython/>
-    <scriptParams>
-      <caseFolding>@check-annotation_same-property_case-folding</caseFolding>
-    </scriptParams>
+  <write>
+    <aggregated class="PythonScript">
+      <script>check-annotations/entity-occurrences.py</script>
+      <callPython/>
+      <scriptParams>
+	<caseFolding>@check-annotation_same-property_case-folding</caseFolding>
+      </scriptParams>
+    </aggregated>
+
+    <full class="TabularExport">
+      <outDir>.</outDir>
+      <lines>documents.sections.relations:check-annotations_entity-occurrences.tuples[@match-boundaries != "boundaries-exact" and @match-type != "type-identical"]</lines>
+      <columns separator=";">
+	args:entity.relation.section.document.(@campaign-id ^ " (" ^ @campaign-name ^ ")");
+	args:entity.relation.section.document.@annotator;
+	args:entity.relation.section.document.(@id ^ " (" ^ @external-id ^ ")");
+	args:entity.relation.section.document.@alvisae-url;
+	args:entity.(@start_ ^ "-" ^ @end_);
+	args:entity.@id;
+	args:entity.@type;
+	str:normalizeSpace(args:entity.args:frag0.ctx:before(20));
+	str:normalizeSpace(args:entity.@superform);
+	str:normalizeSpace(args:entity.args{-1}.ctx:after(20));
+	if @match-boundaries == "boundaries-none" then @match-boundaries else (
+	if @match-boundaries == "boundaries-exact" then @match-type else (
+	if @match-type == "type-identical" then @match-boundaries else (
+	@match-boundaries ^ ", " ^ @match-type
+	)));
+	args:match.relation.section.document.(@campaign-id ^ " (" ^ @campaign-name ^ ")");
+	args:match.relation.section.document.@annotator;
+	args:match.relation.section.document.(@id ^ " (" ^ @external-id ^ ")");
+	args:match.relation.section.document.@alvisae-url;
+	args:match.(@start_ ^ "-" ^ @end_);
+	args:match.@id;
+	args:match.@type;
+	str:normalizeSpace(args:match.args:frag0.ctx:before(20));
+	str:normalizeSpace(args:match.@superform);
+	str:normalizeSpace(args:match.args{-1}.ctx:after(20))
+      </columns>
+      <headers>
+	"ENTITY_CAMPAIGN",
+	"ENTITY_ANNOTATOR",
+	"ENTITY_DOCUMENT",
+	"ENTITY_DOC_URL",
+	"ENTITY_OFFSET",
+	"ENTITY_ID",
+	"ENTITY_TYPE",
+	"ENTITY_BEFORE",
+	"ENTITY_FORM",
+	"ENTITY_AFTER",
+	"MATCH_LEVEL",
+	"MATCH_CAMPAIGN",
+	"MATCH_ANNOTATOR",
+	"MATCH_DOCUMENT",
+	"MATCH_DOC_URL",
+	"MATCH_OFFSET",
+	"MATCH_ID",
+	"MATCH_TYPE",
+	"MATCH_BEFORE",
+	"MATCH_FORM",
+	"MATCH_AFTER"
+      </headers>
+    </full>
   </write>
 
   <clean>
