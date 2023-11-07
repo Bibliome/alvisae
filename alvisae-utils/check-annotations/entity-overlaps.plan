@@ -1,0 +1,37 @@
+<alvisnlp-plan id="entity-overlaps">
+  <param name="outFile">
+    <alias module="overlap" param="outFile"/>
+  </param>
+  
+  <param name="entities">
+    <alias module="overlap" param="target"/>
+  </param>
+
+  <param name="outer-selector">
+  </param>
+
+  <userFunctions>
+    
+  </userFunctions>
+
+  <overlap class="Assert">
+    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+    <assertion>
+      not args.(outside:alvisae|overlapping:alvisae)[user:entity-overlaps_outer-selector]
+    </assertion>
+    <severe>false</severe>
+    <message>
+      relation.section.document.(@campaign-id ^ " (" ^ @campaign-name ^ ")\t") ^
+      relation.section.document.(@id ^ " (" ^ @external-id ^ ")\t") ^
+      relation.section.document.@alvisae-url ^ "\t" ^
+      @annotator ^ "\t" ^
+      @type ^ "\t" ^
+      str:replace(str:replace(args{0}.ctx:before(20), "\n", "\\n"), "\"", "\\\"") ^ "\t" ^
+      str:replace(str:replace(@form, "\n", "\\n"), "\"", "\\\"") ^ "\t" ^
+      str:replace(str:replace(args{-1}.ctx:after(20), "\n", "\\n"), "\"", "\\\"") ^ "\t" ^
+      args:entity.(@start_ ^ "-" ^ @end_) ^ "\t" ^
+      @id ^ "\t" ^
+      str:join:', '(args.(outside:alvisae|overlapping:alvisae)[user:entity-overlaps_outer-selector], @form)
+    </message>
+  </overlap>
+</alvisnlp-plan>
