@@ -1,0 +1,37 @@
+<alvisnlp-plan id="coref-same-property">
+  <param name="outFile">
+    <alias module="check"/>
+  </param>
+
+  <param name="corefs">
+    <alias module="check" param="target"/>
+  </param>
+
+  <param name="property">
+    <feature key="coref-same-property_property"/>
+  </param>
+  
+  <check class="Assert">
+    <target>documents.sections.relations[@kind == "group"].tuples</target>
+    <assertion>
+      pred:all(args, properties:last(corpus.@coref-same-property_property) == target.args:item0.properties:last(corpus.@coref-same-property_property))
+    </assertion>
+    <severe>false</severe>
+    <message>
+      relation.section.document.(@campaign-id ^ " (" ^ @campaign-name ^ ")\t") ^
+      relation.section.document.(@id ^ " (" ^ @external-id ^ ")\t") ^
+      relation.section.document.@alvisae-url ^ "\t" ^
+      @annotator ^ "\t" ^
+      args:item0.@type ^ "\t" ^
+      str:replace(str:replace(str:join:', '(args, @form), "\n", "\\n"), "\"", "\\\"") ^ "\t" ^
+      str:join:', '(args, properties:last(corpus.@coref-same-property_property)) ^ "\t" ^
+      @id
+    </message>
+  </check>
+
+  <clean class="Action">
+    <target>$</target>
+    <action>set:remove-feature:corpus.@coref-same-property_property</action>
+    <setFeatures/>
+  </clean>
+</alvisnlp-plan>
