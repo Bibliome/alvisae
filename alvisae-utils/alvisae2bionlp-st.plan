@@ -35,6 +35,10 @@
     <alias module="zones.do.trim" param="fragmentSelection"/>
   </param>
 
+  <param name="type-names-file">
+    <alias module="type-name.map" param="mappingFile"/>
+  </param>
+
   <param name="out-dir">
     <alias module="write.docs" param="outDir"/>
     <alias module="write.text" param="outDir"/>
@@ -138,6 +142,20 @@
     <targetFeatures>,normalization-feature,normalization-name</targetFeatures>
   </normalizations>
 
+  <type-name>
+    <map class="FileMapper">
+      <target>documents.sections.relations.tuples</target>
+      <form>@__TYPE</form>
+      <targetFeatures>,display-type</targetFeatures>
+    </map>
+
+    <default class="Action">
+      <target>documents.sections.relations.tuples[@display-type == ""]</target>
+      <action>set:feat:display-type(@__TYPE)</action>
+      <setFeatures/>
+    </default>
+  </type-name>
+
   <ids>
     <entities-and-entities class="Action">
       <target>documents.sections</target>
@@ -178,7 +196,7 @@
       <lines>sort:ival(sections.relations:HTML.tuples, args:frag0.start)</lines>
       <columns separator="|">
 	@tid|
-	@__TYPE ^ " " ^ str:join:';'(args, start ^ " " ^ end)|
+	@display-type ^ " " ^ str:join:';'(args, start ^ " " ^ end)|
 	str:normalizeSpace(str:join:' '(args, @form))
       </columns>
     </layout>
@@ -189,7 +207,7 @@
       <lines>sort:ival(sections.relations[@kind == "text-bound" and not @layout].tuples, args:frag0.start)</lines>
       <columns separator="|">
 	@tid|
-	@__TYPE ^ " " ^ str:join:';'(args, start ^ " " ^ end)|
+	@display-type ^ " " ^ str:join:';'(args, start ^ " " ^ end)|
 	str:normalizeSpace(str:join:' '(args, @form))
       </columns>
     </entities>
@@ -210,7 +228,7 @@
       <lines>sort:ival(sections.relations[@kind == "relation"].tuples, args[args:frag0]{0}.args:frag0.start)</lines>
       <columns separator="|">
 	@rid|
-	@__TYPE ^ " " ^ str:join:' '(nav:arguments, @role ^ ":" ^ @rid ^ @tid)
+	@display-type ^ " " ^ str:join:' '(nav:arguments, @role ^ ":" ^ @rid ^ @tid)
       </columns>
     </relations>
   </write>
