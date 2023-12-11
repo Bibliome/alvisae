@@ -191,16 +191,16 @@
 	if @match-type == "type-identical" then @match-boundaries else (
 	@match-boundaries ^ ", " ^ @match-type
 	)));
-	args:match.relation.section.document.(@campaign-id ^ " (" ^ @campaign-name ^ ")");
-	args:match.relation.section.document.@annotator;
-	args:match.relation.section.document.(@id ^ " (" ^ @external-id ^ ")");
-	args:match.relation.section.document.@alvisae-url;
-	args:match.(@start_ ^ "-" ^ @end_);
-	args:match.@id;
-	args:match.@type;
-	str:normalizeSpace(args:match.args:frag0.ctx:before(20));
-	str:normalizeSpace(args:match.@superform);
-	str:normalizeSpace(args:match.args{-1}.ctx:after(20))
+	(if @match-boundaries == "boundaries-none" then args:occurrence else args:match.relation).section.document.(@campaign-id ^ " (" ^ @campaign-name ^ ")");
+	(if @match-boundaries == "boundaries-none" then args:occurrence else args:match.relation).section.document.@annotator;
+	(if @match-boundaries == "boundaries-none" then args:occurrence else args:match.relation).section.document.(@id ^ " (" ^ @external-id ^ ")");
+	(if @match-boundaries == "boundaries-none" then args:occurrence else args:match.relation).section.document.@alvisae-url;
+	if @match-boundaries == "boundaries-none" then args:occurrence.(start ^ "-" ^ end) else args:match.(@start_ ^ "-" ^ @end_);
+	(if @match-boundaries == "boundaries-none" then args:occurrence else args:match.relation).@id;
+	(if @match-boundaries == "boundaries-none" then args:occurrence else args:match.relation).@type;
+	str:normalizeSpace((if @match-boundaries == "boundaries-none" then args:occurrence else args:match.args:frag0).ctx:before(20));
+	str:normalizeSpace(if @match-boundaries == "boundaries-none" then args:occurrence.@form else args:match.@superform);
+	str:normalizeSpace((if @match-boundaries == "boundaries-none" then args:occurrence else args:match.args{-1}).ctx:after(20))
       </columns>
       <headers>
 	"ENTITY_CAMPAIGN",
