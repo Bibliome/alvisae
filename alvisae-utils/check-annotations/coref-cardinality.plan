@@ -1,0 +1,24 @@
+<alvisnlp-plan id="coref-cardinality">
+  <param name="outFile">
+    <alias module="check"/>
+  </param>
+
+  <param name="corefs">
+    <alias module="check" param="target"/>
+  </param>
+
+  <check class="Assert">
+    <target>documents.sections.relations[@kind == "group"].tuples</target>
+    <assertion>
+      int(args) > 1
+    </assertion>
+    <severe>false</severe>
+    <message>
+      relation.section.document.(@campaign-id ^ " (" ^ @campaign-name ^ ")\t") ^
+      relation.section.document.(@id ^ " (" ^ @external-id ^ ")\t") ^
+      relation.section.document.@alvisae-url ^ "\t" ^
+      @annotator ^ "\t" ^
+      @id
+    </message>
+  </check>
+</alvisnlp-plan>
