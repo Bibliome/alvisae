@@ -8,3 +8,5 @@ ontol-rws/target
 .settings
 alvisae-utils/__pycache__
 alvisae-utils/db.props
+.idea/
+remove_annotations.sql
