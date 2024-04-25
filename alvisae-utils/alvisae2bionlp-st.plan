@@ -120,10 +120,92 @@
 
   <add-layout-newlines class="InsertContents">
     <active>false</active>
-    <points>layer:html[@tag =~ "^h\\d$" or @tag == "p" or @tag == "br" and not ctx:after(1) =~ "^\\s$"]</points>
+    <points>layer:html[(@tag =~ "^h\\d$" or @tag == "p" or @tag == "br") and not ctx:after(1) =~ "^\\s$"]</points>
     <offset>end</offset>
     <insert>"&#xA;"</insert>
   </add-layout-newlines>
+
+  <delete-empty-tuples>
+    <pass-1>
+      <unset-arg class="Action">
+	<target>documents.sections.relations[@kind == "relation" or @kind == "group"].tuples[args[not args]]</target>
+	<action>
+	  nav:arguments[not args] as a.target.set:remove-arg(a.@role)
+	</action>
+	<setArguments/>
+      </unset-arg>
+
+      <delete class="Action">
+	<target>documents.sections.relations.tuples[not args]</target>
+	<action>delete</action>
+	<deleteElements/>
+      </delete>
+    </pass-1>
+
+    <pass-2>
+      <unset-arg class="Action">
+	<target>documents.sections.relations[@kind == "relation" or @kind == "group"].tuples[args[not args]]</target>
+	<action>
+	  nav:arguments[not args] as a.target.set:remove-arg(a.@role)
+	</action>
+	<setArguments/>
+      </unset-arg>
+
+      <delete class="Action">
+	<target>documents.sections.relations.tuples[not args]</target>
+	<action>delete</action>
+	<deleteElements/>
+      </delete>
+    </pass-2>
+
+    <pass-3>
+      <unset-arg class="Action">
+	<target>documents.sections.relations[@kind == "relation" or @kind == "group"].tuples[args[not args]]</target>
+	<action>
+	  nav:arguments[not args] as a.target.set:remove-arg(a.@role)
+	</action>
+	<setArguments/>
+      </unset-arg>
+
+      <delete class="Action">
+	<target>documents.sections.relations.tuples[not args]</target>
+	<action>delete</action>
+	<deleteElements/>
+      </delete>
+    </pass-3>
+
+    <pass-4>
+      <unset-arg class="Action">
+	<target>documents.sections.relations[@kind == "relation" or @kind == "group"].tuples[args[not args]]</target>
+	<action>
+	  nav:arguments[not args] as a.target.set:remove-arg(a.@role)
+	</action>
+	<setArguments/>
+      </unset-arg>
+
+      <delete class="Action">
+	<target>documents.sections.relations.tuples[not args]</target>
+	<action>delete</action>
+	<deleteElements/>
+      </delete>
+    </pass-4>
+
+    <pass-5>
+      <unset-arg class="Action">
+	<target>documents.sections.relations[@kind == "relation" or @kind == "group"].tuples[args[not args]]</target>
+	<action>
+	  nav:arguments[not args] as a.target.set:remove-arg(a.@role)
+	</action>
+	<setArguments/>
+      </unset-arg>
+
+      <delete class="Action">
+	<target>documents.sections.relations.tuples[not args]</target>
+	<action>delete</action>
+	<deleteElements/>
+      </delete>
+    </pass-5>
+  </delete-empty-tuples>
 
   <layout>
     <create-relation class="Action">
