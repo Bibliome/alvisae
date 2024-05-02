@@ -1,5 +1,14 @@
+import collections
 from abc import abstractmethod
 from collections.abc import Iterator, Sequence
+import xml.etree.ElementTree as etree
+from typing import Optional
+
+
+def _elt(tag, attrib, text):
+    e = etree.Element(tag, attrib)
+    e.text = text
+    return e
 
 
 class Schema:
@@ -45,6 +54,89 @@ class Schema:
             print('\u001b[1m%s\u001b[0m' % Schema._kind_name(kind))
             for adef in Schema.kind_types(kind):
                 adef.console('  ')
+
+    @staticmethod
+    def to_eval_xml(task_name: str, description: str, annotations: Sequence['AnnotationType'], normalizations: Sequence['Property'], ner: Optional[Sequence['TextBound']] = None, nen: Optional[Sequence[tuple['TextBound', 'Property']]] = None, train = None, dev = None) -> etree.ElementTree:
+        task = etree.Element('task', dict(name=task_name))
+        task.append(_elt('description', {}, description))
+        task.append(Schema._to_schema_xml(annotations, normalizations))
+        if ner:
+            task.append(Schema._to_ner_eval(ner, 'NER strict', Schema._SIMILARITY_NER_STRICT))
+            task.append(Schema._to_ner_eval(ner, 'NER relaxed', Schema._SIMILARITY_NER_RELAXED))
+        if nen:
+            task.append(Schema._to_nen_eval(nen, 'NEN (NER strict)', Schema._SIMILARITY_NER_STRICT))
+            task.append(Schema._to_nen_eval(nen, 'NEN (NER relaxed)', Schema._SIMILARITY_NER_RELAXED))
+        if train:
+            etree.SubElement(task, 'train', dict(dir=train))
+        if dev:
+            etree.SubElement(task, 'dev', dict(dir=dev))
+        return task
+
+    @staticmethod
+    def _to_schema_xml(annotations: Sequence['AnnotationType'], normalizations: Sequence['Property']):
+        schema = etree.Element('schema')
+        norm_types = collections.defaultdict(set)
+        for a in annotations:
+            assert a.name in Schema._annotation_types
+            ae = a.to_eval_schema()
+            for n in normalizations:
+                if n.key in a._properties:
+                    ae.append(n.to_backref_cardinality())
+                    norm_types[n.key].add(a.name)
+            schema.append(ae)
+        for n in normalizations:
+            ne = n.to_eval_schema(norm_types[n.key])
+            schema.append(ne)
+        return schema
+
+    _SIMILARITY_NER_STRICT = '''
+<matching-similarity>
+    <product>
+        <boundaries/>
+        <type/>
+    </product>
+</matching-similarity>
+'''
+
+    _SIMILARITY_NER_RELAXED = '''
+<matching-similarity>
+    <product>
+        <boundaries overlap="1"/>
+        <type/>
+    </product>
+</matching-similarity>
+'''
+
+    @staticmethod
+    def _to_ner_eval(annotations: Sequence['AnnotationType'], name, similarity):
+        ev = etree.Element('evaluation', dict(name=name))
+        matching_sim = etree.fromstring(similarity)
+        ev.append(matching_sim)
+        pre_filter = etree.SubElement(ev, 'pre-filter', {})
+        pre_filter.append(_elt('types', {}, ','.join(a.name for a in annotations)))
+        for a in annotations:
+            scoring = etree.SubElement(ev, 'scoring', dict(name=a.name))
+            post_filter = etree.SubElement(scoring, 'post-filter')
+            post_filter.append(_elt('types', {}, a.name))
+            etree.SubElement(scoring, 'f1-measures', {})
+        return ev
+
+    @staticmethod
+    def _to_nen_eval(normalizations: Sequence[tuple['TextBound', 'Property']], name, similarity):
+        ev = etree.Element('evaluation', dict(name=name))
+        matching_sim = etree.fromstring(similarity)
+        ev.append(matching_sim)
+        pre_filter = etree.SubElement(ev, 'pre-filter', {})
+        pre_filter.append(_elt('types', {}, ','.join(a.name for a, _ in normalizations)))
+        for a, p in normalizations:
+            scoring = etree.SubElement(ev, 'scoring', dict(name=f'{a.name} / {p.key}'))
+            post_filter = etree.SubElement(scoring, 'post-filter')
+            post_filter.append(_elt('types', {}, a.name))
+            eval_sim = etree.SubElement(scoring, 'similarity')
+            etree.SubElement(eval_sim, 'normalization', {'normalization-type': p.key})
+            scoring.append(_elt('measure', {}, 'match-accuracy'))
+            etree.SubElement(scoring, 'f1-measures', {})
+        return ev
 
 
 class AnnotationType:
@@ -128,6 +220,10 @@ class AnnotationType:
     def _console(self, indent: str) -> None:
         pass
 
+    @abstractmethod
+    def to_eval_schema(self) -> etree.Element:
+        pass
+
 
 class TextBound(AnnotationType):
     def __init__(self, name: str, color: str, minFrag: int = 1, maxFrag: int = 10):
@@ -152,6 +248,9 @@ class TextBound(AnnotationType):
 
     def _console(self, indent: str = '  ') -> None:
         pass
+
+    def to_eval_schema(self) -> etree.Element:
+        return etree.Element('text-bound', dict(type=self.name))
 
 
 class Group(AnnotationType):
@@ -180,6 +279,9 @@ class Group(AnnotationType):
         homogeneity = 'homogeneous' if self._homogeneous else 'heterogeneous'
         print('  %s%s: %s' % (indent, homogeneity, ' | '.join(ct.name for ct in self._compTypes)))
 
+    def to_eval_schema(self) -> etree.Element:
+        raise RuntimeError('cannot schema Group')
+
 
 class Relation(AnnotationType):
     def __init__(self, name: str, color: str, args: dict[str, Sequence[AnnotationType]]):
@@ -198,6 +300,15 @@ class Relation(AnnotationType):
     def _console(self, indent: str = '  ') -> None:
         for k, types in self._args.items():
             print('  %s%s: %s' % (indent, k, ', '.join(t.name for t in types)))
+
+    def to_eval_schema(self) -> etree.Element:
+        e = etree.Element('relation', dict(type=self.name))
+        roles = ','.join(self._args)
+        e.append(_elt('roles', {}, roles))
+        e.append(_elt('mandatory-arguments', {}, roles))
+        for role, types in self._args.items():
+            e.append(_elt('argument-types', {'role': role}, ','.join(t.name for t in types)))
+        return e
 
 
 class Property:
@@ -220,6 +331,14 @@ class Property:
             mandatory = self._mandatory,
             valType = self._val_type_to_json()
         )
+
+    def to_backref_cardinality(self) -> etree.Element:
+        return _elt('backreference-cardinality', {'at-least': str(self._minVal), 'at-most': str(self._maxVal)}, self._key)
+
+    def to_eval_schema(self, annotation_types) -> etree.Element:
+        norm = etree.Element('normalization', dict(type=self._key))
+        norm.append(_elt('annotation-types', {}, ','.join(annotation_types)))
+        return norm
 
     @abstractmethod
     def _val_type_to_json(self) -> dict:
