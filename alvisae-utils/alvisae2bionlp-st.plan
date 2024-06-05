@@ -24,7 +24,8 @@
   </param>
 
   <param name="normalizations-file">
-    <alias module="normalizations" param="mappingFile"/>
+    <alias module="normalizations.map" param="mappingFile"/>
+    <alias module="normalizations.relation" param="source"/>
   </param>
 
   <param name="type-exclusion-file">
@@ -229,11 +230,37 @@
     </create-tuples>
   </layout>
 
-  <normalizations class="FileMapper">
-    <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
-    <form>@__TYPE</form>
-    <targetFeatures>,normalization-feature,normalization-name</targetFeatures>
+  <normalizations>
+    <map class="FileMapper">
+      <target>documents.sections.relations[@kind == "text-bound"].tuples</target>
+      <form>@__TYPE</form>
+      <targetFeatures>,normalization-feature,normalization-name</targetFeatures>
+    </map>
+
+    <relation class="TabularReader">
+      <sourceElement>$</sourceElement>
+      <lineActions>
+	documents.sections.new:relation(tab:column(2)).set:feat:kind("normalization")
+      </lineActions>
+      <createRelations/>
+      <setFeatures/>
+    </relation>
+
+    <tuples class="Action">
+      <target>documents.sections.relations[@kind == "text-bound"].tuples[@normalization-feature]</target>
+      <action>
+	nav:features(@normalization-feature) as f.
+	target.relation.section.nav:relations(target.@normalization-name).new:tuple.(
+	set:arg:entity(target) | set:feat:value(f.@value)
+	)
+      </action>
+      <createTuples/>
+      <setArguments/>
+      <setFeatures/>
+    </tuples>
   </normalizations>
+
+  <shell/>
 
   <type-name>
     <map class="FileMapper">
@@ -258,7 +285,7 @@
 
     <normalizations class="Action">
       <target>documents.sections</target>
-      <action>id:enumerate:nid:N(sort:ival(relations[@kind == "text-bound"].tuples[@normalization-feature], args:frag0.start))</action>
+      <action>id:enumerate:nid:N(sort:ival(relations[@kind == "normalization"].tuples, args:entity.args:frag0.start))</action>
       <setFeatures/>
     </normalizations>
 
@@ -308,10 +335,10 @@
     <normalizations class="TabularExport">
       <files>documents</files>
       <fileName>"normalizations/" ^ @external-id ^ ".norm"</fileName>
-      <lines>sort:ival(sections.relations[@kind == "text-bound"].tuples[@normalization-feature and properties:last(@normalization-feature) != ""], args:frag0.start)</lines>
+      <lines>sort:ival(sections.relations[@kind == "normalization"].tuples, args:entity.args:frag0.start)</lines>
       <columns separator="|">
 	@nid|
-	@normalization-name ^ " Annotation:" ^ @tid ^ " Referent:" ^ str:replace(properties:last(@normalization-feature), " ", "_")
+	relation.@name ^ " Annotation:" ^ args:entity.@tid ^ " Referent:" ^ str:replace(@value, " ", "_")
       </columns>
     </normalizations>
 
