@@ -260,8 +260,6 @@
     </tuples>
   </normalizations>
 
-  <shell/>
-
   <type-name>
     <map class="FileMapper">
       <target>documents.sections.relations.tuples</target>
